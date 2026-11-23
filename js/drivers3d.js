@@ -16,7 +16,7 @@ export const SPRITE_GROUND = (HALF - CY) / (HALF * 2);
 // visual de cada piloto (roupa, acessórios)
 const LOOK = {
   pipoca: { shirt: 0xff9cc8, shoe: 0xffffff, glove: 0xffffff },
-  tico:   { shirt: 0xffe082, shoe: 0x8d6e63, glove: 0xffffff, cap: 0xe8541e, spots: 0xfff3c4 },
+  tico:   { shirt: 0xffe082, shoe: 0x8d6e63, glove: 0x7cc642, cap: 0xe8541e, spots: 0xfff3c4 },
   mel:    { shirt: 0xfff176, shoe: 0xff8a65, glove: 0xffffff },
   faisca: { shirt: 0x37474f, shoe: 0x212121, glove: 0x212121, scarf: 0xe53935 },
   bento:  { shirt: 0xffffff, shoe: 0x5d4037, glove: 0xffffff, scarf: 0x1565c0 },
@@ -124,45 +124,89 @@ function buildHead(b, d, expr) {
 
   switch (d.id) {
     case 'pipoca': { // coelha
-      b.sphere(h, R, fur, [0, 0, 0], [1, 0.95, 0.95]);
+      R = 0.38;
+      const pink = b.fur(0xffb3cf);
+      // cabeça levemente em forma de pera: mais larga nas bochechas
+      b.sphere(h, R, fur, [0, 0.02, 0], [1, 0.95, 0.94]);
+      for (const s of [1, -1]) b.sphere(h, 0.2, fur, [s * 0.14, -0.13, 0.12], [1, 0.82, 0.9]);
+      // focinho fofo: duas almofadinhas, narizinho rosa e dentinhos
+      for (const s of [1, -1]) b.sphere(h, 0.085, fur, [s * 0.065, -0.12, 0.33], [1, 0.85, 0.75]);
+      b.sphere(h, 0.04, b.plastic(0xff6f9a, 60), [0, -0.06, 0.39], [1.3, 0.9, 0.8]);
+      if (expr !== 'dizzy') for (const s of [1, -1]) b.rbox(h, 0.04, 0.06, 0.02, 0.01, b.plastic(0xffffff, 40), [s * 0.022, -0.21, 0.34]);
+      // tufinho de pelo na testa
+      for (const [x, y, z, r] of [[0.02, 0.33, 0.17, 0.06], [-0.05, 0.31, 0.19, 0.045]]) b.sphere(h, r, fur, [x, y, z]);
+      // orelhas compridas em forma de folha, a da direita com a ponta dobrada
       for (const s of [1, -1]) {
         const ear = new THREE.Group();
-        ear.position.set(s * 0.15, 0.32, -0.05);
-        ear.rotation.set(-0.15, 0, -s * (expr === 'dizzy' ? 0.9 : 0.18));
+        ear.position.set(s * 0.13, 0.3, -0.06);
+        ear.rotation.set(-0.22, s * 0.12, -s * (expr === 'dizzy' ? 0.8 : expr === 'happy' ? 0.28 : 0.14));
         h.add(ear);
-        b.add(ear, new THREE.CapsuleGeometry(0.095, 0.48, 6, 12), fur, [0, 0.3, 0], [0, 0, 0], [1, 1, 0.6]);
-        b.add(ear, new THREE.CapsuleGeometry(0.055, 0.4, 6, 12), b.fur(0xffb3cf), [0, 0.3, 0.04], [0, 0, 0], [1, 1, 0.4]);
+        b.sphere(ear, 0.06, fur, [0, 0.02, 0]); // base mais fina
+        b.add(ear, new THREE.SphereGeometry(1, 20, 14), fur, [0, 0.24, 0], [0, 0, 0], [0.105, 0.26, 0.05]);
+        b.add(ear, new THREE.SphereGeometry(1, 16, 12), pink, [0, 0.24, 0.025], [0, 0, 0], [0.06, 0.2, 0.035]);
+        const tip = new THREE.Group();
+        tip.position.set(0, 0.45, 0);
+        if (s > 0) tip.rotation.set(0.3, 0, -0.95); else tip.rotation.x = 0.12; // ponta caída para fora numa orelha só
+        ear.add(tip);
+        b.add(tip, new THREE.SphereGeometry(1, 20, 14), fur, [0, 0.1, 0], [0, 0, 0], [0.095, 0.15, 0.045]);
+        b.add(tip, new THREE.SphereGeometry(1, 16, 12), pink, [0, 0.09, 0.022], [0, 0, 0], [0.052, 0.1, 0.03]);
       }
-      // laço
-      for (const s of [1, -1]) b.sphere(h, 0.08, b.plastic(0xff3f8e), [0.2 + s * 0.08, 0.36, 0.05], [1, 0.6, 0.5]);
-      b.sphere(h, 0.045, b.plastic(0xff3f8e), [0.2, 0.36, 0.06]);
-      b.sphere(h, 0.17, b.fur(0xffffff), surf(R * 0.78, 0, -0.22), [1.2, 0.8, 0.8]);
-      b.sphere(h, 0.045, b.plastic(0xff6f9a), surf(R * 0.98, 0, -0.08), [1.3, 1, 1]);
-      b.add(h, new THREE.BoxGeometry(0.07, 0.07, 0.03), b.plastic(0xffffff), surf(R * 0.93, 0, -0.36));
-      eyes(b, h, R, ex());
-      mouth(b, h, R, ex({ pitch: -0.3, w: 0.08 }));
+      // laço na base da orelha esquerda
+      const bow = new THREE.Group(); bow.position.set(-0.17, 0.33, 0.04); bow.rotation.z = 0.35; h.add(bow);
+      for (const s of [1, -1]) b.sphere(bow, 0.075, b.plastic(0xff3f8e), [s * 0.075, 0, 0], [1, 0.62, 0.5]);
+      b.sphere(bow, 0.04, b.plastic(0xff3f8e), [0, 0, 0.02]);
+      eyes(b, h, R, ex({ yaw: 0.3, pitch: 0.08, size: 0.068 }));
+      if (expr !== 'normal') mouth(b, h, R, ex({ pitch: -0.42, w: 0.07 }));
       cheeks(b, h, R);
       break;
     }
     case 'tico': { // sapo + cogumelo
-      R = 0.41;
-      b.sphere(h, R, fur, [0, -0.04, 0], [1.15, 0.82, 1]);
-      b.sphere(h, 0.3, b.fur(0xe9f5c9), [0, -0.12, 0.13], [1.15, 0.55, 0.8]); // queixo claro
-      // olhos no rosto, logo abaixo da aba do chapéu
-      const eg = new THREE.Group(); eg.position.set(0, -0.04, 0); eg.scale.set(1.15, 0.82, 1); h.add(eg);
-      eyes(b, eg, R, ex({ yaw: 0.34, pitch: 0.22, size: 0.075 }));
-      mouth(b, h, R, ex({ pitch: -0.27, w: expr === 'happy' ? 0.13 : 0.15 }));
-      cheeks(b, h, R, 0xff7aa0);
-      // chapéu de cogumelo: aba larga com pintas
-      const cap = new THREE.Group(); cap.position.set(0, 0.2, -0.04); cap.rotation.x = -0.12;
-      if (expr === 'dizzy') cap.rotation.z = 0.25;
+      R = 0.4;
+      const SX = 1.32, SY = 0.7, SZ = 1.05; // cabeça larga e achatada de sapo
+      b.sphere(h, R, fur, [0, -0.04, 0], [SX, SY, SZ]);
+      b.sphere(h, R * 0.92, b.fur(0xe4f2b8), [0, -0.1, 0.04], [SX * 0.95, SY * 0.7, SZ * 0.98]); // papo claro
+      // calombos dos olhos em cima da cabeça, com olho simples na frente
+      for (const s of [1, -1]) {
+        const bump = new THREE.Group(); bump.position.set(s * 0.22, 0.17, 0.1); h.add(bump);
+        b.sphere(bump, 0.14, fur, [0, 0, 0], [1, 0.92, 0.95]);
+        const face = new THREE.Group(); face.position.set(s * 0.02, 0.02, 0.125); face.rotation.y = s * 0.2; bump.add(face);
+        const ink = b.plastic(0x1c1416, 70);
+        if (expr === 'happy') b.add(face, new THREE.TorusGeometry(0.05, 0.014, 6, 14, Math.PI), ink, [0, -0.01, 0.005]);
+        else if (expr === 'dizzy') for (const a2 of [0.8, -0.8]) b.add(face, new THREE.BoxGeometry(0.1, 0.022, 0.02), ink, [0, 0, 0.005], [0, 0, a2]);
+        else {
+          b.add(face, new THREE.SphereGeometry(0.068, 18, 12), ink, [0, 0, 0], [0, 0, 0], [0.75, 1, 0.32]);
+          b.sphere(face, 0.018, b.plastic(0xffffff, 10), [-s * 0.014, 0.026, 0.017], [1, 1, 0.5]);
+        }
+      }
+      // narinas
+      for (const s of [1, -1]) b.sphere(h, 0.014, b.plastic(0x2e5a12), [s * 0.06, 0.03, 0.42]);
+      // boca larga de sapo de uma bochecha à outra
+      const mg = new THREE.Group(); mg.position.set(0, -0.04, 0); mg.scale.set(SX, SY, SZ); h.add(mg);
+      {
+        const happy = expr === 'happy';
+        const pts = [];
+        for (let k = 0; k <= 16; k++) {
+          const y = -0.95 + (1.9 * k) / 16;
+          pts.push(V(...surf(R * 1.0, y, (happy ? -0.27 + 0.2 * y * y : -0.2 + 0.1 * y * y) + (expr === 'dizzy' ? 0.04 * Math.sin(k * 1.6) : 0))));
+        }
+        if (happy) { // sorrisão aberto: boca escura com linguinha
+          b.sphere(mg, 0.13, b.plastic(0x5a1010, 20), surf(R * 0.97, 0, -0.27), [1.7, 0.55, 0.3]);
+          b.sphere(mg, 0.07, b.plastic(0xff6f80, 20), surf(R * 0.99, 0, -0.31), [1.6, 0.45, 0.3]);
+        }
+        b.tube(mg, pts, happy ? 0.016 : 0.011, b.plastic(0x2e3a12, 30));
+      }
+      cheeks(b, h, R * 1.12, 0xff7aa0);
+      // chapeuzinho de cogumelo atrás dos olhos, inclinado como uma boina
+      const cap = new THREE.Group(); cap.position.set(0, 0.22, -0.14); cap.rotation.set(-0.38, 0, 0.12);
+      if (expr === 'dizzy') cap.rotation.z = 0.45;
       h.add(cap);
-      b.add(cap, new THREE.SphereGeometry(0.58, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), b.plastic(L.cap, 40), [0, 0, 0], [0, 0, 0], [1, 0.72, 1]);
-      b.add(cap, new THREE.CylinderGeometry(0.58, 0.5, 0.06, 32), b.fur(0xf3e5c0), [0, -0.02, 0]);
-      for (const [yaw, pitch, r] of [[0, 0.5, 0.11], [1.2, 0.35, 0.09], [-1.2, 0.35, 0.09], [2.3, 0.4, 0.1], [-2.3, 0.4, 0.1], [3.14, 0.5, 0.1], [0.6, 1.05, 0.08], [-0.6, 1.05, 0.08], [2.2, 1.0, 0.08], [-2.2, 1.0, 0.08], [0, 1.4, 0.09]]) {
-        const p = surf(0.585, yaw, pitch);
-        const sp = b.sphere(cap, r, b.plastic(L.spots, 30), [p[0], p[1] * 0.72, p[2]], [1, 0.45, 1]);
-        sp.lookAt(sp.position.clone().multiplyScalar(2));
+      b.add(cap, new THREE.CylinderGeometry(0.1, 0.12, 0.12, 16), b.fur(0xf3e5c0), [0, -0.02, 0]); // talo
+      b.add(cap, new THREE.SphereGeometry(0.34, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), b.plastic(L.cap, 40), [0, 0.03, 0], [0, 0, 0], [1, 0.8, 1]);
+      b.add(cap, new THREE.CylinderGeometry(0.34, 0.3, 0.04, 32), b.fur(0xf3e5c0), [0, 0.02, 0]);
+      for (const [yaw, pitch, r] of [[0, 0.45, 0.075], [1.3, 0.4, 0.065], [-1.3, 0.4, 0.065], [2.5, 0.45, 0.07], [-2.5, 0.45, 0.07], [0.7, 1.05, 0.06], [-0.7, 1.05, 0.06], [3.14, 1.0, 0.06], [0, 1.45, 0.06]]) {
+        const p = surf(0.345, yaw, pitch);
+        const sp = b.sphere(cap, r, b.plastic(L.spots, 30), [p[0], 0.03 + p[1] * 0.8, p[2]], [1, 1, 0.4]);
+        sp.quaternion.setFromUnitVectors(V(0, 0, 1), V(p[0], p[1] * 1.25, p[2]).normalize()); // achatada rente à superfície
       }
       break;
     }

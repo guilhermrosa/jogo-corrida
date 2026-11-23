@@ -13,5 +13,8 @@ Linhas: Pipoca, Tico, Mel, Faísca, Bento, Tonho, Rino e Juca.
 | `v3-olhos.png` | Terceira versão: olhos simples (oval escuro com brilho, sem globo branco nem íris colorida), Tico com olhos no rosto, Juca com olhar semicerrado; Rino igual |
 | `v3-rostos.png` | Close dos rostos da v3: normal, comemorando e atordoado |
 | `comparativo-v2-v3.png` | v2 e v3 lado a lado |
+| `v4-coelha-sapo.png` | Quarta versão: Pipoca com orelhas em folha (uma com a ponta dobrada), bochechas fofas, focinho e dentinhos; Tico com cabeça larga e achatada, olhos em calombos, boca de sapo de bochecha a bochecha, papo claro, mãos verdes e chapeuzinho de cogumelo inclinado |
+| `v4-close-coelha-sapo.png` | Close da v4: frente, 3/4, lado, costas, comemorando e atordoado |
+| `comparativo-v3-v4.png` | Pipoca e Tico na v3 (em cima) e na v4 (embaixo) |
 
 Na v1 não existiam as poses de comemorar e atordoado; os ângulos da v1 são os mais próximos disponíveis.
