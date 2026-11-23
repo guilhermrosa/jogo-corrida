@@ -1,0 +1,180 @@
+// =====================================================================
+//  Dados do jogo — regras e números baseados no Mario Kart 64
+//  (personagens, pistas e itens são originais; só as mecânicas são iguais)
+// =====================================================================
+
+// O MK64 usa "unidades" internas de velocidade. Convertendo para metros/segundo:
+// 324 unidades (leve, 150cc) ≈ 70 km/h no velocímetro.
+export const UNIT = 0.06;                 // m/s por unidade
+export const KMH = 3.6;                   // m/s -> km/h
+export const FPS = 60;                    // o jogo original roda a ~60 quadros/s na corrida
+export const frames = (n) => n / FPS;     // converte quadros do original em segundos
+
+// Velocidade máxima por classe de peso e cilindrada (unidades do MK64)
+export const TOP_SPEED = {
+  leve:   { 50: 294, 100: 314, 150: 324 },
+  medio:  { 50: 290, 100: 310, 150: 320 },
+  pesado: { 50: 290, 100: 310, 150: 320 },
+};
+
+// Estatísticas por classe (turn speed do MK64; aceleração e grama são estimativas fiéis ao comportamento:
+// leves aceleram mais rápido e perdem menos na grama; médios têm a pior aceleração)
+export const CLASS_STATS = {
+  leve:   { turn: 1.28, accel: 8.6, offroad: 0.62, mtBoost: 1.17, label: 'LEVE' },
+  medio:  { turn: 1.25, accel: 6.4, offroad: 0.55, mtBoost: 1.14, label: 'MÉDIO' },
+  pesado: { turn: 1.15, accel: 7.2, offroad: 0.48, mtBoost: 1.14, label: 'PESADO' },
+};
+
+// 8 pilotos originais. Peso (para empurrões) e "toque triplo" seguem os valores dos 8 do MK64.
+export const DRIVERS = [
+  { id: 'pipoca', name: 'Pipoca', animal: 'coelha',  cls: 'leve',   weight: 0.9, tap: 3,   kart: 0xff6fa8, fur: 0xf5f0f0 },
+  { id: 'tico',   name: 'Tico',   animal: 'sapo',    cls: 'leve',   weight: 0.7, tap: 3,   kart: 0x29b6f6, fur: 0x7cc642 },
+  { id: 'mel',    name: 'Mel',    animal: 'gata',    cls: 'leve',   weight: 0.9, tap: 3,   kart: 0xffd54f, fur: 0xf4a340 },
+  { id: 'faisca', name: 'Faísca', animal: 'raposa',  cls: 'medio',  weight: 1.2, tap: 2,   kart: 0xe53935, fur: 0xff7a1a },
+  { id: 'bento',  name: 'Bento',  animal: 'cão',     cls: 'medio',  weight: 1.0, tap: 2,   kart: 0x43a047, fur: 0xb5835a },
+  { id: 'tonho',  name: 'Tonho',  animal: 'urso',    cls: 'pesado', weight: 2.0, tap: 1.5, kart: 0x8d6e63, fur: 0x7b4a2a },
+  { id: 'rino',   name: 'Rino',   animal: 'rinoceronte', cls: 'pesado', weight: 1.8, tap: 1.5, kart: 0x7e57c2, fur: 0x9e9ea6 },
+  { id: 'juca',   name: 'Juca',   animal: 'jacaré',  cls: 'pesado', weight: 2.3, tap: 3,   kart: 0x26a69a, fur: 0x4f8a3a },
+];
+
+// ---------------------------------------------------------------- Regras do Grand Prix
+export const LAPS = 3;
+export const POINTS = [9, 6, 3, 1, 0, 0, 0, 0];
+export const RACERS = 8;
+
+// ---------------------------------------------------------------- Pilotagem
+export const DRIVE = {
+  hopTime: frames(6),          // pulinho: 6 quadros no ar
+  hopHeight: 0.45,
+  mtFrames: 14,                // mini-turbo dura 14 quadros
+  wiggleMinOut: frames(4),     // tempo mínimo "para fora" antes de cada balanço (2º trecho do TAS: 4 quadros)
+  driftArmTime: frames(9),     // primeiro trecho da derrapagem antes do 1º balanço (TAS: 9 quadros)
+  spinOutAfter: 0.55,          // segurar o direcional para fora por tempo demais = rodada (estimado)
+  rocketWindow: 0.3,           // apertar acelerar até 0,3 s antes da luz azul (estimado)
+  burnoutTime: 1.0,            // largada queimada (estimado)
+  draftTime: 2.0,              // vácuo: alguns segundos atrás de outro kart
+};
+
+// ---------------------------------------------------------------- Itens
+// Mesmo comportamento dos itens do MK64, com outra roupagem
+export const ITEMS = {
+  pimenta:     { name: 'Pimenta',          like: 'Cogumelo' },
+  pimenta3:    { name: '3 Pimentas',       like: '3 Cogumelos' },
+  pimentaOuro: { name: 'Pimenta Dourada',  like: 'Cogumelo Dourado' },
+  casca:       { name: 'Casca de Melancia', like: 'Banana' },
+  casca5:      { name: 'Penca de Cascas',  like: 'Cacho de Bananas' },
+  presente:    { name: 'Presente Falso',   like: 'Caixa Falsa' },
+  coco:        { name: 'Coco',             like: 'Casco Verde' },
+  coco3:       { name: '3 Cocos',          like: '3 Cascos Verdes' },
+  abelha:      { name: 'Abelha',           like: 'Casco Vermelho' },
+  abelha3:     { name: '3 Abelhas',        like: '3 Cascos Vermelhos' },
+  vespao:      { name: 'Vespão',           like: 'Casco Espinhoso' },
+  trovao:      { name: 'Trovão',           like: 'Raio' },
+  aura:        { name: 'Aura Dourada',     like: 'Estrela' },
+  sombra:      { name: 'Máscara Sombra',   like: 'Boo' },
+};
+
+// Probabilidades (%) no Grand Prix por posição (1º..8º) — tabela medida pelo TASVideos
+export const ITEM_ODDS = {
+  casca:       [30, 0, 0, 0, 0, 0, 0, 0],
+  casca5:      [5, 5, 0, 0, 0, 0, 0, 0],
+  coco:        [30, 5, 0, 0, 0, 0, 0, 0],
+  coco3:       [5, 10, 10, 0, 0, 0, 0, 0],
+  abelha:      [5, 15, 20, 15, 10, 0, 0, 0],
+  abelha3:     [0, 20, 20, 20, 20, 20, 20, 20],
+  vespao:      [0, 0, 0, 5, 5, 10, 10, 15],
+  trovao:      [0, 5, 5, 10, 10, 15, 20, 20],
+  presente:    [10, 5, 0, 0, 0, 0, 0, 0],
+  aura:        [0, 5, 10, 15, 15, 20, 30, 30],
+  sombra:      [5, 5, 0, 0, 0, 0, 0, 0],
+  pimenta:     [10, 5, 5, 5, 5, 0, 0, 0],
+  pimenta3:    [0, 15, 20, 20, 25, 25, 10, 5],
+  pimentaOuro: [0, 5, 10, 10, 10, 10, 10, 10],
+};
+
+// Durações e forças dos itens (o MK64 não tem esses valores documentados: estimados pelo comportamento)
+export const ITEM_FX = {
+  boostTime: 1.0, boostMul: 1.32,   // pimenta
+  goldTime: 7.5,                     // janela da pimenta dourada
+  starTime: 8.0, starMul: 1.12,      // aura dourada
+  shrinkTime: 6.0, shrinkMul: 0.72,  // trovão
+  squashTime: 1.6,
+  ghostTime: 6.0,                    // máscara sombra
+  spinTime: 1.2,                     // casca
+  tumbleTime: 1.6,                   // coco / abelha / presente
+  blastTime: 2.4,                    // vespão
+  shellSpeed: 30,                    // m/s
+  homingSpeed: 27,
+  spinySpeed: 36,
+  shellBounces: 5,
+  shellLife: 10,
+  boxRespawn: 2.0,
+  roulette: 1.4,
+};
+
+// ---------------------------------------------------------------- Pistas
+export const ROAD_HALF = 6.5;
+export const SHOULDER = 4.5;
+export const EDGE = ROAD_HALF + SHOULDER;
+
+function lemniscate(n, ax, az, yf) {
+  const pts = [];
+  for (let k = 0; k < n; k++) {
+    const t = (k / n) * Math.PI * 2 + Math.PI * 1.62;
+    pts.push([ax * Math.cos(t), az * Math.sin(2 * t), yf(t)]);
+  }
+  return pts;
+}
+
+export const CUPS = [
+  {
+    name: 'Copa Bolota',
+    tracks: ['campos', 'praia', 'serra', 'vulcao'],
+  },
+];
+
+export const TRACKS = {
+  campos: {
+    name: 'Campos Bolota',
+    theme: 'campos',
+    // [x, z, altura]
+    points: [[0, 0, 0], [56, 0, 0], [104, -12, 1], [132, -56, 3], [120, -104, 5], [76, -124, 4], [36, -96, 2],
+      [4, -108, 1], [-40, -140, 1], [-96, -128, 2], [-128, -76, 3], [-108, -28, 2], [-64, -36, 1], [-32, -4, 0]],
+    itemRows: [0.2, 0.52, 0.78],
+    edge: () => 'wall',
+  },
+  praia: {
+    name: 'Praia do Coqueiro',
+    theme: 'praia',
+    points: [[0, -30, 0.6], [60, -45, 0.6], [120, -25, 0.6], [150, 25, 0.6], [120, 72, 0.6], [62, 84, 0.8],
+      [0, 80, 2.6], [-60, 88, 0.8], [-122, 66, 0.6], [-150, 25, 0.6], [-120, -10, 0.6], [-60, -30, 0.6]],
+    itemRows: [0.15, 0.45, 0.75],
+    water: [[-400, 100, 800, 400], [-20, 40, 40, 62]],       // retângulos [x, z, largura, profundidade]
+    bridge: (p) => Math.abs(p.x) < 28 && p.z > 40,
+    edge: (p, q) => (q.z > 100 ? 'fall' : 'wall'),
+  },
+  serra: {
+    name: 'Serra Gelada',
+    theme: 'serra',
+    points: [[0, 0, 0], [70, 0, 0], [130, -20, 2], [160, -80, 8], [130, -140, 14], [60, -160, 20], [0, -130, 24],
+      [-36, -84, 27], [-64, -46, 18], [-120, -20, 10], [-150, -70, 6], [-190, -40, 3], [-160, 20, 1], [-90, 30, 0], [-40, 14, 0]],
+    itemRows: [0.18, 0.45, 0.72],
+    edge: (p, q, outer) => (p.y > 9 && outer ? 'fall' : 'wall'),
+  },
+  vulcao: {
+    name: 'Vulcão Oito',
+    theme: 'vulcao',
+    points: lemniscate(18, 150, 80, (t) => 2 + 4.5 * (1 + Math.sin(t))),
+    itemRows: [0.12, 0.4, 0.62, 0.88],
+    lava: true,
+    bridge: (p) => Math.abs(p.x) < 34 && Math.abs(p.z) < 34 && p.y > 6,
+    edge: (p, q, outer) => (outer && Math.abs(p.x) > 110 ? 'fall' : 'wall'),
+  },
+};
+
+export const THEMES = {
+  campos: { sky: 0x7ec8ff, fog: 0xb8e2ff, ground: '#5aa63a', ground2: '#4c9430', shoulder: '#6fb84a', shoulder2: '#5ea53c', skirt: '#8a6a43', wall: ['#ffffff', '#e53935'], decor: 'arvore', music: 0 },
+  praia:  { sky: 0x6fd0ff, fog: 0xc9f0ff, ground: '#f2d99a', ground2: '#e8cc85', shoulder: '#f5e2aa', shoulder2: '#ead291', skirt: '#d9b870', wall: ['#ffffff', '#1e88e5'], decor: 'coqueiro', music: 1 },
+  serra:  { sky: 0xa9c8e8, fog: 0xdfe8f2, ground: '#eef4fa', ground2: '#dde8f2', shoulder: '#f4f8fc', shoulder2: '#e3ecf5', skirt: '#7d8794', wall: ['#ffffff', '#3949ab'], decor: 'pinheiro', music: 2 },
+  vulcao: { sky: 0x3a1a24, fog: 0x5a2420, ground: '#3b2a26', ground2: '#2f211e', shoulder: '#5a4038', shoulder2: '#4b352f', skirt: '#2a1e1c', wall: ['#ffb300', '#212121'], decor: 'rocha', music: 3 },
+};

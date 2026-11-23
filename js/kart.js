@@ -1,280 +1,247 @@
 import * as THREE from 'three';
-import { ROAD_HALF, CURB_W, WALL_OFF } from './track.js';
-
-export const MAX_SPEED = 34;   // m/s (~122 km/h)
-const ACCEL = 21;
-const BRAKE = 38;
-const REVERSE_MAX = 10;
-const COAST = 7;
-const OFFROAD_MAX = 15;
-const BOOST_MUL = 1.4;
-const KART_RADIUS = 1.2;
+import { TOP_SPEED, CLASS_STATS, UNIT, DRIVE, ITEM_FX } from './data.js';
+import { ROAD_HALF, EDGE } from './track.js';
+import { FRAMES, POSES, spriteTexture } from './sprites.js';
 
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export const wrapAngle = (a) => {
-  while (a > Math.PI) a -= Math.PI * 2;
-  while (a < -Math.PI) a += Math.PI * 2;
-  return a;
+  a = (a + Math.PI) % (Math.PI * 2);
+  if (a < 0) a += Math.PI * 2;
+  return a - Math.PI;
 };
 
-function std(color, extra = {}) {
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1, ...extra });
-}
-
-function nameTag(text, color) {
-  const c = document.createElement('canvas');
-  c.width = 256; c.height = 64;
-  const g = c.getContext('2d');
-  g.fillStyle = 'rgba(0,0,0,.55)';
-  g.beginPath(); g.roundRect(8, 8, 240, 48, 18); g.fill();
-  g.fillStyle = '#' + new THREE.Color(color).getHexString();
-  g.beginPath(); g.arc(36, 32, 10, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#fff'; g.font = 'bold 28px sans-serif'; g.textBaseline = 'middle';
-  g.fillText(text, 56, 34);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false }));
-  sp.scale.set(2.4, 0.6, 1);
-  sp.position.y = 2.6;
-  return sp;
-}
-
-// Modelo do kart, virado para +z
-function buildKartMesh(color, label) {
-  const root = new THREE.Group();
-  const body = new THREE.Group();
-  root.add(body);
-
-  const paint = std(color, { metalness: 0.35, roughness: 0.35 });
-  const dark = std(0x222428, { roughness: 0.8 });
-  const metal = std(0x9e9e9e, { metalness: 0.8, roughness: 0.3 });
-
-  const add = (geo, mat, x, y, z, parent = body) => {
-    const m = new THREE.Mesh(geo, mat);
-    m.position.set(x, y, z);
-    m.castShadow = true;
-    parent.add(m);
-    return m;
-  };
-
-  add(new THREE.BoxGeometry(1.5, 0.12, 2.7), dark, 0, 0.3, 0);          // chassi
-  add(new THREE.BoxGeometry(1.3, 0.35, 1.6), paint, 0, 0.5, 0.25);       // carenagem
-  const nose = add(new THREE.BoxGeometry(1.1, 0.28, 0.8), paint, 0, 0.45, 1.3);
-  nose.rotation.x = 0.25;
-  add(new THREE.BoxGeometry(1.9, 0.18, 0.35), dark, 0, 0.35, 1.65);      // para-choque
-  add(new THREE.BoxGeometry(0.4, 0.3, 1.6), paint, 0.82, 0.45, -0.1);    // pontões laterais
-  add(new THREE.BoxGeometry(0.4, 0.3, 1.6), paint, -0.82, 0.45, -0.1);
-  add(new THREE.BoxGeometry(0.85, 0.75, 0.25), dark, 0, 0.85, -0.75);    // encosto do banco
-  add(new THREE.BoxGeometry(0.85, 0.12, 0.6), dark, 0, 0.52, -0.5);      // assento
-
-  // Motor e escapamento
-  add(new THREE.BoxGeometry(0.6, 0.45, 0.5), metal, 0.35, 0.6, -1.15);
-  const pipe = add(new THREE.CylinderGeometry(0.08, 0.1, 0.6, 8), metal, -0.4, 0.55, -1.35);
-  pipe.rotation.x = Math.PI / 2;
-
-  // Aerofólio
-  add(new THREE.BoxGeometry(1.8, 0.08, 0.45), paint, 0, 1.15, -1.45);
-  add(new THREE.BoxGeometry(0.08, 0.5, 0.25), dark, 0.6, 0.9, -1.45);
-  add(new THREE.BoxGeometry(0.08, 0.5, 0.25), dark, -0.6, 0.9, -1.45);
-
-  // Piloto
-  add(new THREE.CylinderGeometry(0.3, 0.36, 0.65, 10), std(0xf5f5f5), 0, 0.95, -0.35);
-  const helmet = add(new THREE.SphereGeometry(0.33, 16, 12), paint, 0, 1.48, -0.3);
-  helmet.scale.set(1, 1.05, 1.1);
-  add(new THREE.BoxGeometry(0.46, 0.16, 0.12), std(0x111111, { metalness: 0.6, roughness: 0.1 }), 0, 1.5, 0.02);
-  const sw = add(new THREE.TorusGeometry(0.2, 0.04, 6, 16), dark, 0, 0.98, 0.3);
-  sw.rotation.x = -0.6;
-  const arms = add(new THREE.BoxGeometry(0.7, 0.12, 0.5), std(0xf5f5f5), 0, 1.0, 0.05);
-  arms.rotation.x = -0.4;
-
-  // Rodas
-  const tire = std(0x151515, { roughness: 0.9 });
-  const rim = std(0xcfd8dc, { metalness: 0.7, roughness: 0.3 });
-  const wheels = [], pivots = [];
-  const mkWheel = (x, z, r, w, front) => {
-    const pivot = new THREE.Group();
-    pivot.position.set(x, r, z);
-    root.add(pivot);
-    const wheel = new THREE.Group();
-    pivot.add(wheel);
-    const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 16), tire);
-    t.rotation.z = Math.PI / 2; t.castShadow = true;
-    wheel.add(t);
-    const h = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.55, r * 0.55, w + 0.02, 8), rim);
-    h.rotation.z = Math.PI / 2;
-    wheel.add(h);
-    wheels.push(wheel);
-    if (front) pivots.push(pivot);
-  };
-  mkWheel(0.95, 1.0, 0.33, 0.32, true);
-  mkWheel(-0.95, 1.0, 0.33, 0.32, true);
-  mkWheel(1.0, -1.0, 0.4, 0.45, false);
-  mkWheel(-1.0, -1.0, 0.4, 0.45, false);
-
-  // Faíscas do drift
-  const sparks = [];
-  for (const sx of [1, -1]) {
-    const sp = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.22),
-      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 })
-    );
-    sp.position.set(sx * 1.05, 0.15, -1.45);
-    sp.visible = false;
-    root.add(sp);
-    sparks.push(sp);
-  }
-
-  // Chama do turbo
-  const flame = new THREE.Mesh(
-    new THREE.ConeGeometry(0.22, 1.1, 10),
-    new THREE.MeshBasicMaterial({ color: 0xff9100, transparent: true, opacity: 0.85 })
-  );
-  flame.geometry.rotateX(-Math.PI / 2);
-  flame.position.set(-0.4, 0.55, -2.1);
-  flame.visible = false;
-  root.add(flame);
-
-  if (label) root.add(nameTag(label, color));
-
-  return { root, body, wheels, pivots, sparks, flame };
-}
+const GRAVITY = 28;
+const RADIUS = 0.85;
+const SMOKE_COLORS = [0xffffff, 0xffe14a, 0xff3b1f]; // branco -> amarelo -> vermelho
 
 export class Kart {
-  constructor(scene, { color, name, isPlayer = false, skill = 1, lane = 0 }) {
-    this.name = name;
-    this.color = color;
+  constructor(scene, driver, bake, cc, { isPlayer = false } = {}) {
+    this.scene = scene;
+    this.driver = driver;
+    this.name = driver.name;
     this.isPlayer = isPlayer;
-    this.skill = skill;
-    this.lane = lane;
-    this.phase = Math.random() * Math.PI * 2;
-    this.model = buildKartMesh(color, isPlayer ? null : name);
-    scene.add(this.model.root);
+    this.stats = CLASS_STATS[driver.cls];
+    this.weight = driver.weight;
+    this.setCC(cc);
+
+    // sprite com o atlas pré-renderizado
+    const tex = new THREE.CanvasTexture(bake.atlas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.repeat.set(1 / FRAMES, 1 / POSES);
+    this.tex = tex;
+    this.sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, alphaTest: 0.5, transparent: false }));
+    this.sprite.center.set(0.5, 0.12);
+    this.baseScale = 2.7;
+    this.sprite.scale.set(this.baseScale, this.baseScale, 1);
+    scene.add(this.sprite);
+
+    this.shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.2, 2.2).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ map: spriteTexture('sombraChao'), transparent: true, depthWrite: false })
+    );
+    scene.add(this.shadow);
+
+    // fumaça da derrapagem e da grama
+    this.smoke = [];
+    for (let i = 0; i < 14; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: spriteTexture('fumaca'), transparent: true, depthWrite: false }));
+      s.visible = false;
+      s.userData = { life: 0, vx: 0, vy: 0, vz: 0 };
+      scene.add(s);
+      this.smoke.push(s);
+    }
+    this.smokeIdx = 0;
+    this.smokeTimer = 0;
+
     this.pos = new THREE.Vector3();
     this.reset();
   }
 
-  reset() {
-    this.speed = 0;
-    this.heading = 0;
-    this.steer = 0;
-    this.slip = 0;
-    this.drift = 0;
-    this.driftTime = 0;
-    this.boostTime = 0;
-    this.hop = 0;
-    this.idx = 0;
-    this.lat = 0;
-    this.progress = 0;
-    this.lapsDone = 0;
-    this.lapStart = 0;
-    this.lapTimes = [];
-    this.finished = false;
-    this.finishTime = 0;
-    this.autopilot = false;
-    this.stuck = 0;
-    this.wrongWay = 0;
-    this.wallHit = 0;
-    this.events = [];
-    this.turn = 0;
+  setCC(cc) {
+    this.cc = cc;
+    this.top = TOP_SPEED[this.driver.cls][cc === 'espelho' ? 100 : cc] * UNIT;
   }
 
-  dispose(scene) {
-    scene.remove(this.model.root);
-    this.model.root.traverse((o) => {
-      if (o.geometry) o.geometry.dispose();
-      if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.map?.dispose(); m.dispose(); });
-    });
+  reset() {
+    this.speed = 0; this.heading = 0; this.steer = 0; this.slip = 0;
+    this.vy = 0; this.airborne = false;
+    this.hopT = 0; this.hopHeld = false;
+    this.drift = 0; this.driftStage = 0; this.driftAge = 0; this.outT = 0; this.outwardHold = 0;
+    this.mtT = 0; this.boostT = 0; this.goldT = 0; this.starT = 0; this.shrinkT = 0; this.squashT = 0; this.ghostT = 0;
+    this.spinT = 0; this.tumbleT = 0; this.tumbleKind = ''; this.burnoutT = 0; this.draftT = 0; this.draftBoostT = 0;
+    this.fallT = 0; this.rescueT = 0; this.falling = false;
+    this.idx = 0; this.lat = 0; this.progress = 0; this.lapsDone = 0; this.lapStart = 0; this.lapTimes = [];
+    this.finished = false; this.finishTime = 0; this.autopilot = false;
+    this.wrongWay = 0; this.safeIdx = 0; this.stuck = 0;
+    this.prevThrottle = false; this.lastTap = -1; this.lastBrakeT = -10; this.clock = 0;
+    this.item = null; this.itemCount = 0; this.rouletteT = 0; this.holding = false;
+    this.events = [];
+    this.turnVis = 0;
+  }
+
+  dispose() {
+    this.scene.remove(this.sprite, this.shadow, ...this.smoke);
+    this.tex.dispose();
+    this.sprite.material.dispose();
+    this.shadow.geometry.dispose(); this.shadow.material.dispose();
+    this.smoke.forEach((s) => s.material.dispose());
   }
 
   place(track, idx, lat) {
-    idx = track.wrap(idx);
+    idx = track.wrap(Math.round(idx));
     track.point(idx, lat, this.pos);
     this.heading = track.heading(idx);
-    this.idx = idx;
-    this.lat = lat;
+    this.idx = idx; this.safeIdx = idx; this.lat = lat;
     this.progress = idx > track.N / 2 ? idx - track.N : idx;
-    this.syncModel(0);
   }
 
-  // Coloca o kart de volta no centro da pista (mantendo o progresso)
-  respawn(track) {
-    const idx = this.idx;
-    track.point(idx, 0, this.pos);
-    this.heading = track.heading(idx);
-    this.lat = 0;
-    this.speed = 0;
-    this.drift = 0;
-    this.slip = 0;
-    this.stuck = 0;
+  get controllable() {
+    return this.spinT <= 0 && this.tumbleT <= 0 && this.squashT <= 0 && this.burnoutT <= 0 && this.rescueT <= 0 && !this.falling;
+  }
+  get invincible() { return this.starT > 0; }
+  get intangible() { return this.ghostT > 0; }
+  get shrunk() { return this.shrinkT > 0; }
+  get boosting() { return this.boostT > 0 || this.mtT > 0 || this.goldBurst > 0; }
+
+  // ------------------------------------------------------------ reações a itens / batidas
+  hit(kind) {
+    if (this.rescueT > 0 || this.falling) return false;
+    if (this.invincible && kind !== 'squash') return false;
+    if (this.intangible) return false;
+    // Frear no momento certo ao passar numa casca evita a rodada (só derrapa)
+    if (kind === 'spin' && this.clock - this.lastBrakeT < 0.25 && Math.abs(this.steer) < 0.3) {
+      this.speed *= 0.6;
+      this.events.push('skid');
+      return true;
+    }
+    this.drift = 0; this.driftStage = 0; this.mtT = 0; this.boostT = 0;
+    if (kind === 'spin') { this.spinT = ITEM_FX.spinTime; this.speed = Math.min(this.speed, this.top * 0.45); }
+    else if (kind === 'tumble') { this.tumbleT = ITEM_FX.tumbleTime; this.tumbleKind = 'tumble'; this.speed = 0; this.vy = 7; this.airborne = true; }
+    else if (kind === 'blast') { this.tumbleT = ITEM_FX.blastTime; this.tumbleKind = 'blast'; this.speed = 0; this.vy = 11; this.airborne = true; }
+    else if (kind === 'squash') { this.squashT = ITEM_FX.squashTime; this.speed = 0; }
+    else if (kind === 'shrink') { this.shrinkT = ITEM_FX.shrinkTime; this.spinT = 0.8; this.speed *= 0.5; }
+    this.events.push('hit');
+    return true;
   }
 
-  get boosting() { return this.boostTime > 0; }
+  // ------------------------------------------------------------ física
+  update(dt, input, track, raceOn) {
+    this.clock += dt;
+    const T = (k) => (this[k] = Math.max(0, this[k] - dt));
+    ['mtT', 'boostT', 'goldT', 'starT', 'ghostT', 'spinT', 'tumbleT', 'squashT', 'burnoutT', 'draftBoostT'].forEach(T);
+    if (this.shrinkT > 0) { this.shrinkT -= dt; if (this.shrinkT <= 0) { this.shrinkT = 0; this.events.push('grow'); } }
+    this.goldBurst = Math.max(0, (this.goldBurst || 0) - dt);
+    if (input.brake) this.lastBrakeT = this.clock;
 
-  get driftLevel() {
-    if (!this.drift) return 0;
-    return this.driftTime > 2.1 ? 2 : this.driftTime > 1.0 ? 1 : 0;
-  }
+    // resgate pela coruja
+    if (this.rescueT > 0) { this.updateRescue(dt, track, input); return; }
 
-  update(dt, input, track) {
-    const offroad = Math.abs(this.lat) > ROAD_HALF + CURB_W * 0.7;
-    const topMul = this.isPlayer ? 1 : 1.06;
-    let max = (offroad ? OFFROAD_MAX : MAX_SPEED) * topMul;
-    if (this.boostTime > 0) {
-      max = MAX_SPEED * BOOST_MUL;
-      this.boostTime -= dt;
+    const ctrl = this.controllable && raceOn;
+    const onGround = !this.airborne;
+    const offroad = onGround && Math.abs(this.lat) > ROAD_HALF + 0.4 && !this.falling;
+
+    // velocidade máxima efetiva
+    let top = this.top;
+    if (this.shrunk) top *= ITEM_FX.shrinkMul;
+    if (offroad && !this.invincible && this.boostT <= 0 && this.goldBurst <= 0) top *= this.stats.offroad;
+    if (this.invincible) top = this.top * ITEM_FX.starMul;
+    if (this.draftBoostT > 0) top *= 1.06;
+    let boostTop = 0;
+    if (this.boostT > 0 || this.goldBurst > 0) boostTop = this.top * ITEM_FX.boostMul;
+    if (this.mtT > 0) boostTop = Math.max(boostTop, this.top * this.stats.mtBoost);
+
+    // ----- aceleração
+    const throttle = ctrl && input.throttle;
+    const fresh = throttle && !this.prevThrottle;
+    this.prevThrottle = ctrl && input.throttle;
+    if (fresh && this.speed < this.top * 0.5 && onGround) {
+      // "toque triplo": tocar repetidamente no acelerador recupera velocidade mais rápido
+      if (this.clock - this.lastTap < 0.25) this.speed += this.driver.tap * 0.35;
+      this.lastTap = this.clock;
     }
 
-    // Aceleração / frenagem
-    const s = this.speed;
-    if (input.throttle) {
-      if (s < 0) this.speed += BRAKE * dt;
-      else if (s < max) this.speed += ACCEL * (this.boostTime > 0 ? 2.2 : 1) * (1 - 0.45 * clamp(s / MAX_SPEED, 0, 1)) * dt;
-    } else if (input.brake) {
-      if (s > 0) this.speed -= BRAKE * dt;
-      else if (s > -REVERSE_MAX) this.speed -= ACCEL * 0.6 * dt;
-    } else {
-      this.speed -= Math.sign(s) * Math.min(Math.abs(s), COAST * dt);
-    }
-    if (this.speed > max) this.speed = Math.max(max, this.speed - (offroad ? 30 : 12) * dt);
-
-    // Direção suavizada (teclado é digital)
-    this.steer += clamp(input.steer - this.steer, -7 * dt, 7 * dt);
-
-    // Drift
-    if (input.drift && !this.drift && Math.abs(input.steer) > 0.2 && this.speed > 14 && !offroad) {
-      this.drift = Math.sign(input.steer);
-      this.driftTime = 0;
-      this.hop = 0.25;
-    }
-    if (this.drift && (!input.drift || this.speed < 9 || offroad)) {
-      const lvl = this.driftLevel;
-      if (lvl > 0 && this.speed >= 9) {
-        this.boostTime = Math.max(this.boostTime, lvl === 2 ? 1.5 : 0.8);
-        this.events.push('boost');
+    if (this.spinT > 0) {
+      this.speed = Math.max(0, this.speed - 9 * dt);
+    } else if (this.tumbleT > 0 || this.squashT > 0 || this.burnoutT > 0) {
+      this.speed = Math.max(0, this.speed - 25 * dt);
+    } else if (boostTop > 0 && onGround) {
+      if (this.speed < boostTop) this.speed = Math.min(boostTop, this.speed + 32 * dt);
+    } else if (onGround) {
+      if (throttle) {
+        if (this.speed < 0) this.speed += 16 * dt;
+        else if (this.speed < top) this.speed += this.stats.accel * (1 - 0.72 * clamp(this.speed / this.top, 0, 1)) * dt;
+      } else if (ctrl && input.brake) {
+        if (this.speed > 0) this.speed -= 16 * dt;
+        else if (this.speed > -3.2) this.speed -= 5 * dt;
+      } else {
+        this.speed -= Math.sign(this.speed) * Math.min(Math.abs(this.speed), 3.5 * dt);
       }
-      this.drift = 0;
+      if (this.speed > top) this.speed = Math.max(top, this.speed - (offroad ? 16 : 7) * dt);
     }
 
-    const speedFactor = clamp(Math.abs(this.speed) / 7, 0, 1) * (1 - 0.35 * clamp(this.speed / MAX_SPEED, 0, 1));
-    let turn, slipTarget;
+    // ----- direção
+    const steerIn = ctrl ? input.steer : 0;
+    if (input.analog) this.steer = steerIn;
+    else this.steer += clamp(steerIn - this.steer, -8 * dt, 8 * dt);
+
+    // ----- pulinho (R) e derrapagem
+    const hopFresh = ctrl && input.hop && !this.hopHeld;
+    this.hopHeld = ctrl && input.hop;
+    if (hopFresh && onGround && this.hopT <= 0) {
+      this.hopT = DRIVE.hopTime;
+      this.events.push('hop');
+    }
+    if (this.hopT > 0) {
+      this.hopT -= dt;
+      if (this.hopT <= 0 && this.hopHeld && Math.abs(steerIn) > 0.3 && this.speed > this.top * 0.3 && !this.drift) {
+        this.drift = Math.sign(steerIn);
+        this.driftStage = 0; this.driftAge = 0; this.outT = 0; this.outwardHold = 0;
+      }
+    }
     if (this.drift) {
-      const inward = this.steer * this.drift; // -1..1 (positivo = fechar a curva)
-      turn = this.drift * (1.25 + 0.75 * inward) * 1.45;
-      this.driftTime += dt * (inward > 0.3 ? 1.35 : 0.75);
-      slipTarget = 0.38 * this.drift;
-    } else {
-      turn = this.steer * 2.05;
-      slipTarget = 0;
+      const inward = steerIn * this.drift; // direcional cru, como o analógico do N64
+      this.driftAge += dt;
+      // Mini-turbo: direcional para fora (ou solto) e depois para dentro, duas vezes: branco -> amarelo -> vermelho
+      if (inward < 0.25) this.outT += dt;
+      if (inward > 0.5) {
+        if (this.outT >= DRIVE.wiggleMinOut && this.driftAge >= DRIVE.driftArmTime && this.driftStage < 2) {
+          this.driftStage++;
+          this.events.push('stage' + this.driftStage);
+        }
+        this.outT = 0;
+      }
+      // segurar para fora por tempo demais = rodada
+      this.outwardHold = inward < -0.6 ? this.outwardHold + dt : 0;
+      if (this.outwardHold > DRIVE.spinOutAfter) {
+        this.drift = 0; this.driftStage = 0;
+        this.spinT = 0.9; this.events.push('hit');
+      } else if (!this.hopHeld || this.speed < this.top * 0.25 || !ctrl) {
+        if (this.driftStage === 2 && ctrl) { this.mtT = DRIVE.mtFrames / 60; this.events.push('mt'); }
+        this.drift = 0; this.driftStage = 0;
+      }
     }
-    this.turn = turn * speedFactor;
-    this.heading = wrapAngle(this.heading + this.turn * dt * (this.speed >= 0 ? 1 : -1));
-    this.slip += (slipTarget - this.slip) * Math.min(1, 6 * dt);
 
+    // giro
+    const sf = clamp(Math.abs(this.speed) / 4, 0, 1) * (1 - 0.18 * clamp(this.speed / this.top, 0, 1));
+    let yaw;
+    if (this.drift) {
+      const inward = this.steer * this.drift;
+      yaw = this.drift * this.stats.turn * (0.95 + 0.6 * inward);
+    } else {
+      yaw = this.steer * this.stats.turn * 1.3;
+    }
+    if (this.airborne) yaw *= 0.5;
+    if (this.spinT > 0) yaw = 0;
+    this.turnVis = yaw * sf;
+    this.heading = wrapAngle(this.heading + yaw * sf * dt * (this.speed >= 0 ? 1 : -1));
+    const slipTarget = this.drift ? this.drift * 0.32 : 0;
+    this.slip += (slipTarget - this.slip) * Math.min(1, 8 * dt);
+
+    // ----- movimento
     const moveAngle = this.heading - this.slip;
     this.pos.x += Math.sin(moveAngle) * this.speed * dt;
     this.pos.z += Math.cos(moveAngle) * this.speed * dt;
 
-    // Relação com a pista
     const newIdx = track.nearest(this.pos.x, this.pos.z, this.idx);
     let d = newIdx - this.idx;
     if (d > track.N / 2) d -= track.N;
@@ -283,85 +250,186 @@ export class Kart {
     this.idx = newIdx;
     this.lat = track.lateral(this.pos.x, this.pos.z, newIdx);
 
-    // Muros
-    const lim = WALL_OFF - KART_RADIUS;
-    this.wallHit = Math.max(0, this.wallHit - dt);
-    if (Math.abs(this.lat) > lim) {
-      const push = (Math.abs(this.lat) - lim) * Math.sign(this.lat);
-      this.pos.x -= -track.tz[newIdx] * push;
-      this.pos.z -= track.tx[newIdx] * push;
-      this.lat -= push;
-      const th = track.heading(newIdx);
-      const rel = wrapAngle(this.heading - th);
-      const impact = Math.abs(Math.sin(rel));
-      if (this.wallHit === 0 && Math.abs(this.speed) > 8 && impact > 0.15) this.events.push('bump');
-      this.wallHit = 0.3;
-      this.speed -= this.speed * Math.min(1, impact * 4 * dt + 0.6 * dt);
-      const target = Math.abs(rel) < Math.PI / 2 ? th : th + Math.PI;
-      this.heading = wrapAngle(this.heading + wrapAngle(target - this.heading) * Math.min(1, 5 * dt));
-    }
-
-    // Placas de turbo
-    if (track.padAt(newIdx, this.lat) && this.speed > 0) {
-      if (this.boostTime < 0.5) this.events.push('boost');
-      this.boostTime = Math.max(this.boostTime, 1.1);
-    }
-
-    // Contramão
-    const relTrack = wrapAngle(this.heading - track.heading(newIdx));
-    this.wrongWay = Math.abs(relTrack) > 1.9 && this.speed > 3 ? this.wrongWay + dt : 0;
-
-    this.syncModel(dt);
-  }
-
-  syncModel(dt) {
-    const m = this.model;
-    this.hop = Math.max(0, this.hop - dt);
-    const hopY = Math.sin((this.hop / 0.25) * Math.PI) * 0.35 * (this.hop > 0 ? 1 : 0);
-    m.root.position.set(this.pos.x, hopY, this.pos.z);
-    m.root.rotation.y = this.heading;
-    const roll = clamp(this.turn * Math.abs(this.speed) * 0.0028, -0.12, 0.12);
-    m.body.rotation.z += (roll - m.body.rotation.z) * Math.min(1, 8 * dt);
-    for (const p of m.pivots) p.rotation.y = this.steer * 0.45 + (this.drift ? -this.drift * 0.2 : 0);
-    for (const w of m.wheels) w.rotation.x += (this.speed * dt) / 0.36;
-
-    const lvl = this.driftLevel;
-    const showSparks = this.drift !== 0;
-    const sparkColor = lvl === 2 ? 0xff7a00 : lvl === 1 ? 0x40c4ff : 0xe0e0e0;
-    for (const sp of m.sparks) {
-      sp.visible = showSparks;
-      if (showSparks) {
-        sp.material.color.setHex(sparkColor);
-        const sc = (lvl === 0 ? 0.5 : 1) * (0.6 + Math.random() * 0.8);
-        sp.scale.setScalar(sc);
-        sp.rotation.set(Math.random() * 3, Math.random() * 3, 0);
+    // ----- bordas: muro (quica) ou queda
+    const lim = EDGE - RADIUS;
+    if (Math.abs(this.lat) > lim && !this.falling) {
+      if (track.isFall(newIdx, this.lat)) {
+        if (Math.abs(this.lat) > EDGE + 0.3) { this.falling = true; this.fallT = 0; this.airborne = true; this.drift = 0; }
+      } else {
+        const push = (Math.abs(this.lat) - lim) * Math.sign(this.lat);
+        this.pos.x -= -track.tz[newIdx] * push;
+        this.pos.z -= track.tx[newIdx] * push;
+        this.lat -= push;
+        const th = track.heading(newIdx);
+        const rel = wrapAngle(this.heading - th);
+        // velocidade lateral (positiva = para o lado +): -sin(rel) * v. Indo contra o muro? espelha o ângulo (quique)
+        const into = -Math.sin(rel) * this.speed * Math.sign(this.lat);
+        if (into > 0.3) {
+          this.heading = wrapAngle(th - rel);
+          this.speed *= 0.62;
+          this.events.push('wall');
+        }
       }
     }
-    m.flame.visible = this.boostTime > 0;
-    if (m.flame.visible) m.flame.scale.set(1, 1, 0.7 + Math.random() * 0.7);
+
+    // ----- altura: chão / ar
+    const ground = track.groundY(this.pos.x, this.pos.z, newIdx);
+    const predicted = this.pos.y + this.vy * dt - 0.5 * GRAVITY * dt * dt;
+    if (this.falling) {
+      this.vy -= GRAVITY * dt;
+      this.pos.y += this.vy * dt;
+      this.fallT += dt;
+      if (this.pos.y < Math.min(track.hazardY, ground - 2.5) || this.fallT > 1.6) {
+        this.events.push(track.def.lava ? 'lava' : track.def.water ? 'splash' : 'fall');
+        this.startRescue(track);
+      }
+    } else if (!this.airborne) {
+      if (ground >= predicted - 0.02 || this.tumbleT > 0) {
+        this.vy = (ground - this.pos.y) / Math.max(dt, 1e-4);
+        this.pos.y = ground;
+      } else {
+        this.airborne = true;
+        this.pos.y = predicted;
+        this.vy -= GRAVITY * dt;
+      }
+    } else {
+      this.vy -= GRAVITY * dt;
+      this.pos.y += this.vy * dt;
+      if (this.pos.y <= ground) {
+        if (this.vy < -6) this.events.push('land');
+        this.pos.y = ground; this.vy = 0; this.airborne = false;
+      }
+    }
+    if (!this.airborne && !this.falling && Math.abs(this.lat) < ROAD_HALF) this.safeIdx = newIdx;
+
+    // contramão
+    const relTrack = wrapAngle(this.heading - track.heading(newIdx));
+    this.wrongWay = Math.abs(relTrack) > 1.9 && this.speed > 2 ? this.wrongWay + dt : 0;
+  }
+
+  // ------------------------------------------------------------ resgate
+  startRescue(track) {
+    this.falling = false;
+    this.airborne = false;
+    this.rescueT = 2.6;
+    this.speed = 0; this.drift = 0; this.driftStage = 0; this.boostT = 0; this.mtT = 0;
+    this.rescueFrom = this.pos.clone();
+    const idx = track.wrap(this.safeIdx - 4);
+    this.rescueTo = track.point(idx, 0);
+    this.rescueIdx = idx;
+    this.rescueHeading = track.heading(idx);
+    this.events.push('rescue');
+  }
+
+  updateRescue(dt, track, input) {
+    this.rescueT -= dt;
+    const t = 2.6 - this.rescueT;
+    if (t < 0.6) {
+      // coruja desce até o kart
+    } else if (t < 1.9) {
+      const k = (t - 0.6) / 1.3;
+      const e = k * k * (3 - 2 * k);
+      this.pos.lerpVectors(this.rescueFrom, this.rescueTo, e);
+      this.pos.y = THREE.MathUtils.lerp(this.rescueFrom.y, this.rescueTo.y, e) + Math.sin(e * Math.PI) * 6 + 3 * e;
+      this.heading = wrapAngle(this.heading + wrapAngle(this.rescueHeading - this.heading) * Math.min(1, 4 * dt));
+    } else {
+      const k = (t - 1.9) / 0.7;
+      this.pos.copy(this.rescueTo);
+      this.pos.y = this.rescueTo.y + 3 * (1 - k);
+      this.heading = this.rescueHeading;
+    }
+    if (this.rescueT <= 0) {
+      this.rescueT = 0;
+      this.pos.copy(this.rescueTo);
+      this.idx = this.rescueIdx; this.safeIdx = this.rescueIdx; this.lat = 0;
+      this.vy = 0;
+      // segurar o acelerador ao ser solto: sai com embalo
+      if (input.throttle) this.speed = this.top * 0.5;
+    }
+  }
+
+  // ------------------------------------------------------------ visual (sprite no ângulo certo)
+  syncView(dt, camera) {
+    const dx = this.pos.x - camera.position.x, dz = this.pos.z - camera.position.z;
+    const view = Math.atan2(dx, dz);
+    let rel = wrapAngle(this.heading - view);
+    if (this.spinT > 0) rel = wrapAngle(rel + this.clock * 18);
+    if (this.squashT <= 0 && this.tumbleT > 0) rel = wrapAngle(rel + this.clock * 12);
+    let f = Math.round((rel / (Math.PI * 2)) * FRAMES);
+    f = ((f % FRAMES) + FRAMES) % FRAMES;
+    const pose = this.drift ? (this.drift > 0 ? 1 : 2) : this.steer > 0.4 ? 1 : this.steer < -0.4 ? 2 : 0;
+    this.tex.offset.set(f / FRAMES, 1 - (pose + 1) / POSES);
+
+    const hop = this.hopT > 0 ? Math.sin((1 - this.hopT / DRIVE.hopTime) * Math.PI) * DRIVE.hopHeight : 0;
+    this.sprite.position.set(this.pos.x, this.pos.y + hop + 0.02, this.pos.z);
+    let sx = this.baseScale, sy = this.baseScale;
+    if (this.shrunk) { sx *= 0.5; sy *= 0.5; }
+    if (this.squashT > 0) { sy *= 0.3; sx *= 1.3; }
+    this.sprite.scale.set(sx, sy, 1);
+    this.sprite.material.rotation = this.tumbleT > 0 ? Math.sin(this.clock * 20) * 0.5 : 0;
+    const mat = this.sprite.material;
+    if (this.intangible) { mat.transparent = true; mat.opacity = this.isPlayer ? 0.35 : 0.0; mat.alphaTest = 0.01; }
+    else { mat.transparent = false; mat.opacity = 1; mat.alphaTest = 0.5; }
+    mat.color.setHex(this.invincible ? [0xffffff, 0xffe082, 0xff8a80, 0x80d8ff][Math.floor(this.clock * 16) % 4] : 0xffffff);
+
+    this.shadow.visible = !this.falling && !this.intangible;
+    this.shadow.position.set(this.pos.x, (this.airborne ? this.pos.y - 0.2 : this.pos.y) + 0.1, this.pos.z);
+
+    // fumaça
+    this.smokeTimer -= dt;
+    const offroad = !this.airborne && Math.abs(this.lat) > ROAD_HALF + 0.4 && Math.abs(this.speed) > 4;
+    if ((this.drift || offroad || this.mtT > 0 || this.burnoutT > 0) && this.smokeTimer <= 0) {
+      this.smokeTimer = 0.04;
+      const s = this.smoke[this.smokeIdx++ % this.smoke.length];
+      const side = (this.smokeIdx % 2 ? 1 : -1) * 0.6;
+      const bx = -Math.sin(this.heading) * 0.9, bz = -Math.cos(this.heading) * 0.9;
+      s.position.set(this.pos.x + bx + Math.cos(this.heading) * side, this.pos.y + 0.25, this.pos.z + bz - Math.sin(this.heading) * side);
+      const col = this.mtT > 0 ? 0xff9100 : this.drift ? SMOKE_COLORS[this.driftStage] : this.burnoutT > 0 ? 0xdddddd : 0xb8a98a;
+      s.material.color.setHex(col);
+      s.userData.life = 0.45;
+      s.userData.vy = 1 + Math.random();
+      s.visible = true;
+    }
+    for (const s of this.smoke) {
+      if (!s.visible) continue;
+      s.userData.life -= dt;
+      if (s.userData.life <= 0) { s.visible = false; continue; }
+      s.position.y += s.userData.vy * dt;
+      const k = s.userData.life / 0.45;
+      s.scale.setScalar(0.5 + (1 - k) * 0.9);
+      s.material.opacity = k * 0.9;
+    }
   }
 }
 
-// Colisão simples entre karts (círculos)
+// Colisão entre karts considerando o peso (pesados empurram leves)
 export function collideKarts(karts) {
-  const minD = KART_RADIUS * 2;
+  const minD = RADIUS * 2;
   for (let i = 0; i < karts.length; i++) {
     for (let j = i + 1; j < karts.length; j++) {
       const a = karts[i], b = karts[j];
+      if (a.rescueT > 0 || b.rescueT > 0 || a.intangible || b.intangible || a.falling || b.falling) continue;
+      if (Math.abs(a.pos.y - b.pos.y) > 1.5) continue;
       const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z;
       const d2 = dx * dx + dz * dz;
-      if (d2 < minD * minD && d2 > 1e-6) {
-        const d = Math.sqrt(d2);
-        const push = (minD - d) / 2;
-        const nx = dx / d, nz = dz / d;
-        a.pos.x -= nx * push; a.pos.z -= nz * push;
-        b.pos.x += nx * push; b.pos.z += nz * push;
-        // quem está atrás perde um pouco de velocidade
-        const avg = (a.speed + b.speed) / 2;
-        a.speed += (avg - a.speed) * 0.3;
-        b.speed += (avg - b.speed) * 0.3;
-        if (a.isPlayer || b.isPlayer) (a.isPlayer ? a : b).events.push('bump');
-      }
+      const rr = minD * (a.shrunk || b.shrunk ? 0.75 : 1);
+      if (d2 >= rr * rr || d2 < 1e-6) continue;
+      // aura dourada derruba quem encosta; kart normal amassa kart encolhido
+      if (a.invincible && !b.invincible) { b.hit('tumble'); continue; }
+      if (b.invincible && !a.invincible) { a.hit('tumble'); continue; }
+      if (a.shrunk && !b.shrunk) { a.hit('squash'); continue; }
+      if (b.shrunk && !a.shrunk) { b.hit('squash'); continue; }
+      const d = Math.sqrt(d2);
+      const over = rr - d;
+      const nx = dx / d, nz = dz / d;
+      const wa = a.weight, wb = b.weight;
+      const ka = wb / (wa + wb), kb = wa / (wa + wb);
+      a.pos.x -= nx * over * ka * 1.6; a.pos.z -= nz * over * ka * 1.6;
+      b.pos.x += nx * over * kb * 1.6; b.pos.z += nz * over * kb * 1.6;
+      const avg = (a.speed * wa + b.speed * wb) / (wa + wb);
+      a.speed += (avg - a.speed) * 0.25;
+      b.speed += (avg - b.speed) * 0.25;
+      if (a.isPlayer || b.isPlayer) (a.isPlayer ? a : b).events.push('bump');
     }
   }
 }

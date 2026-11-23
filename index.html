@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Kart 3D — Jogo de Corrida</title>
+  <title>Kart 3D — Grand Prix</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script type="importmap">
     { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
@@ -12,76 +15,98 @@
 <body>
   <div id="game"></div>
 
-  <!-- HUD da corrida -->
+  <!-- ===================== HUD ===================== -->
   <div id="hud" class="hidden">
-    <div class="hud-top-left">
-      <div class="hud-box"><span class="label">VOLTA</span><span id="hud-lap">1/3</span></div>
-      <div class="hud-box"><span class="label">TEMPO</span><span id="hud-time">0:00.000</span></div>
-      <div class="hud-box small"><span class="label">MELHOR VOLTA</span><span id="hud-best">--</span></div>
-    </div>
-    <div class="hud-position"><span id="hud-pos">4</span><sup id="hud-pos-suf">º</sup><small id="hud-pos-total">/4</small></div>
-    <canvas id="minimap" width="200" height="200"></canvas>
-    <div class="hud-speed">
-      <div><span id="hud-speed">0</span><small>km/h</small></div>
-      <div id="drift-bar"><div id="drift-fill"></div></div>
+    <div id="hud-lap"></div>
+    <div class="hud-time-box"><div id="hud-time">0'00"00</div><div id="hud-laps"></div></div>
+    <div id="hud-item"><canvas id="item-canvas" width="32" height="32"></canvas><span id="item-count"></span></div>
+    <div id="hud-rank"></div>
+    <div id="hud-pos">8<small>º</small></div>
+    <canvas id="minimap" width="140" height="120"></canvas>
+    <div id="hud-speed"></div>
+    <div id="owl" class="hidden">
+      <img id="owl-img" alt="">
+      <div id="lights"><span class="lamp"></span><span class="lamp"></span><span class="lamp"></span></div>
+      <div id="owl-sign"></div>
     </div>
     <div id="banner"></div>
-    <div id="countdown"></div>
   </div>
 
-  <!-- Menu inicial -->
-  <div id="menu" class="overlay">
-    <div class="panel">
-      <h1>KART <span>3D</span></h1>
-      <p class="subtitle">Corra contra 3 rivais e cruze a linha em primeiro!</p>
-
-      <div class="section-title">Cor do seu kart</div>
-      <div id="colors" class="choices"></div>
-
-      <div class="section-title">Número de voltas</div>
-      <div id="laps" class="choices"></div>
-
-      <button id="btn-start" class="btn">CORRER!</button>
-
-      <div class="controls">
-        <div><kbd>↑</kbd><kbd>W</kbd> acelerar</div>
-        <div><kbd>↓</kbd><kbd>S</kbd> frear / ré</div>
-        <div><kbd>←</kbd><kbd>→</kbd><kbd>A</kbd><kbd>D</kbd> virar</div>
-        <div><kbd>Espaço</kbd><kbd>Shift</kbd> drift (segure na curva e solte para o turbo)</div>
-        <div><kbd>R</kbd> voltar para a pista &nbsp; <kbd>M</kbd> som &nbsp; <kbd>Esc</kbd> pausar</div>
-      </div>
+  <!-- ===================== Telas ===================== -->
+  <div id="screen-title" class="screen">
+    <div class="logo">KART<span>3D</span></div>
+    <div class="logo-sub">GRAND PRIX</div>
+    <button class="btn big" data-go="cc">JOGAR</button>
+    <div class="hint">ENTER / START</div>
+    <div class="controls">
+      <div><b>↑ X</b> acelerar &nbsp; <b>↓ C</b> frear/ré &nbsp; <b>← →</b> virar</div>
+      <div><b>ESPAÇO</b> pulo — segure virando para derrapar</div>
+      <div>Na derrapagem: <b>solte e vire de novo para dentro</b> 2× até a fumaça ficar <span class="red">vermelha</span>, aí solte o pulo = mini-turbo</div>
+      <div><b>Z</b> item (segure para manter atrás) &nbsp; <b>W/S</b> mirar frente/trás</div>
+      <div>Acelere logo antes da <span class="blue">luz azul</span> = largada turbo</div>
+      <div><b>V</b> visual retrô/nítido &nbsp; <b>M</b> som &nbsp; <b>ESC</b> pausa &nbsp; Controle USB funciona</div>
     </div>
   </div>
 
-  <!-- Pausa -->
-  <div id="pause" class="overlay hidden">
-    <div class="panel small">
-      <h2>PAUSADO</h2>
-      <button id="btn-resume" class="btn">Continuar</button>
-      <button id="btn-quit" class="btn secondary">Voltar ao menu</button>
+  <div id="screen-cc" class="screen hidden">
+    <h2>GRAND PRIX</h2>
+    <div class="sub">ESCOLHA A CILINDRADA</div>
+    <div class="col">
+      <button class="btn" data-cc="50">50cc</button>
+      <button class="btn" data-cc="100">100cc</button>
+      <button class="btn" data-cc="150">150cc</button>
+      <button class="btn" data-cc="espelho" id="btn-mirror">ESPELHO</button>
+    </div>
+    <button class="btn back" data-go="title">VOLTAR</button>
+  </div>
+
+  <div id="screen-char" class="screen hidden">
+    <h2>ESCOLHA SEU PILOTO</h2>
+    <div id="char-grid"></div>
+    <div id="char-info"></div>
+    <button class="btn back" data-go="cc">VOLTAR</button>
+  </div>
+
+  <div id="screen-cup" class="screen hidden">
+    <h2>ESCOLHA A COPA</h2>
+    <div id="cup-list"></div>
+    <button class="btn back" data-go="char">VOLTAR</button>
+  </div>
+
+  <div id="screen-results" class="screen hidden">
+    <h2 id="results-title">RESULTADO</h2>
+    <table id="results-table"></table>
+    <div id="results-msg"></div>
+    <div class="row" id="results-buttons"></div>
+  </div>
+
+  <div id="screen-podium" class="screen hidden clear">
+    <h2 id="podium-title"></h2>
+    <div id="podium-msg"></div>
+    <button class="btn" data-go="title">FIM</button>
+  </div>
+
+  <div id="screen-pause" class="screen hidden">
+    <h2>PAUSA</h2>
+    <div class="col">
+      <button class="btn" id="btn-resume">CONTINUAR</button>
+      <button class="btn" id="btn-retry">REINICIAR CORRIDA</button>
+      <button class="btn" id="btn-quit">SAIR</button>
     </div>
   </div>
 
-  <!-- Resultado -->
-  <div id="results" class="overlay hidden">
-    <div class="panel">
-      <h2 id="results-title">Resultado</h2>
-      <table id="results-table"></table>
-      <button id="btn-again" class="btn">Correr de novo</button>
-      <button id="btn-menu" class="btn secondary">Menu</button>
-    </div>
-  </div>
+  <div id="loading" class="screen"><div class="hint">CARREGANDO...</div></div>
 
-  <!-- Controles de toque (celular/tablet) -->
+  <!-- Toque -->
   <div id="touch" class="hidden">
-    <div class="touch-left">
-      <button data-key="left">◀</button>
-      <button data-key="right">▶</button>
+    <div class="pad-l">
+      <button data-key="left">◀</button><button data-key="right">▶</button>
     </div>
-    <div class="touch-right">
-      <button data-key="drift" class="drift">DRIFT</button>
-      <button data-key="brake" class="brake">FREIO</button>
-      <button data-key="gas" class="gas">ACELERAR</button>
+    <div class="pad-r">
+      <button data-key="item" class="t-item">Z</button>
+      <button data-key="hop" class="t-hop">R</button>
+      <button data-key="brake" class="t-b">B</button>
+      <button data-key="gas" class="t-a">A</button>
     </div>
   </div>
 
