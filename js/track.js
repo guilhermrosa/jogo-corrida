@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { TRACKS, THEMES, ROAD_HALF, SHOULDER, EDGE } from './data.js';
+import { buildTerrain, buildScenery } from './scenery.js';
 
 export { ROAD_HALF, SHOULDER, EDGE };
 
@@ -210,9 +211,12 @@ export class Track {
     });
 
     // ---------- chão, água e lava
-    const ground = this.mesh(new THREE.PlaneGeometry(2400, 2400), lam({ map: groundTex, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 4 }));
+    // relevo com morros (o chão plano fica só embaixo, como reserva)
+    this.groundBase = GROUND_Y;
+    buildTerrain(this, GROUND_Y);
+    const ground = this.mesh(new THREE.PlaneGeometry(4000, 4000), lam({ map: groundTex, polygonOffset: true, polygonOffsetFactor: 6, polygonOffsetUnits: 6 }));
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = GROUND_Y - (this.def.lava ? 2 : 0);
+    ground.position.y = GROUND_Y - (this.def.lava ? 2 : 0.4);
 
     if (this.def.water) {
       const wt = retroTex(32, 32, (c, w, h) => {
@@ -330,6 +334,7 @@ export class Track {
 
     // ---------- decoração: árvores em "X" (dois planos cruzados)
     this.buildDecor(rnd);
+    buildScenery(this, rnd);
   }
 
   buildBackdrop(rnd) {
@@ -429,7 +434,7 @@ export class Track {
       if (!ok) continue;
       const sc = 0.8 + rnd() * 0.6;
       q.setFromAxisAngle(s.set(0, 1, 0), rnd() * Math.PI);
-      m4.compose(v.setY(GROUND_Y), q, s.set(sc, sc, sc));
+      m4.compose(v.setY(this.terrainY(v.x, v.z) - 0.2), q, s.set(sc, sc, sc));
       inst.setMatrixAt(n++, m4);
     }
     inst.count = n;
@@ -448,7 +453,7 @@ export class Track {
     }
   }
 
-  update(dt) { for (const f of this.animated) f(dt); }
+  update(dt, camera) { for (const f of this.animated) f(dt, camera); }
 }
 
 function mergeGeos(geos) {

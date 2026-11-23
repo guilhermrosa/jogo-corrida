@@ -8,6 +8,7 @@ import { Input } from './input.js';
 import { GameAudio } from './audio.js';
 import { Hud, fmtTime } from './hud.js';
 import { bakeDriver, spriteTexture } from './sprites.js';
+import { ART } from './scenery.js';
 
 const params = new URLSearchParams(location.search);
 const AUTO = params.has('auto');
@@ -53,6 +54,7 @@ async function bakeAll() {
     bakes[d.id] = bakeDriver(d);
     portraits[d.id] = bakes[d.id].portrait;
   }
+  ART.portraits = portraits;
   document.getElementById('loading').classList.add('hidden');
 }
 
@@ -559,7 +561,7 @@ function frame() {
   if (R && !paused) {
     if (showTrack) hideShowcase();
     if (R.phase !== 'results') stepRace(dt);
-    R.track.update(dt);
+    R.track.update(dt, camera);
     if (R.phase === 'intro') introCamera(); else chaseCamera(dt);
     for (const k of R.karts) k.syncView(dt, camera);
     updateOwl();
@@ -576,9 +578,15 @@ function frame() {
     camera.lookAt(0, 2.4, 0);
     for (const k of podium.karts) { k.heading = Math.atan2(camera.position.x - k.pos.x, camera.position.z - k.pos.z); k.syncView(dt, camera); }
   } else if (showTrack) {
-    showTrack.update(dt);
+    showTrack.update(dt, camera);
     showcaseCamera(dt);
     showTrack.backdrop.position.set(camera.position.x, 140, camera.position.z);
+  }
+  // modo foto (testes/registro): câmera travada num ponto
+  if (window.__photo) {
+    camera.position.copy(window.__photo.p);
+    camera.lookAt(window.__photo.t);
+    if (R) R.track.backdrop.position.set(camera.position.x, 140, camera.position.z);
   }
   renderer.render(scene, camera);
 }
@@ -610,7 +618,7 @@ show('title');
 
 // acesso para testes automatizados: ?auto&start=1&track=praia&cc=150
 window.__game = {
-  get R() { return R; }, G, startGP, startRace, input,
+  get R() { return R; }, G, startGP, startRace, input, camera, THREE, renderer,
   simulate(seconds, step = 1 / 60) {
     for (let t = 0; t < seconds && R && R.phase !== 'results'; t += step) { stepRace(step); }
     return R && R.phase;

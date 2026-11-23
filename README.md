@@ -100,7 +100,8 @@ Depois abra <http://localhost:8000>. O GitHub Pages também funciona sem configu
 
 ```
 js/data.js     regras, números, pilotos, itens e pistas
-js/track.js    pistas com relevo, pontes, quedas, água/lava e cenário
+js/track.js    pistas com relevo, pontes, quedas, água/lava
+js/scenery.js  cenário: morros, marcos de cada pista, placas, arquibancadas, túneis e animações
 js/kart.js     física: pulo, derrapagem, mini-turbo, muros, queda e resgate
 js/items.js    caixas, roleta e todos os itens
 js/ai.js       pilotos do computador
@@ -111,6 +112,9 @@ js/audio.js    sons e músicas chiptune originais
 js/input.js    teclado, controle e toque
 js/main.js     Grand Prix, câmera, menus e pódio
 ```
+
+## Registro visual
+Folhas comparando as versões dos pilotos e do cenário ficam em `docs/pilotos/` e `docs/cenario/`.
 
 ## Próximos passos
 Contra o relógio com fantasma, batalha de balões e tela dividida para 2 jogadores.
