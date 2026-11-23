@@ -213,6 +213,6 @@ export const THEMES = {
   campos: { sky: 0x7ec8ff, fog: 0xb8e2ff, ground: '#5aa63a', ground2: '#4c9430', shoulder: '#6fb84a', shoulder2: '#5ea53c', skirt: '#8a6a43', wall: ['#ffffff', '#e53935'], decor: 'arvore', music: 0 },
   praia:  { sky: 0x6fd0ff, fog: 0xc9f0ff, ground: '#f2d99a', ground2: '#e8cc85', shoulder: '#f5e2aa', shoulder2: '#ead291', skirt: '#d9b870', wall: ['#ffffff', '#1e88e5'], decor: 'coqueiro', music: 1 },
   serra:  { sky: 0xa9c8e8, fog: 0xdfe8f2, ground: '#eef4fa', ground2: '#dde8f2', shoulder: '#f4f8fc', shoulder2: '#e3ecf5', skirt: '#7d8794', wall: ['#ffffff', '#3949ab'], decor: 'pinheiro', music: 2 },
-  oficina: { sky: 0x86c3ec, fog: 0xf0dcb4, ground: '#8fae5a', ground2: '#7f9e4c', shoulder: '#b7aa94', shoulder2: '#a89a82', skirt: '#a0563a', wall: ['#efe2c2', '#8e3b2a'], decor: 'arvore', decorMin: 50, decorCount: 120, music: 0 },
+  oficina: { sky: 0x8fbfe0, fog: 0xe9cf9a, light: 0xfff0d8, sun: 0xffdca8, ground: '#8fae5a', ground2: '#7f9e4c', shoulder: '#b7aa94', shoulder2: '#a89a82', skirt: '#a0563a', wall: ['#efe2c2', '#8e3b2a'], decor: 'arvore', decorMin: 50, decorCount: 120, music: 0 },
   vulcao: { sky: 0x3a1a24, fog: 0x5a2420, ground: '#3b2a26', ground2: '#2f211e', shoulder: '#5a4038', shoulder2: '#4b352f', skirt: '#2a1e1c', wall: ['#ffb300', '#212121'], decor: 'rocha', music: 3 },
 };

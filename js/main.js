@@ -33,7 +33,8 @@ applyRes();
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.4, 2600);
-scene.add(new THREE.HemisphereLight(0xffffff, 0x707070, 2.1));
+const hemi = new THREE.HemisphereLight(0xffffff, 0x707070, 2.1);
+scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1.6);
 sun.position.set(0.5, 1, 0.3);
 scene.add(sun);
@@ -194,6 +195,8 @@ function startRace() {
   const theme = THEMES[track.def.theme];
   scene.background = new THREE.Color(theme.sky);
   scene.fog = new THREE.Fog(theme.fog, 140, 900);
+  hemi.color.set(theme.light ?? 0xffffff);
+  sun.color.set(theme.sun ?? 0xffffff);
 
   const karts = G.grid.map((id, slot) => {
     const d = DRIVERS.find((x) => x.id === id);

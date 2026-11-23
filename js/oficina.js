@@ -29,9 +29,10 @@ function brickTex(base = '#a0563a', mortar = '#5e3324') {
   }, { seed: 21 });
 }
 
-// fachada de enxaimel: metade esquerda = loja, metade direita = casa (cores vêm da cor do vértice)
+// fachadas (cores vêm da cor do vértice): 0 = loja de enxaimel, 1 = casa de enxaimel, 2 = oficina de metal rebitado
+const VARIANTS = 3;
 function facadeTex() {
-  return pixelTex(256, 128, (g, W, H, r) => {
+  return pixelTex(128 * VARIANTS, 128, (g, W, H, r) => {
     for (let v = 0; v < 2; v++) {
       const o = v * 128;
       P(g, o, 0, 128, H, '#f6f1e6');
@@ -78,6 +79,38 @@ function facadeTex() {
       for (let k = 0; k < 4; k++) P(g, o + 88 + k * 5, 72, 1, 38, '#6b4426');
       P(g, o + 86, 70, 22, 2, '#3a2414');
       P(g, o + 103, 90, 3, 3, '#e0bd6a');
+    }
+    {
+      const o = 256;
+      // chapas de cobre rebitadas
+      P(g, o, 0, 128, H, '#5a3a24');
+      for (let y = 0; y < 112; y += 24) for (let x = 0; x < 128; x += 32) {
+        const k = 0.88 + r() * 0.22;
+        const c = [184 * k, 103 * k, 58 * k].map((v) => v | 0);
+        P(g, o + x + 1, y + 1, 31, 23, `rgb(${c})`);
+        P(g, o + x + 1, y + 1, 31, 1, 'rgba(255,220,170,.45)');
+        P(g, o + x + 1, y + 23, 31, 1, 'rgba(0,0,0,.3)');
+        for (const [rx, ry] of [[3, 3], [28, 3], [3, 20], [28, 20], [15, 3], [15, 20]]) { P(g, o + x + rx, y + ry, 2, 2, '#e6b070'); P(g, o + x + rx + 1, y + ry + 1, 1, 1, '#4a2a14'); }
+        if (r() < 0.35) P(g, o + x + 6 + r() * 16, y + 8 + r() * 10, 6, 3, 'rgba(110,176,156,.55)'); // azinhavre
+      }
+      // base de ferro
+      P(g, o, 112, 128, 16, '#3b3632'); P(g, o, 112, 128, 2, '#6a625a');
+      for (let x = 4; x < 128; x += 10) P(g, o + x, 118, 2, 2, '#8a8078');
+      // escotilhas redondas em cima
+      for (const cx of [30, 98]) for (let y = -13; y <= 13; y++) for (let x = -13; x <= 13; x++) {
+        const d = Math.hypot(x, y);
+        if (d <= 13) P(g, o + cx + x, 34 + y, 1, 1, d > 10 ? '#c9a24a' : d > 9 ? '#7a5a20' : (r() < 0.5 && cx === 30 ? '#ffd98a' : '#ffd98a'));
+      }
+      for (const cx of [30, 98]) { P(g, o + cx - 6, 26, 4, 4, 'rgba(255,255,255,.6)'); for (let a = 0; a < 8; a++) P(g, o + cx + Math.cos(a * 0.785) * 11.5, 34 + Math.sin(a * 0.785) * 11.5, 2, 2, '#5a4820'); }
+      // portão de correr de ferro com travessa em X
+      P(g, o + 54, 62, 66, 50, '#2a2624'); P(g, o + 56, 64, 62, 48, '#4a4440');
+      for (let k = 0; k < 46; k++) { P(g, o + 57 + k * 1.3, 65 + k, 3, 2, '#6a625a'); P(g, o + 115 - k * 1.3, 65 + k, 3, 2, '#6a625a'); }
+      P(g, o + 54, 62, 66, 3, '#c9a24a');
+      for (let k = 0; k < 8; k++) P(g, o + 56 + k * 8, 58, 8, 4, k % 2 ? '#2a2624' : '#e8a221'); // faixa de atenção
+      // manômetro e válvula ao lado do portão
+      for (let y = -9; y <= 9; y++) for (let x = -9; x <= 9; x++) { const d = Math.hypot(x, y); if (d <= 9) P(g, o + 26 + x, 84 + y, 1, 1, d > 7 ? '#c9a24a' : '#f4ead2'); }
+      for (let k = 0; k < 6; k++) P(g, o + 26 + k, 84 - k * 0.8, 1, 1, '#b0322a');
+      P(g, o + 14, 100, 26, 4, '#b0322a'); P(g, o + 25, 96, 4, 12, '#b0322a');
     }
   }, { seed: 77 });
 }
@@ -202,9 +235,11 @@ export function oficina(tr, rnd, H) {
     copper: phong({ color: COPPER, shininess: 50, specular: 0x553322 }),
   };
   const PLASTER = [0xf1e3c0, 0xe8c070, 0xe89a78, 0xa8d0c4, 0xc4bcd6, 0xb0cce4, 0xf4d4a8, 0xd8e4a0];
-  const ROOFS = [0xc0603a, 0x5a6473, 0x6fb09c, 0x8e3b2a, 0x9a5a34];
+  const ROOFS = [0xc0603a, 0x5a6473, 0x6fb09c, 0x6fb09c, 0xc8804a, 0x8e3b2a];
+  const METAL_TINT = [0xffffff, 0xf0e0c8, 0xd8e8dc];
 
-  const wallGeos = [], roofGeos = [], brickGeos = [], brassGeos = [];
+  const wallGeos = [], roofGeos = [], brickGeos = [], brassGeos = [], copperGeos = [], ironGeos = [];
+  const cyl = (r0, r1, h, seg = 10) => new THREE.CylinderGeometry(r0, r1, h, seg).toNonIndexed();
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1);
   const place = (geo, pos, rotY, tilt = 0, extra = null) => {
     e.set(0, rotY, tilt);
@@ -243,15 +278,18 @@ export function oficina(tr, rnd, H) {
       const rotY = tr.heading(k);
       const tilt = (rnd() - 0.5) * 0.06; // tortinhas de propósito
       const base = new THREE.Vector3(c.x, y, c.z);
-      const plaster = PLASTER[(rnd() * PLASTER.length) | 0];
-      const variant = rnd() < 0.45 ? 0 : 1;
+      const rv = rnd();
+      const variant = rv < 0.3 ? 0 : rv < 0.6 ? 1 : 2;
+      const plaster = variant === 2 ? METAL_TINT[(rnd() * 3) | 0] : PLASTER[(rnd() * PLASTER.length) | 0];
+      const toWorld = (geo) => place(geo, base, rotY, tilt);
+      const front = side * (dx / 2); // fachada virada para a rua (x local)
       // paredes
       const box = new THREE.BoxGeometry(dx, hgt, dz).toNonIndexed();
       box.translate(0, hgt / 2, 0);
       const uv = box.attributes.uv;
-      for (let n = 0; n < uv.count; n++) uv.setX(n, (uv.getX(n) + variant) / 2);
+      for (let n = 0; n < uv.count; n++) uv.setX(n, (uv.getX(n) + variant) / VARIANTS);
       // topo e fundo da caixa: reboco liso
-      for (let n = 12; n < 24; n++) uv.setXY(n, 0.03 + variant * 0.5, 0.985);
+      for (let n = 12; n < 24; n++) uv.setXY(n, (0.09 + variant) / VARIANTS, 0.985);
       wallGeos.push(tint(place(box, base, rotY, tilt), plaster));
       // telhado (às vezes atravessado) com empenas
       const across = rnd() < 0.35;
@@ -261,21 +299,40 @@ export function oficina(tr, rnd, H) {
       const lift = new THREE.Matrix4().makeTranslation(0, hgt, 0).multiply(rot).multiply(new THREE.Matrix4().makeRotationZ((rnd() - 0.5) * 0.08));
       roofGeos.push(tint(place(gableRoof(rw, rd, rh), base, rotY, tilt, lift), ROOFS[(rnd() * ROOFS.length) | 0]));
       const gb = gables(rw, rd, rh);
-      const gu = gb.attributes.uv; for (let n = 0; n < gu.count; n++) gu.setX(n, 0.03 + variant * 0.5);
+      const gu = gb.attributes.uv; for (let n = 0; n < gu.count; n++) gu.setX(n, (0.09 + variant) / VARIANTS);
       wallGeos.push(tint(place(gb, base, rotY, tilt, lift), plaster));
-      // chaminé
-      if (rnd() < 0.7) {
-        const cx = (rnd() - 0.5) * dx * 0.5, cz = (rnd() - 0.5) * dz * 0.5, ch = rh + 1.5 + rnd() * 1.5;
-        const chim = new THREE.BoxGeometry(1.2, ch, 1.2).toNonIndexed();
-        chim.translate(cx, hgt + ch / 2, cz);
-        brickGeos.push(place(chim, base, rotY, tilt));
-        if (houses % 3 === 0) {
-          const top = new THREE.Vector3(cx, hgt + ch + 0.3, cz).applyEuler(new THREE.Euler(0, rotY, tilt)).add(base);
-          smokers.push(top);
+      // chaminé: de tijolo nas casas antigas, cano de cobre com chapéu nas outras
+      if (rnd() < 0.85) {
+        const cx = (rnd() - 0.5) * dx * 0.5, cz = (rnd() - 0.5) * dz * 0.5, ch = rh + 2 + rnd() * 3;
+        if (variant !== 2 && rnd() < 0.35) {
+          const chim = new THREE.BoxGeometry(1.2, ch, 1.2).toNonIndexed();
+          chim.translate(cx, hgt + ch / 2, cz);
+          brickGeos.push(toWorld(chim));
+        } else {
+          const pipe = cyl(0.45, 0.55, ch); pipe.translate(cx, hgt + ch / 2, cz); copperGeos.push(toWorld(pipe));
+          for (const f of [0.35, 0.75]) { const band = cyl(0.62, 0.62, 0.25); band.translate(cx, hgt + ch * f, cz); brassGeos.push(toWorld(band)); }
+          const hat = cyl(0.2, 0.9, 0.6); hat.translate(cx, hgt + ch + 0.6, cz); ironGeos.push(toWorld(hat));
         }
+        if (houses % 2 === 0) smokers.push(new THREE.Vector3(cx, hgt + ch + 0.5, cz).applyEuler(new THREE.Euler(0, rotY, tilt)).add(base));
+      }
+      // canos de cobre subindo pela fachada, com cotovelo entrando na parede
+      for (let pk = 0, np = 1 + (rnd() < 0.6 ? 1 : 0); pk < np; pk++) {
+        const pz = (pk ? -1 : 1) * dz * (0.3 + rnd() * 0.15), r0 = 0.18 + rnd() * 0.12;
+        const pipe = cyl(r0, r0, hgt + 0.8, 8); pipe.translate(front + side * 0.35, (hgt + 0.8) / 2, pz); copperGeos.push(toWorld(pipe));
+        const elbow = cyl(r0, r0, 0.5, 8); elbow.rotateZ(Math.PI / 2); elbow.translate(front + side * 0.12, hgt * (0.3 + rnd() * 0.4), pz); copperGeos.push(toWorld(elbow));
+        for (let y = 1.5; y < hgt; y += 2.5) { const cl = cyl(r0 * 1.35, r0 * 1.35, 0.18, 8); cl.translate(front + side * 0.35, y, pz); brassGeos.push(toWorld(cl)); }
+      }
+      // caldeira ou caixa-d'água no telhado
+      if (rnd() < 0.45) {
+        const tl = 2.4 + rnd() * 1.6, tr0 = 0.9 + rnd() * 0.4, ty = hgt + rh * 0.55 + tr0;
+        const tank = cyl(tr0, tr0, tl, 12); tank.rotateX(Math.PI / 2); tank.translate(0, ty, 0); copperGeos.push(toWorld(tank));
+        for (const z of [-tl / 2 + 0.3, tl / 2 - 0.3]) { const b = cyl(tr0 + 0.08, tr0 + 0.08, 0.2, 12); b.rotateX(Math.PI / 2); b.translate(0, ty, z); brassGeos.push(toWorld(b)); }
+        for (const z of [-tl / 3, tl / 3]) { const leg = new THREE.BoxGeometry(0.25, tr0 + 0.6, 0.25).toNonIndexed(); leg.translate(0, ty - tr0 * 0.8, z); ironGeos.push(toWorld(leg)); }
+        const valve = cyl(0.15, 0.15, 0.9, 6); valve.translate(0, ty + tr0 + 0.4, 0); brassGeos.push(toWorld(valve));
+        if (houses % 2 === 1) smokers.push(new THREE.Vector3(0, ty + tr0 + 0.9, 0).applyEuler(new THREE.Euler(0, rotY, tilt)).add(base));
       }
       // engrenagem girando na fachada virada para a rua
-      if (rnd() < 0.28 && gears.length < 14) {
+      if (rnd() < (variant === 2 ? 0.8 : 0.3) && gears.length < 28) {
         const r = 1.4 + rnd() * 1.2;
         const g = new THREE.Mesh(gearShared, mats.brass);
         g.scale.set(r, r, 1);
@@ -311,10 +368,12 @@ export function oficina(tr, rnd, H) {
   addMerged(roofGeos, mats.roof);
   addMerged(brickGeos, mats.brick);
   addMerged(brassGeos, mats.brass);
+  addMerged(copperGeos, mats.copper);
+  addMerged(ironGeos, mats.iron);
 
   // fumaça das chaminés
   const smokeSprites = [];
-  for (const top of smokers.slice(0, 18)) {
+  for (const top of smokers.slice(0, 26)) {
     for (let k = 0; k < 3; k++) {
       const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTex, transparent: true, depthWrite: false, color: 0xd8d4cc }));
       tr.group.add(s);
@@ -531,6 +590,140 @@ export function oficina(tr, rnd, H) {
     }
     addMerged(crates, lam({ color: 0x9a6a3a }));
     addMerged(barrels, lam({ color: 0x6b4426 }));
+  }
+
+  // ------------------------------------------------ peça entre dois pontos (vigas de treliça, bielas)
+  const beam = (a, b, w, list) => {
+    const d = b.clone().sub(a), len = d.length();
+    const g = new THREE.BoxGeometry(w, len, w).toNonIndexed();
+    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()));
+    g.translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+    list.push(g);
+  };
+
+  // ------------------------------------------------ pontes de treliça de ferro rebitado
+  {
+    const truss = [], rivets = [];
+    for (let i = 0; i < N; i += 3) {
+      const j = (i + 3) % N;
+      if (!tr.bridge[i] || !tr.bridge[j]) continue;
+      for (const s of [1, -1]) {
+        const a = tr.point(i, s * (EDGE + 0.5)), b = tr.point(j, s * (EDGE + 0.5));
+        a.y = tr.py[i] + 0.9; b.y = tr.py[j] + 0.9;
+        const at = a.clone(), bt = b.clone(); at.y += 3.2; bt.y += 3.2;
+        beam(a, at, 0.35, truss);
+        beam(at, bt, 0.45, truss);
+        beam((i / 3) % 2 ? a : at, (i / 3) % 2 ? bt : b, 0.25, truss);
+        const rv = new THREE.SphereGeometry(0.22, 6, 4).toNonIndexed(); rv.translate(at.x, at.y, at.z); rivets.push(rv);
+      }
+    }
+    if (truss.length) { tr.group.add(new THREE.Mesh(mergeGeometries(truss), lam({ color: 0x4a4440 }))); tr.group.add(new THREE.Mesh(mergeGeometries(rivets), mats.brass)); }
+  }
+
+  // ------------------------------------------------ engrenagem gigante girando sobre a pista
+  {
+    let i = Math.round(0.58 * N);
+    for (let t = 0; t < 60 && (tr.curv[i] > 0.3 || tr.bridge[i]); t++) i = (i + 2) % N;
+    const g = new THREE.Group();
+    tr.point(i, 0, g.position); g.position.y = tr.py[i] - 2;
+    g.rotation.y = tr.heading(i);
+    tr.group.add(g);
+    const ringShape = new THREE.Shape();
+    const Ro = EDGE + 5.5, Ri = EDGE + 3, T = 28;
+    for (let k = 0; k < T; k++) {
+      const a = (k / T) * Math.PI * 2, st = (Math.PI * 2) / T, pt = (aa, rr) => [Math.cos(aa) * rr, Math.sin(aa) * rr];
+      if (k === 0) ringShape.moveTo(...pt(a, Ro - 1.2)); else ringShape.lineTo(...pt(a, Ro - 1.2));
+      ringShape.lineTo(...pt(a + st * 0.2, Ro)); ringShape.lineTo(...pt(a + st * 0.5, Ro)); ringShape.lineTo(...pt(a + st * 0.7, Ro - 1.2));
+    }
+    const hole = new THREE.Path(); hole.absarc(0, 0, Ri, 0, Math.PI * 2, true); ringShape.holes.push(hole);
+    const ringGeo = new THREE.ExtrudeGeometry(ringShape, { depth: 1.4, bevelEnabled: false, curveSegments: 40 }); ringGeo.translate(0, 0, -0.7);
+    const ring = new THREE.Mesh(ringGeo, mats.brass);
+    g.add(ring);
+    // rebites em volta do aro interno
+    for (let k = 0; k < 24; k++) { const a = (k / 24) * Math.PI * 2; const rv = new THREE.Mesh(new THREE.SphereGeometry(0.3, 6, 4), mats.copper); rv.position.set(Math.cos(a) * (Ri + 0.6), Math.sin(a) * (Ri + 0.6), 0.75); ring.add(rv); }
+    // engrenagens motoras dos dois lados, em pilares de tijolo
+    const drivers = [];
+    for (const s of [1, -1]) {
+      const px0 = s * (Ro + 3.6), py0 = 9;
+      const pil = new THREE.Mesh(new THREE.BoxGeometry(3, py0 + 2, 3), lam({ map: brickTex() })); pil.position.set(px0, (py0 + 2) / 2, -2.2); g.add(pil);
+      const dg = new THREE.Mesh(gearShared, mats.copper); dg.scale.set(4.2, 4.2, 1.6); dg.position.set(px0, py0 + 2, 0); g.add(dg);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 2.4, 12), mats.iron); hub.rotation.x = Math.PI / 2; hub.position.copy(dg.position); g.add(hub);
+      drivers.push(dg);
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.6, 10, 8), basic({ color: 0xffd98a })); lamp.position.set(px0, py0 + 7, 0); g.add(lamp);
+    }
+    // placa com o nome da vila no alto
+    const nameTex = pixelTex(128, 24, (c, W, Hh) => {
+      P(c, 0, 0, W, Hh, '#3b3632'); P(c, 2, 2, W - 4, Hh - 4, '#5a2e1c');
+      c.fillStyle = '#e8c070'; c.font = 'bold 13px monospace'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('VILA ENGRENAGEM', W / 2, Hh / 2 + 1);
+    }, { repeat: false });
+    const board = new THREE.Mesh(new THREE.BoxGeometry(12, 2.2, 0.3), [mats.iron, mats.iron, mats.iron, mats.iron, lam({ map: nameTex }), lam({ map: nameTex })]);
+    board.position.set(0, Ro + 1.6, 1.2); g.add(board);
+    const T2 = T, ratio = 10 / T2;
+    tr.animated.push((dt) => { ring.rotation.z += dt * 0.12; drivers.forEach((d) => { d.rotation.z -= dt * 0.12 / ratio * 0.36; }); });
+    occupied.push([g.position.x, g.position.z, 4]);
+    tr.landmarks = { ...(tr.landmarks || {}), gear: i };
+  }
+
+  // ------------------------------------------------ máquina a vapor com volante, biela e pistão
+  {
+    const p = H.findPlace(tr, rnd, 14, 26, (pp) => !inCanal(tr, pp.x, pp.z, 8) && free(pp.x, pp.z, 13));
+    if (p) {
+      occupied.push([p.x, p.z, 11]);
+      tr.landmarks = { ...(tr.landmarks || {}), engine: p.clone() };
+      const g = new THREE.Group(); g.position.copy(p); tr.group.add(g);
+      const near = tr.dist(p.x, p.z).i; g.rotation.y = tr.heading(near); g.scale.setScalar(1.6);
+      const base = new THREE.Mesh(new THREE.BoxGeometry(5, 1.4, 14), lam({ map: brickTex() })); base.position.y = 0.7; g.add(base);
+      const boiler = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 7, 16), mats.copper); boiler.rotation.x = Math.PI / 2; boiler.position.set(0, 3.2, -2.5); g.add(boiler);
+      for (const z of [-5.6, -2.5, 0.6]) { const b = new THREE.Mesh(new THREE.CylinderGeometry(1.92, 1.92, 0.3, 16), mats.brass); b.rotation.x = Math.PI / 2; b.position.set(0, 3.2, z); g.add(b); }
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), mats.brass); dome.position.set(0, 4.9, -3.5); g.add(dome);
+      const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.5, 6, 10), mats.iron); stack.position.set(0, 7.5, -5); g.add(stack);
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.7, 0.8, 10), mats.brass); crown.position.set(0, 10.8, -5); g.add(crown);
+      smokers.push(new THREE.Vector3(0, 11.5, -5).multiplyScalar(1.6).applyEuler(g.rotation).add(g.position));
+      const gauge = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.15, 14), lam({ color: 0xf4ead2 })); gauge.rotation.z = Math.PI / 2; gauge.position.set(1.85, 3.6, 0.2); g.add(gauge);
+      const cylP = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2.6, 12), mats.iron); cylP.rotation.x = Math.PI / 2; cylP.position.set(1.2, 2.4, 2.4); g.add(cylP);
+      // volante
+      const wheel = new THREE.Group(); wheel.position.set(1.4, 3.6, 5.6); g.add(wheel);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.32, 8, 28), mats.iron); rim.rotation.y = Math.PI / 2; wheel.add(rim);
+      for (let k = 0; k < 6; k++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(0.22, 6.2, 0.3), mats.iron); sp.rotation.x = (k / 6) * Math.PI; wheel.add(sp); }
+      const hubW = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.9, 10), mats.brass); hubW.rotation.z = Math.PI / 2; wheel.add(hubW);
+      const pin = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 6), mats.brass); wheel.add(pin); pin.position.set(0.4, 0, 2.2);
+      const rod = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.35, 1), mats.brass); g.add(rod);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.8), mats.brass); g.add(head);
+      for (const z of [3, 8]) { const st = new THREE.Mesh(new THREE.BoxGeometry(0.8, 3.2, 0.8), mats.iron); st.position.set(1.4, 1.9, z === 3 ? 5.6 : 5.6); g.add(st); }
+      let th = 0;
+      const A = new THREE.Vector3(), B = new THREE.Vector3();
+      tr.animated.push((dt) => {
+        th += dt * 2.2;
+        wheel.rotation.x = th;
+        A.set(1.8, 3.6 - Math.sin(th) * 2.2, 5.6 + Math.cos(th) * 2.2);
+        B.set(1.8, 2.4, A.z - Math.sqrt(Math.max(0.1, 5.2 * 5.2 - (A.y - 2.4) ** 2)));
+        head.position.set(1.2, 2.4, B.z);
+        rod.position.copy(A).add(B).multiplyScalar(0.5);
+        rod.scale.z = A.distanceTo(B);
+        rod.rotation.x = -Math.atan2(A.y - B.y, A.z - B.z);
+      });
+      pin.visible = false;
+    }
+  }
+
+  // ------------------------------------------------ gasômetro (tanque que sobe e desce dentro da armação)
+  {
+    const p = H.findPlace(tr, rnd, 45, 100, (pp) => !inCanal(tr, pp.x, pp.z, 14) && free(pp.x, pp.z, 14));
+    if (p) {
+      occupied.push([p.x, p.z, 14]);
+      const g = new THREE.Group(); g.position.copy(p); tr.group.add(g);
+      const tank = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 14, 24), phong({ color: 0x6f8a80, shininess: 30 })); g.add(tank);
+      const lid = new THREE.Mesh(new THREE.SphereGeometry(10, 24, 6, 0, Math.PI * 2, 0, Math.PI / 6), phong({ color: 0x6fb09c, shininess: 30 })); tank.add(lid); lid.position.y = 7 - 10 * Math.cos(Math.PI / 6);
+      const frame = [];
+      for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; beam(new THREE.Vector3(Math.cos(a) * 11, 0, Math.sin(a) * 11), new THREE.Vector3(Math.cos(a) * 11, 24, Math.sin(a) * 11), 0.6, frame); }
+      for (const y of [8, 16, 24]) for (let k = 0; k < 10; k++) {
+        const a = (k / 10) * Math.PI * 2, b = ((k + 1) / 10) * Math.PI * 2;
+        beam(new THREE.Vector3(Math.cos(a) * 11, y, Math.sin(a) * 11), new THREE.Vector3(Math.cos(b) * 11, y, Math.sin(b) * 11), 0.45, frame);
+      }
+      g.add(new THREE.Mesh(mergeGeometries(frame), lam({ color: 0x8e3b2a })));
+      let gt = 0;
+      tr.animated.push((dt) => { gt += dt; tank.position.y = 8 + Math.sin(gt * 0.15) * 3; });
+    }
   }
 
   // ------------------------------------------------ animações
