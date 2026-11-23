@@ -75,21 +75,26 @@ class B {
 const surf = (R, yaw, pitch) => [R * Math.cos(pitch) * Math.sin(yaw), R * Math.sin(pitch), R * Math.cos(pitch) * Math.cos(yaw)];
 
 // ------------------------------------------------------------------ rosto
-function eyes(b, head, R, { yaw = 0.32, pitch = 0.12, size = 0.085, expr = 'normal', pupil = 0x1a1a1a } = {}) {
+// olhos simples de desenho: oval escuro achatado no rosto com um brilhinho
+// (sem globo branco saltado). lid: pálpebra da cor do pelo, olhar semicerrado
+function eyes(b, head, R, { yaw = 0.3, pitch = 0.1, size = 0.07, expr = 'normal', lid = null } = {}) {
+  const ink = b.plastic(0x1c1416, 70);
   for (const s of [1, -1]) {
-    const p = surf(R * 0.96, s * yaw, pitch);
+    const p = surf(R * 0.985, s * yaw, pitch);
+    const face = new THREE.Group();
+    face.position.set(...p);
+    face.lookAt(new THREE.Vector3(...p).multiplyScalar(2)); // z aponta para fora do rosto
+    head.add(face);
     if (expr === 'happy') {
-      const arc = b.add(head, new THREE.TorusGeometry(size * 0.8, size * 0.22, 6, 14, Math.PI), b.plastic(0x1a1a1a), p, [0, s * yaw, 0]);
-      arc.position.z += 0.02;
+      b.add(face, new THREE.TorusGeometry(size * 0.7, size * 0.2, 6, 14, Math.PI), ink, [0, -size * 0.2, 0.01]);
     } else if (expr === 'dizzy') {
-      for (const a of [0.8, -0.8]) b.add(head, new THREE.BoxGeometry(size * 1.8, size * 0.35, 0.03), b.plastic(0x1a1a1a), [p[0], p[1], p[2] + 0.03], [0, s * yaw, a]);
+      for (const a of [0.8, -0.8]) b.add(face, new THREE.BoxGeometry(size * 1.6, size * 0.32, 0.03), ink, [0, 0, 0.01], [0, 0, a]);
     } else {
-      const w = b.sphere(head, size, b.plastic(0xffffff, 80), p, [1, 1.25, 0.6]);
-      w.rotation.y = s * yaw;
-      const pp = surf(R * 0.96 + size * 0.42, s * yaw * 0.92, pitch);
-      b.sphere(head, size * 0.58, b.plastic(pupil, 90), pp, [1, 1.2, 0.6]);
-      const hl = surf(R * 0.96 + size * 0.62, s * yaw * 0.85, pitch + 0.07);
-      b.sphere(head, size * 0.2, b.plastic(0xffffff, 10), hl);
+      b.add(face, new THREE.SphereGeometry(size, 18, 12), ink, [0, 0, 0], [0, 0, 0], [0.72, 1, 0.32]);
+      const hy = lid ? -size * 0.4 : size * 0.38;
+      b.add(face, new THREE.SphereGeometry(size * 0.26, 8, 6), b.plastic(0xffffff, 10), [-s * size * 0.2, hy, size * 0.24], [0, 0, 0], [1, 1, 0.5]);
+      if (lid) // metade de cima coberta pela pálpebra, levemente inclinada
+        b.add(face, new THREE.SphereGeometry(size * 1.06, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2), b.fur(lid), [0, -size * 0.12, 0], [0, 0, s * 0.18], [0.76, 1, 0.38]);
     }
   }
 }
@@ -134,7 +139,7 @@ function buildHead(b, d, expr) {
       b.sphere(h, 0.17, b.fur(0xffffff), surf(R * 0.78, 0, -0.22), [1.2, 0.8, 0.8]);
       b.sphere(h, 0.045, b.plastic(0xff6f9a), surf(R * 0.98, 0, -0.08), [1.3, 1, 1]);
       b.add(h, new THREE.BoxGeometry(0.07, 0.07, 0.03), b.plastic(0xffffff), surf(R * 0.93, 0, -0.36));
-      eyes(b, h, R, ex({ pupil: 0xd81b60 }));
+      eyes(b, h, R, ex());
       mouth(b, h, R, ex({ pitch: -0.3, w: 0.08 }));
       cheeks(b, h, R);
       break;
@@ -143,13 +148,10 @@ function buildHead(b, d, expr) {
       R = 0.41;
       b.sphere(h, R, fur, [0, -0.04, 0], [1.15, 0.82, 1]);
       b.sphere(h, 0.3, b.fur(0xe9f5c9), [0, -0.12, 0.13], [1.15, 0.55, 0.8]); // queixo claro
-      // olhos saltados
-      for (const s of [1, -1]) {
-        b.sphere(h, 0.15, fur, [s * 0.2, 0.2, 0.17]);
-      }
-      const eg = new THREE.Group(); eg.position.set(0, 0.14, 0.08); h.add(eg);
-      eyes(b, eg, 0.28, ex({ yaw: 0.62, pitch: 0.28, size: 0.1 }));
-      mouth(b, h, R, ex({ pitch: -0.25, w: expr === 'happy' ? 0.14 : 0.22 }));
+      // olhos no rosto, logo abaixo da aba do chapéu
+      const eg = new THREE.Group(); eg.position.set(0, -0.04, 0); eg.scale.set(1.15, 0.82, 1); h.add(eg);
+      eyes(b, eg, R, ex({ yaw: 0.34, pitch: 0.22, size: 0.075 }));
+      mouth(b, h, R, ex({ pitch: -0.27, w: expr === 'happy' ? 0.13 : 0.15 }));
       cheeks(b, h, R, 0xff7aa0);
       // chapéu de cogumelo: aba larga com pintas
       const cap = new THREE.Group(); cap.position.set(0, 0.2, -0.04); cap.rotation.x = -0.12;
@@ -175,7 +177,7 @@ function buildHead(b, d, expr) {
       }
       b.sphere(h, 0.16, b.fur(0xffffff), surf(R * 0.8, 0, -0.25), [1.3, 0.75, 0.8]);
       b.sphere(h, 0.04, b.plastic(0xff6f9a), surf(R * 0.99, 0, -0.12), [1.3, 0.9, 1]);
-      eyes(b, h, R, ex({ pupil: 0x2e7d32 }));
+      eyes(b, h, R, ex());
       mouth(b, h, R, ex({ pitch: -0.34, w: 0.06 }));
       cheeks(b, h, R);
       // flor no cabelo
@@ -193,7 +195,7 @@ function buildHead(b, d, expr) {
       const snout = b.add(h, new THREE.ConeGeometry(0.16, 0.36, 16), b.fur(0xffffff), [0, -0.12, 0.44], [Math.PI / 2, 0, 0], [1, 1, 0.75]);
       snout.rotation.x = Math.PI / 2;
       b.sphere(h, 0.055, b.plastic(0x111111, 90), [0, -0.12, 0.62]);
-      eyes(b, h, R, ex({ pupil: 0x6d4c41, size: 0.08 }));
+      eyes(b, h, R, ex({ size: 0.068 }));
       mouth(b, h, R, ex({ pitch: -0.42, w: 0.07 }));
       // óculos de corrida na testa
       const gg = new THREE.Group(); gg.position.set(0, 0.26, 0.02); gg.rotation.x = -0.35; h.add(gg);
@@ -221,7 +223,7 @@ function buildHead(b, d, expr) {
       for (const s of [1, -1]) { b.sphere(h, 0.13, fur, [s * 0.32, 0.3, -0.04]); b.sphere(h, 0.07, b.fur(0xd7a979), [s * 0.32, 0.3, 0.03], [1, 1, 0.5]); }
       b.sphere(h, 0.2, b.fur(0xd7a979), surf(R * 0.8, 0, -0.28), [1.15, 0.8, 0.95]);
       b.sphere(h, 0.075, b.plastic(0x111111, 100), surf(R * 1.02, 0, -0.14), [1.4, 0.9, 1]);
-      eyes(b, h, R, ex({ pitch: 0.12, size: 0.075 }));
+      eyes(b, h, R, ex({ pitch: 0.12, size: 0.066 }));
       mouth(b, h, R, ex({ pitch: -0.4, w: 0.08 }));
       // boné virado para trás
       const cap = new THREE.Group(); cap.position.set(0, 0.17, -0.02); cap.rotation.x = -0.15; h.add(cap);
@@ -254,9 +256,9 @@ function buildHead(b, d, expr) {
       b.rbox(h, 0.46, 0.13, 0.6, 0.06, fur, [0, -0.04, 0.42], [-0.05, 0, 0]);
       b.rbox(h, 0.4, 0.05, 0.55, 0.02, b.fur(0xf1e3a0), [0, -0.21, 0.42], [jaw.rotation.x, 0, 0]);
       for (let k = 0; k < 5; k++) for (const s of [1, -1]) b.add(h, new THREE.ConeGeometry(0.025, 0.06, 6), b.plastic(0xffffff), [s * 0.2, -0.12, 0.22 + k * 0.11], [Math.PI, 0, 0]);
-      for (const s of [1, -1]) { b.sphere(h, 0.03, b.plastic(0x1b3a12), [s * 0.08, 0.03, 0.7]); b.sphere(h, 0.12, fur, [s * 0.17, 0.25, 0.14]); }
-      const eg = new THREE.Group(); eg.position.set(0, 0.2, 0.02); h.add(eg);
-      eyes(b, eg, 0.27, ex({ yaw: 0.6, pitch: 0.2, size: 0.085, pupil: 0x8a6d00 }));
+      for (const s of [1, -1]) b.sphere(h, 0.03, b.plastic(0x1b3a12), [s * 0.08, 0.03, 0.7]);
+      const eg = new THREE.Group(); eg.position.set(0, -0.02, 0); eg.scale.set(1.05, 0.9, 1); h.add(eg);
+      eyes(b, eg, R, ex({ yaw: 0.36, pitch: 0.36, size: 0.072, lid: d.fur }));
       // quepe de capitão
       const cap = new THREE.Group(); cap.position.set(0, 0.24, -0.08); h.add(cap);
       b.add(cap, new THREE.CylinderGeometry(0.36, 0.33, 0.18, 24), b.plastic(0xffffff, 40), [0, 0.08, 0]);

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { terrainDetail } from './textures.js';
 import { EDGE, ROAD_HALF } from './data.js';
 import { drawSprite } from './sprites.js';
 
@@ -93,11 +94,8 @@ export function buildTerrain(tr, groundY) {
   }
   g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   g.computeVertexNormals();
-  const detail = tex(32, 32, (c, w, h) => {
-    c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h);
-    for (let i = 0; i < 380; i++) { const v = 200 + Math.random() * 55; c.fillStyle = `rgb(${v},${v},${v})`; c.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, 1, 2); }
-  }, true);
-  detail.repeat.set(220, 220);
+  const detail = terrainDetail(tr.def.theme);
+  detail.repeat.set(500, 500);
   const m = new THREE.Mesh(g, lam({ map: detail, vertexColors: true, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 4 }));
   tr.group.add(m);
 }

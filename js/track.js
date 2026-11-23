@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TRACKS, THEMES, ROAD_HALF, SHOULDER, EDGE } from './data.js';
 import { buildTerrain, buildScenery } from './scenery.js';
+import { roadTexture, groundTexture, terrainDetail, skirtTexture, wallTexture, waterTexture, lavaTexture } from './textures.js';
 
 export { ROAD_HALF, SHOULDER, EDGE };
 
@@ -189,26 +190,13 @@ export class Track {
     const lam = (opts) => new THREE.MeshLambertMaterial(opts);
 
     // ---------- texturas
-    const asphalt = retroTex(32, 64, (c, w, h) => {
-      noiseFill(c, w, h, this.def.theme === 'vulcao' ? '#4a4247' : '#5d5d66', 'rgba(0,0,0,.22)', 0.6);
-      for (let y = 0; y < h; y += 16) {
-        c.fillStyle = '#e53935'; c.fillRect(0, y, 2, 8); c.fillRect(w - 2, y, 2, 8);
-        c.fillStyle = '#ffffff'; c.fillRect(0, y + 8, 2, 8); c.fillRect(w - 2, y + 8, 2, 8);
-      }
-      c.fillStyle = 'rgba(255,255,255,.55)'; c.fillRect(w / 2 - 1, 0, 1, h / 2);
-    });
-    const shoulderTex = retroTex(32, 32, (c, w, h) => noiseFill(c, w, h, th.shoulder, th.shoulder2, 0.35));
-    const groundTex = retroTex(32, 32, (c, w, h) => noiseFill(c, w, h, th.ground, th.ground2, 0.35));
-    groundTex.repeat.set(160, 160);
-    const skirtTex = retroTex(32, 32, (c, w, h) => {
-      noiseFill(c, w, h, th.skirt, 'rgba(0,0,0,.2)', 0.4);
-      c.fillStyle = 'rgba(255,255,255,.08)';
-      for (let y = 0; y < h; y += 8) c.fillRect(0, y, w, 2);
-    });
-    const wallTex = retroTex(32, 16, (c, w, h) => {
-      c.fillStyle = th.wall[0]; c.fillRect(0, 0, w / 2, h);
-      c.fillStyle = th.wall[1]; c.fillRect(w / 2, 0, w / 2, h);
-    });
+    const T = this.def.theme;
+    const asphalt = roadTexture(T);
+    const shoulderTex = groundTexture(T);
+    const groundTex = groundTexture(T, 'terrain');
+    groundTex.repeat.set(500, 500);
+    const skirtTex = skirtTexture(T);
+    const wallTex = wallTexture(T);
 
     // ---------- chão, água e lava
     // relevo com morros (o chão plano fica só embaixo, como reserva)
@@ -219,10 +207,8 @@ export class Track {
     ground.position.y = GROUND_Y - (this.def.lava ? 2 : 0.4);
 
     if (this.def.water) {
-      const wt = retroTex(32, 32, (c, w, h) => {
-        noiseFill(c, w, h, '#2f9fe0', '#7fd0ff', 0.12);
-      });
-      wt.repeat.set(30, 30);
+      const wt = waterTexture();
+      wt.repeat.set(40, 40);
       this.animated.push((dt) => { wt.offset.x += dt * 0.02; wt.offset.y += dt * 0.012; });
       const wm = lam({ map: wt, transparent: true, opacity: 0.92 });
       for (const [x, z, w, d] of this.water) {
@@ -233,12 +219,8 @@ export class Track {
       this.hazardY = 0.12;
     }
     if (this.def.lava) {
-      const lt = retroTex(32, 32, (c, w, h) => {
-        noiseFill(c, w, h, '#ff5a00', '#ffd23a', 0.25);
-        c.fillStyle = 'rgba(120,0,0,.5)';
-        for (let i = 0; i < 6; i++) c.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, 6, 3);
-      });
-      lt.repeat.set(60, 60);
+      const lt = lavaTexture();
+      lt.repeat.set(120, 120);
       this.animated.push((dt) => { lt.offset.x += dt * 0.03; lt.offset.y -= dt * 0.02; });
       const lava = this.mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.MeshBasicMaterial({ map: lt, fog: true }));
       lava.rotation.x = -Math.PI / 2;

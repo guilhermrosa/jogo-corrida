@@ -101,6 +101,7 @@ Depois abra <http://localhost:8000>. O GitHub Pages também funciona sem configu
 ```
 js/data.js     regras, números, pilotos, itens e pistas
 js/track.js    pistas com relevo, pontes, quedas, água/lava
+js/textures.js texturas em pixel art pintadas à mão (pista, chão, barrancos, muros, água, lava)
 js/scenery.js  cenário: morros, marcos de cada pista, placas, arquibancadas, túneis e animações
 js/kart.js     física: pulo, derrapagem, mini-turbo, muros, queda e resgate
 js/items.js    caixas, roleta e todos os itens
