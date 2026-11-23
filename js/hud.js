@@ -27,6 +27,10 @@ export class Hud {
     $('owl-img').src = drawSprite('coruja', 64).toDataURL();
     this.bannerT = 0;
     this.owlT = 0;
+    this.warnEl = $('hud-warn');
+    this.wctx = $('warn-canvas').getContext('2d');
+    this.hitEl = $('hud-hit');
+    this.hitT = 0;
     this.mm = $('minimap');
     this.mctx = this.mm.getContext('2d');
   }
@@ -101,6 +105,21 @@ export class Hud {
     this.owlT = dur;
   }
 
+  // alerta de item vindo na sua direção
+  warn(kind) {
+    if (kind === this.warnKind) return;
+    this.warnKind = kind;
+    this.warnEl.classList.toggle('hidden', !kind);
+    if (kind) { this.wctx.clearRect(0, 0, 32, 32); this.wctx.drawImage(this.icons[kind], 0, 0); }
+  }
+
+  // explica o que aconteceu quando o jogador é atingido
+  hitInfo(html, dur = 1.8) {
+    this.hitEl.innerHTML = html;
+    this.hitEl.classList.add('show');
+    this.hitT = dur;
+  }
+
   hideOwl() { this.el.owl.classList.add('hidden'); this.owlT = 0; }
 
   update(dt, player, ranking, raceTime, laps) {
@@ -136,6 +155,7 @@ export class Hud {
     e.itemCount.textContent = n;
 
     if (this.bannerT > 0) { this.bannerT -= dt; if (this.bannerT <= 0) e.banner.className = ''; }
+    if (this.hitT > 0) { this.hitT -= dt; if (this.hitT <= 0) this.hitEl.classList.remove('show'); }
     if (this.owlT > 0) { this.owlT -= dt; if (this.owlT <= 0) this.hideOwl(); }
 
     // minimapa

@@ -52,7 +52,7 @@ export const DRIVE = {
   mtFrames: 14,                // mini-turbo dura 14 quadros
   wiggleMinOut: frames(4),     // tempo mínimo "para fora" antes de cada balanço (2º trecho do TAS: 4 quadros)
   driftArmTime: frames(9),     // primeiro trecho da derrapagem antes do 1º balanço (TAS: 9 quadros)
-  spinOutAfter: 0.55,          // segurar o direcional para fora por tempo demais = rodada (estimado)
+  spinOutAfter: 1.0,           // segurar o direcional para fora por tempo demais = rodada (estimado)
   rocketWindow: 0.3,           // apertar acelerar até 0,3 s antes da luz azul (estimado)
   burnoutTime: 1.0,            // largada queimada (estimado)
   draftTime: 2.0,              // vácuo: alguns segundos atrás de outro kart

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { TOP_SPEED, CLASS_STATS, UNIT, DRIVE, ITEM_FX } from './data.js';
 import { ROAD_HALF, EDGE } from './track.js';
-import { FRAMES, POSES, spriteTexture } from './sprites.js';
+import { FRAMES, POSES, SPRITE_WORLD, SPRITE_GROUND, spriteTexture } from './sprites.js';
 
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export const wrapAngle = (a) => {
@@ -32,8 +32,8 @@ export class Kart {
     tex.repeat.set(1 / FRAMES, 1 / POSES);
     this.tex = tex;
     this.sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, alphaTest: 0.5, transparent: false }));
-    this.sprite.center.set(0.5, 0.12);
-    this.baseScale = 2.7 * this.sizeK;
+    this.sprite.center.set(0.5, SPRITE_GROUND);
+    this.baseScale = SPRITE_WORLD * this.sizeK;
     this.sprite.scale.set(this.baseScale, this.baseScale, 1);
     scene.add(this.sprite);
 
@@ -71,7 +71,7 @@ export class Kart {
     this.drift = 0; this.driftStage = 0; this.driftAge = 0; this.outT = 0; this.outwardHold = 0;
     this.mtT = 0; this.boostT = 0; this.goldT = 0; this.starT = 0; this.shrinkT = 0; this.squashT = 0; this.ghostT = 0;
     this.spinT = 0; this.tumbleT = 0; this.tumbleKind = ''; this.burnoutT = 0; this.draftT = 0; this.draftBoostT = 0;
-    this.fallT = 0; this.rescueT = 0; this.falling = false;
+    this.fallT = 0; this.rescueT = 0; this.falling = false; this.graceT = 0;
     this.idx = 0; this.lat = 0; this.progress = 0; this.lapsDone = 0; this.lapStart = 0; this.lapTimes = [];
     this.finished = false; this.finishTime = 0; this.autopilot = false;
     this.wrongWay = 0; this.safeIdx = 0; this.stuck = 0;
@@ -106,14 +106,21 @@ export class Kart {
   get boosting() { return this.boostT > 0 || this.mtT > 0 || this.goldBurst > 0; }
 
   // ------------------------------------------------------------ reações a itens / batidas
-  hit(kind) {
+  // cause = o que atingiu (para avisar o jogador); by = quem lançou
+  hit(kind, cause = kind, by = null) {
     if (this.rescueT > 0 || this.falling) return false;
     if (this.invincible && kind !== 'squash') return false;
     if (this.intangible) return false;
+    // já está rodando/capotado ou acabou de se recuperar: não apanha de novo em sequência
+    if (this.graceT > 0 || this.spinT > 0 || this.tumbleT > 0 || this.squashT > 0) {
+      if (kind === 'shrink' && !this.shrunk) { this.shrinkT = ITEM_FX.shrinkTime; this.lastHit = { kind, cause, by, t: this.clock }; this.events.push('hit'); return true; }
+      return false;
+    }
     // Frear no momento certo ao passar numa casca evita a rodada (só derrapa)
     if (kind === 'spin' && this.clock - this.lastBrakeT < 0.25 && Math.abs(this.steer) < 0.3) {
       this.speed *= 0.6;
       this.events.push('skid');
+      this.lastHit = { kind: 'skid', cause, by, t: this.clock };
       return true;
     }
     this.drift = 0; this.driftStage = 0; this.mtT = 0; this.boostT = 0;
@@ -123,6 +130,8 @@ export class Kart {
     else if (kind === 'blast') { this.tumbleT = ITEM_FX.blastTime * rec; this.tumbleKind = 'blast'; this.speed = 0; this.vy = 11; this.airborne = true; }
     else if (kind === 'squash') { this.squashT = ITEM_FX.squashTime; this.speed = 0; }
     else if (kind === 'shrink') { this.shrinkT = ITEM_FX.shrinkTime; this.spinT = 0.8; this.speed *= 0.5; }
+    this.graceT = Math.max(this.spinT, this.tumbleT, this.squashT) + 0.6;
+    this.lastHit = { kind, cause, by, t: this.clock };
     this.events.push('hit');
     return true;
   }
@@ -131,7 +140,7 @@ export class Kart {
   update(dt, input, track, raceOn) {
     this.clock += dt;
     const T = (k) => (this[k] = Math.max(0, this[k] - dt));
-    ['mtT', 'boostT', 'goldT', 'starT', 'ghostT', 'spinT', 'tumbleT', 'squashT', 'burnoutT', 'draftBoostT'].forEach(T);
+    ['mtT', 'boostT', 'goldT', 'starT', 'ghostT', 'spinT', 'tumbleT', 'squashT', 'burnoutT', 'draftBoostT', 'graceT'].forEach(T);
     if (this.shrinkT > 0) { this.shrinkT -= dt; if (this.shrinkT <= 0) { this.shrinkT = 0; this.events.push('grow'); } }
     this.goldBurst = Math.max(0, (this.goldBurst || 0) - dt);
     if (input.brake) this.lastBrakeT = this.clock;
@@ -215,9 +224,13 @@ export class Kart {
       }
       // segurar para fora por tempo demais = rodada
       this.outwardHold = inward < -0.6 ? this.outwardHold + dt : 0;
+      if (this.outwardHold > DRIVE.spinOutAfter * 0.5 && !this.spinWarned) { this.spinWarned = true; this.events.push('spinWarn'); }
+      if (this.outwardHold === 0) this.spinWarned = false;
       if (this.outwardHold > DRIVE.spinOutAfter) {
         this.drift = 0; this.driftStage = 0;
-        this.spinT = 0.9; this.events.push('hit');
+        this.spinT = 0.9;
+        this.lastHit = { kind: 'spin', cause: 'derrapagem', by: null, t: this.clock };
+        this.events.push('hit');
       } else if (!this.hopHeld || this.speed < this.top * 0.25 || !ctrl) {
         if (this.driftStage === 2 && ctrl) { this.mtT = DRIVE.mtFrames / 60; this.events.push('mt'); }
         this.drift = 0; this.driftStage = 0;
@@ -268,8 +281,17 @@ export class Kart {
         // velocidade lateral (positiva = para o lado +): -sin(rel) * v. Indo contra o muro? espelha o ângulo (quique)
         const into = -Math.sin(rel) * this.speed * Math.sign(this.lat);
         if (into > 0.3) {
-          this.heading = wrapAngle(th - rel);
-          this.speed *= 0.62;
+          const fwd = Math.abs(rel) < Math.PI / 2;
+          const along = fwd ? th : th + Math.PI;           // direção paralela ao muro
+          const relAlong = wrapAngle(this.heading - along);
+          if (Math.abs(Math.sin(rel)) > 0.85) {
+            // de frente no muro: o kart quica para trás
+            this.speed = -this.speed * 0.25;
+          } else {
+            // de raspão: alinha com o muro e afasta um pouco, sem girar de repente
+            this.heading = wrapAngle(along - relAlong * 0.25);
+            this.speed *= 0.7;
+          }
           this.events.push('wall');
         }
       }
@@ -360,7 +382,10 @@ export class Kart {
     if (this.squashT <= 0 && this.tumbleT > 0) rel = wrapAngle(rel + this.clock * 12);
     let f = Math.round((rel / (Math.PI * 2)) * FRAMES);
     f = ((f % FRAMES) + FRAMES) % FRAMES;
-    const pose = this.drift ? (this.drift > 0 ? 1 : 2) : this.steer > 0.4 ? 1 : this.steer < -0.4 ? 2 : 0;
+    const hurt = this.spinT > 0 || this.tumbleT > 0 || this.squashT > 0;
+    this.celebrateT = Math.max(0, (this.celebrateT || 0) - dt);
+    const pose = hurt ? 4 : this.celebrateT > 0 ? 3
+      : this.drift ? (this.drift > 0 ? 1 : 2) : this.steer > 0.4 ? 1 : this.steer < -0.4 ? 2 : 0;
     this.tex.offset.set(f / FRAMES, 1 - (pose + 1) / POSES);
 
     const hop = this.hopT > 0 ? Math.sin((1 - this.hopT / DRIVE.hopTime) * Math.PI) * DRIVE.hopHeight : 0;
@@ -417,10 +442,10 @@ export function collideKarts(karts) {
       const rr = (a.radius + b.radius) * (a.shrunk || b.shrunk ? 0.75 : 1);
       if (d2 >= rr * rr || d2 < 1e-6) continue;
       // aura dourada derruba quem encosta; kart normal amassa kart encolhido
-      if (a.invincible && !b.invincible) { b.hit('tumble'); continue; }
-      if (b.invincible && !a.invincible) { a.hit('tumble'); continue; }
-      if (a.shrunk && !b.shrunk) { a.hit('squash'); continue; }
-      if (b.shrunk && !a.shrunk) { b.hit('squash'); continue; }
+      if (a.invincible && !b.invincible) { b.hit('tumble', 'aura', a); continue; }
+      if (b.invincible && !a.invincible) { a.hit('tumble', 'aura', b); continue; }
+      if (a.shrunk && !b.shrunk) { a.hit('squash', 'atropelado', b); continue; }
+      if (b.shrunk && !a.shrunk) { b.hit('squash', 'atropelado', a); continue; }
       const d = Math.sqrt(d2);
       const over = rr - d;
       const nx = dx / d, nz = dz / d;

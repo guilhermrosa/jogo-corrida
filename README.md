@@ -43,7 +43,7 @@ No celular aparecem os botões A, B, R e Z na tela.
 
 | Classe | Pilotos | Velocidade máx. 50/100/150cc* | Curva |
 |---|---|---|---|
-| Leve | Pipoca (coelha), Tico (sapo), Mel (gata) | 294 / 314 / 324 | 1.28 |
+| Leve | Pipoca (coelha), Tico (sapo-cogumelo), Mel (gata) | 294 / 314 / 324 | 1.28 |
 | Médio | Faísca (raposa), Bento (cão) | 290 / 310 / 320 | 1.25 |
 | Pesado | Tonho (urso), Rino (rinoceronte), Juca (jacaré) | 290 / 310 / 320 | 1.15 |
 
@@ -104,7 +104,8 @@ js/track.js    pistas com relevo, pontes, quedas, água/lava e cenário
 js/kart.js     física: pulo, derrapagem, mini-turbo, muros, queda e resgate
 js/items.js    caixas, roleta e todos os itens
 js/ai.js       pilotos do computador
-js/sprites.js  pilotos montados em 3D e "fotografados" como sprites em 16 ângulos
+js/drivers3d.js modelos 3D dos pilotos, "fotografados" como sprites (32 ângulos x 5 poses)
+js/sprites.js  ícones e sprites 2D dos itens
 js/hud.js      painel da corrida
 js/audio.js    sons e músicas chiptune originais
 js/input.js    teclado, controle e toque

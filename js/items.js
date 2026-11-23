@@ -178,7 +178,7 @@ export class ItemSystem {
         for (const o of this.karts) {
           if (o === k || o.invincible || o.intangible || o.rescueT > 0) continue;
           this.dropHeld(o);
-          o.hit('shrink');
+          o.hit('shrink', 'trovao', k);
         }
         this.events.push({ type: 'thunder', kart: k });
         this.consume(k); return;
@@ -266,6 +266,21 @@ export class ItemSystem {
         e.idx = k.idx;
       }
     }
+  }
+
+  // o que está vindo na direção do kart (para o alerta na tela)
+  threatTo(k) {
+    for (const e of this.entities) {
+      if (e.dead || e.owner === k) continue;
+      if (e.mode === 'homing' && e.target === k) return 'abelha';
+      if (e.mode === 'spiny' && this.leader() === k) return 'vespao';
+      if (e.mode === 'shell') {
+        const dx = k.pos.x - e.pos.x, dz = k.pos.z - e.pos.z;
+        const d = Math.hypot(dx, dz);
+        if (d < 22 && (dx * Math.sin(e.heading) + dz * Math.cos(e.heading)) / d > 0.9) return 'coco';
+      }
+    }
+    return null;
   }
 
   targetAhead(k) {
@@ -402,7 +417,7 @@ export class ItemSystem {
       const want = new THREE.Vector3(t.pos.x, t.pos.y + 0.5, t.pos.z);
       e.pos.lerp(want, Math.min(1, 6 * dt));
       if (e.pos.distanceTo(want) < 1) {
-        for (const o of this.karts) if (o.pos.distanceTo(t.pos) < 5) { this.dropHeld(o); o.hit('blast'); }
+        for (const o of this.karts) if (o.pos.distanceTo(t.pos) < 5) { this.dropHeld(o); o.hit('blast', 'vespao', e.owner); }
         this.events.push({ type: 'blast', pos: e.pos.clone() });
         this.kill(e);
       }
@@ -430,9 +445,10 @@ export class ItemSystem {
       if (dy > (e.mode === 'spiny' ? 3 : 1.6)) continue;
       if (Math.hypot(k.pos.x - e.pos.x, k.pos.z - e.pos.z) > reach) continue;
       const effect = e.type === 'casca' ? 'spin' : 'tumble';
-      if (k.hit(effect) || k.invincible) {
+      if (k.hit(effect, e.type, e.owner) || k.invincible) {
         if (!k.invincible) this.dropHeld(k);
         this.events.push({ type: 'hitItem', kart: k, by: e.owner });
+        if (e.owner && e.owner !== k) e.owner.celebrateT = 1.4;   // quem acertou comemora
         if (e.mode !== 'spiny') this.kill(e);
         if (e.mode === 'orbit' && e.owner) this.afterOrbitLoss(e.owner);
         return;

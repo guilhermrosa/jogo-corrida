@@ -121,6 +121,7 @@ export class GameAudio {
       case 'blast': this.noise(0.9, 0.4, 700); break;
       case 'draft': this.tone(NOTE(88), 0.15, 'sine', 0.08); break;
       case 'burnout': this.noise(0.8, 0.15, 2500); break;
+      case 'warn': this.tone(NOTE(93), 0.07, 'square', 0.08); break;
       case 'select': this.tone(NOTE(84), 0.06, 'square', 0.1); break;
       case 'confirm': this.tone(NOTE(79), 0.07, 'square', 0.1); this.tone(NOTE(86), 0.12, 'square', 0.1, null, 0.07); break;
     }

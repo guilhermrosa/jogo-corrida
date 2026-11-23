@@ -43,8 +43,18 @@ const hud = new Hud();
 
 // pilotos pré-renderizados
 const bakes = {}, portraits = {};
-for (const d of DRIVERS) { bakes[d.id] = bakeDriver(d); portraits[d.id] = bakes[d.id].portrait; }
-document.getElementById('loading').classList.add('hidden');
+// (são 32 ângulos x 5 poses por piloto: fotografamos um piloto por vez para a página não travar)
+async function bakeAll() {
+  const label = document.querySelector('#loading .hint');
+  for (let i = 0; i < DRIVERS.length; i++) {
+    const d = DRIVERS[i];
+    label.textContent = `MONTANDO PILOTOS ${i + 1}/${DRIVERS.length}`;
+    await new Promise((r) => setTimeout(r, 0));
+    bakes[d.id] = bakeDriver(d);
+    portraits[d.id] = bakes[d.id].portrait;
+  }
+  document.getElementById('loading').classList.add('hidden');
+}
 
 // owl (coruja) que resgata quem cai
 const owl = new THREE.Sprite(new THREE.SpriteMaterial({ map: spriteTexture('coruja'), alphaTest: 0.5 }));
@@ -85,6 +95,7 @@ document.querySelectorAll('[data-cc]').forEach((b) => (b.onclick = () => {
 // tela de pilotos
 const grid = document.getElementById('char-grid');
 const info = document.getElementById('char-info');
+function buildCharGrid() {
 for (const d of DRIVERS) {
   const b = document.createElement('button');
   b.className = 'char';
@@ -97,6 +108,7 @@ for (const d of DRIVERS) {
   b.onmouseenter = describe; b.onfocus = describe;
   b.onclick = () => { audio.sfx('confirm'); G.driverId = d.id; buildCups(); show('cup'); };
   grid.appendChild(b);
+}
 }
 
 function buildCups() {
@@ -278,6 +290,11 @@ function stepRace(dt) {
   for (const k of karts) checkLap(k);
   handleEvents();
 
+  // alerta: algo vindo na sua direção
+  const threat = player.finished ? null : items.threatTo(player);
+  hud.warn(threat);
+  if (threat) { R.warnBeep = (R.warnBeep || 0) - dt; if (R.warnBeep <= 0) { R.warnBeep = 0.35; audio.sfx('warn'); } }
+
   // contramão: a coruja avisa
   if (player.wrongWay > 1.5 && !player.finished && hud.owlT <= 0) hud.owlSign('↺ CONTRAMÃO', 1.2);
 
@@ -312,7 +329,7 @@ function checkLap(k) {
   k.lapStart = R.raceTime;
   k.lapsDone = done;
   if (k.lapsDone >= LAPS) {
-    k.finished = true; k.finishTime = R.raceTime; k.autopilot = true;
+    k.finished = true; k.finishTime = R.raceTime; k.autopilot = true; k.celebrateT = 3;
     if (k.isPlayer) {
       const place = R.ranking.filter((o) => o.finished).length;
       audio.stopMusic();
@@ -341,6 +358,8 @@ function handleEvents() {
     const map = { hop: 'hop', stage1: 'stage1', stage2: 'stage2', mt: 'mt', hit: 'hit', skid: 'skid', wall: 'wall', bump: 'bump', splash: 'splash', lava: 'lava', fall: 'fall', rescue: 'rescue', grow: 'grow' };
     if (map[e]) audio.sfx(map[e]);
     if (e === 'skid') hud.banner('ESCAPOU!', 0.8, 'blue');
+    if (e === 'hit' && p.lastHit) explainHit(p.lastHit);
+    if (e === 'spinWarn') { hud.hitInfo('<b>CUIDADO!</b> VOLTE O DIRECIONAL PARA DENTRO', 0.8); audio.sfx('warn'); }
   }
   for (const k of R.karts) k.events.length = 0;
   for (const ev of R.items.events) {
@@ -362,6 +381,17 @@ function handleEvents() {
   R.items.events.length = 0;
 }
 
+const HIT_NAMES = {
+  casca: 'UMA CASCA DE MELANCIA', presente: 'UM PRESENTE FALSO', coco: 'UM COCO', abelha: 'UMA ABELHA',
+  vespao: 'O VESPÃO', trovao: 'O TROVÃO', aura: 'UM KART COM AURA DOURADA', atropelado: 'UM KART (VOCÊ ESTAVA PEQUENO)',
+};
+function explainHit(h) {
+  if (h.cause === 'derrapagem') { hud.hitInfo('<b>RODOU!</b><br>VOCÊ SEGUROU PARA FORA TEMPO DEMAIS NA DERRAPAGEM'); return; }
+  const what = HIT_NAMES[h.cause] || 'UM ITEM';
+  const who = h.by && h.by !== R.player ? ` DE ${h.by.name.toUpperCase()}` : h.by === R.player ? ' (SEU PRÓPRIO)' : '';
+  hud.hitInfo(`ATINGIDO POR <b>${what}${who}</b>`);
+}
+
 function flash() {
   const f = document.createElement('div');
   f.style.cssText = 'position:fixed;inset:0;background:#fff;opacity:.8;pointer-events:none;transition:opacity .4s';
@@ -377,6 +407,7 @@ function endRace() {
   audio.engine(0, false, false);
   R.phase = 'results';
   input.showTouch(false);
+  hud.warn(null);
   hud.show(false);
 
   const rows = order.map((k, i) => {
@@ -572,8 +603,10 @@ window.addEventListener('resize', () => {
 
 // ------------------------------------------------------------------ início
 showcase();
-show('title');
 frame();
+await bakeAll();
+buildCharGrid();
+show('title');
 
 // acesso para testes automatizados: ?auto&start=1&track=praia&cc=150
 window.__game = {
