@@ -27,3 +27,12 @@ Observação: o mundo **não** deve ser inteiramente suspenso. A rodada 2 explor
 | `r2-chao-3-pantano-maquinas.png` | Pântano com máquinas: barco a vapor, lanternas, cogumelos brilhantes | [abrir](https://www.canva.com/M/MAHbxFHFXYE) |
 
 Pendentes (o limite de créditos do Canva acabou): **noite com lampiões** e **regiões diferentes do mesmo mundo**.
+
+## Decisões
+- **Aprovados para usar**: rodada 1, conceito 2 (ilhas presas por correntes) e os três da rodada 2
+  (cidade-oficina, deserto de sucata e pântano com máquinas).
+- **Ajustes pedidos no pântano**:
+  - Trocar o céu amarelado por uma luz e um fundo **azulados, um azul levemente mais fechado,
+    com um toque leve de verde**.
+  - Bichos voando: no lugar de moscas, **vaga-lumes e libélulas**.
+- Mudanças nas pistas do jogo: aguardando análise antes de qualquer alteração.
