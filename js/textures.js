@@ -86,6 +86,13 @@ export const STYLE = {
     skirt: 'masonry', skirtA: '#7d8794', skirtB: '#555e69',
     wall: ['#f2f2ee', '#34489e'], wallTrim: '#9aa4ad',
   },
+  oficina: {
+    road: 'cobble', paveA: '#9c8a76', mortar: '#4a3f36', line: '#f4e2b0',
+    curb: ['#8e3b2a', '#efe2c2'], trim: '#c9a24a',
+    slab: ['#b7aa94', '#8f8370', '#cfc4ae', '#6f6556'],
+    skirt: 'brick', skirtA: '#a0563a', skirtB: '#5e3324',
+    wall: ['#efe2c2', '#8e3b2a'], wallTrim: '#c9a24a',
+  },
   vulcao: {
     road: 'plates', paveA: '#4b4447', mortar: '#1e1a1b', line: '#ffb84a',
     curb: ['#e8a221', '#2a2526'], trim: '#a0622e',
@@ -195,6 +202,14 @@ export function groundTexture(theme, kind = 'shoulder') {
   const big = kind === 'terrain';
   return pixelTex(64, 64, (g, W, H, r) => {
     if (theme === 'campos') tufts(g, W, H, r, S.grass, big ? 40 : 55, big ? null : S.flowers);
+    else if (theme === 'oficina' && !big) {
+      // calçada de lajotas com bueiro de latão de vez em quando
+      px(g, 0, 0, W, H, S.slab[3]);
+      for (let y = 0; y < H; y += 16) for (let x = 0; x < W; x += 16) stone(g, x, y, 16, 16, S.slab[0], r);
+      px(g, 34, 18, 12, 12, '#6b5a2e'); px(g, 35, 19, 10, 10, '#c9a24a');
+      for (let k = 0; k < 4; k++) px(g, 36, 21 + k * 2, 8, 1, '#5a4820');
+      for (let i = 0; i < 8; i++) { const x = r() * W, y = r() * H; dot(g, W, H, x, y, 2, 1, '#6d8f3a'); }
+    } else if (theme === 'oficina') tufts(g, W, H, r, ['#8fae5a', '#7f9e4c', '#a6c46a', '#5f7f3a'], 40, null);
     else if (theme === 'praia') {
       px(g, 0, 0, W, H, S.sand[0]);
       for (let i = 0; i < W * H * 0.2; i++) dot(g, W, H, r() * W, r() * H, 1, 1, S.sand[1]);
@@ -247,6 +262,12 @@ export function skirtTexture(theme) {
         while (x < W) { const w = 14 + ((r() * 6) | 0); stone(g, x, y, w, 8, S.skirtA, r); x += w; }
       }
       for (let i = 0; i < 10; i++) { const x = r() * W, y = r() * H; dot(g, W, H, x, y, 3, 1, '#5a7d38'); dot(g, W, H, x + 1, y - 1, 1, 1, '#7aa84a'); }
+    } else if (S.skirt === 'brick') {
+      for (let y = 0, row = 0; y < H; y += 6, row++) {
+        let x = row % 2 ? -5 : 0;
+        while (x < W) { stone(g, x, y, 10, 6, S.skirtA, r); x += 10; }
+      }
+      for (let i = 0; i < 6; i++) { const x = r() * W, y = r() * H; dot(g, W, H, x, y, 4, 2, 'rgba(60,40,30,.35)'); }
     } else if (S.skirt === 'boards') {
       for (let x = 0; x < W; x += 8) {
         const k = 0.85 + r() * 0.25;

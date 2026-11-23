@@ -204,7 +204,7 @@ export class Track {
     buildTerrain(this, GROUND_Y);
     const ground = this.mesh(new THREE.PlaneGeometry(4000, 4000), lam({ map: groundTex, polygonOffset: true, polygonOffsetFactor: 6, polygonOffsetUnits: 6 }));
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = GROUND_Y - (this.def.lava ? 2 : 0.4);
+    ground.position.y = Math.min(GROUND_Y - (this.def.lava ? 2 : 0.4), (this.def.waterY ?? 0.12) - 0.8);
 
     if (this.def.water) {
       const wt = waterTexture();
@@ -214,9 +214,9 @@ export class Track {
       for (const [x, z, w, d] of this.water) {
         const m = this.mesh(new THREE.PlaneGeometry(w, d), wm);
         m.rotation.x = -Math.PI / 2;
-        m.position.set(x + w / 2, 0.12, z + d / 2);
+        m.position.set(x + w / 2, this.def.waterY ?? 0.12, z + d / 2);
       }
-      this.hazardY = 0.12;
+      this.hazardY = this.def.waterY ?? 0.12;
     }
     if (this.def.lava) {
       const lt = lavaTexture();
@@ -342,7 +342,8 @@ export class Track {
       const layers = this.def.theme === 'serra'
         ? [['#8fa3bb', 0.45], ['#c9d6e6', 0.62]]
         : this.def.theme === 'vulcao' ? [['#2a1414', 0.4], ['#1a0c0c', 0.6]]
-          : this.def.theme === 'praia' ? [['#6aa7c9', 0.72]] : [['#5f8f6a', 0.5], ['#3f7a4a', 0.68]];
+          : this.def.theme === 'praia' ? [['#6aa7c9', 0.72]]
+            : this.def.theme === 'oficina' ? [['#8a9fb0', 0.48], ['#6f9a5a', 0.66]] : [['#5f8f6a', 0.5], ['#3f7a4a', 0.68]];
       for (const [col, base] of layers) {
         c.fillStyle = col;
         c.beginPath(); c.moveTo(0, h);
@@ -396,7 +397,7 @@ export class Track {
     geo.translate(0, 6, 0);
     const geo2 = geo.clone().rotateY(Math.PI / 2);
     const merged = mergeGeos([geo, geo2]);
-    const count = 220;
+    const count = this.theme.decorCount ?? 220;
     const inst = new THREE.InstancedMesh(merged, mat, count);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), v = new THREE.Vector3();
     let n = 0, tries = 0;
@@ -404,12 +405,13 @@ export class Track {
       tries++;
       const i = (rnd() * this.N) | 0;
       const side = rnd() < 0.5 ? 1 : -1;
-      const dist = EDGE + Math.max(0, this.py[i]) * 0.7 + 6 + rnd() * 60;
+      const dmin = this.theme.decorMin ?? 6;
+      const dist = EDGE + Math.max(0, this.py[i]) * 0.7 + dmin + rnd() * 60;
       this.point(i, side * dist, v);
       // longe de qualquer trecho da pista, e fora de água/lava
       let ok = true;
       for (let j = 0; j < this.N; j += 3) {
-        if (Math.hypot(v.x - this.px[j], v.z - this.pz[j]) < EDGE + Math.max(0, this.py[j]) * 0.7 + 5) { ok = false; break; }
+        if (Math.hypot(v.x - this.px[j], v.z - this.pz[j]) < EDGE + Math.max(0, this.py[j]) * 0.7 + dmin - 1) { ok = false; break; }
       }
       if (ok && this.water) for (const [x, z, w, d] of this.water) if (v.x > x - 4 && v.x < x + w + 4 && v.z > z - 4 && v.z < z + d + 4) ok = false;
       if (ok && this.def.lava) ok = false;

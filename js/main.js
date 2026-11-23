@@ -627,6 +627,7 @@ window.__game = {
 if (params.has('start')) {
   if (params.get('cc')) G.cc = params.get('cc') === 'espelho' ? 'espelho' : Number(params.get('cc'));
   if (params.get('driver')) G.driverId = params.get('driver');
+  if (params.get('cup')) G.cupIdx = Number(params.get('cup'));
   startGP();
   if (params.get('race')) { G.raceNo = Number(params.get('race')); startRace(); }
 }

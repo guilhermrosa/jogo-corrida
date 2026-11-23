@@ -149,6 +149,10 @@ export const CUPS = [
     name: 'Copa Bolota',
     tracks: ['campos', 'praia', 'serra', 'vulcao'],
   },
+  {
+    name: 'Copa Engrenagem',
+    tracks: ['oficina'], // em construção: uma pista nova por vez
+  },
 ];
 
 export const TRACKS = {
@@ -190,9 +194,25 @@ export const TRACKS = {
   },
 };
 
+TRACKS.oficina = {
+  name: 'Vila Engrenagem',
+  theme: 'oficina',
+  // circuito de rua: avenida da largada, ponte sobre o canal, praça da torre do relógio, outra ponte e volta
+  points: [[0, 0, 0], [60, 0, 0], [100, -6, 0], [118, -34, 1.2], [118, -66, 3.6], [110, -94, 1], [84, -106, 0], [46, -104, 0],
+    [24, -112, 0], [12, -130, 0], [-12, -134, 0], [-30, -120, 0], [-60, -110, 0], [-100, -110, 0], [-132, -102, 0],
+    [-148, -84, 1.2], [-150, -66, 3.6], [-144, -42, 1.2], [-130, -14, 0], [-100, 0, 0], [-50, 4, 0]],
+  itemRows: [0.16, 0.44, 0.72],
+  water: [[-500, -80, 1000, 28]],                       // canal atravessando a cidade
+  waterY: -1.6,
+  bridge: (p) => Math.abs(p.z + 66) < 17 && p.y > 1.4,
+  edge: () => 'wall',
+  tower: [0, -108],                                     // torre do relógio, no meio da praça
+};
+
 export const THEMES = {
   campos: { sky: 0x7ec8ff, fog: 0xb8e2ff, ground: '#5aa63a', ground2: '#4c9430', shoulder: '#6fb84a', shoulder2: '#5ea53c', skirt: '#8a6a43', wall: ['#ffffff', '#e53935'], decor: 'arvore', music: 0 },
   praia:  { sky: 0x6fd0ff, fog: 0xc9f0ff, ground: '#f2d99a', ground2: '#e8cc85', shoulder: '#f5e2aa', shoulder2: '#ead291', skirt: '#d9b870', wall: ['#ffffff', '#1e88e5'], decor: 'coqueiro', music: 1 },
   serra:  { sky: 0xa9c8e8, fog: 0xdfe8f2, ground: '#eef4fa', ground2: '#dde8f2', shoulder: '#f4f8fc', shoulder2: '#e3ecf5', skirt: '#7d8794', wall: ['#ffffff', '#3949ab'], decor: 'pinheiro', music: 2 },
+  oficina: { sky: 0x86c3ec, fog: 0xf0dcb4, ground: '#8fae5a', ground2: '#7f9e4c', shoulder: '#b7aa94', shoulder2: '#a89a82', skirt: '#a0563a', wall: ['#efe2c2', '#8e3b2a'], decor: 'arvore', decorMin: 50, decorCount: 120, music: 0 },
   vulcao: { sky: 0x3a1a24, fog: 0x5a2420, ground: '#3b2a26', ground2: '#2f211e', shoulder: '#5a4038', shoulder2: '#4b352f', skirt: '#2a1e1c', wall: ['#ffb300', '#212121'], decor: 'rocha', music: 3 },
 };

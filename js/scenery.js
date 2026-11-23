@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { terrainDetail } from './textures.js';
+import { oficina } from './oficina.js';
 import { EDGE, ROAD_HALF } from './data.js';
 import { drawSprite } from './sprites.js';
 
@@ -54,6 +55,7 @@ function makeDist(tr) {
 const RELIEF = {
   campos: { amp: 34, colors: (h, n) => (h > 0.62 ? mix(0x6f9a4a, 0x8a7a55, (h - 0.62) * 2.6) : mix(0x5fae3f, 0x3f8a2e, h * 1.3 + n * 0.3)) },
   praia:  { amp: 24, colors: (h, n) => (h < 0.12 ? mix(0xf2d99a, 0xe6c983, n) : mix(0x8fc25c, 0x5f9a3e, h + n * 0.2)) },
+  oficina: { amp: 40, colors: (h, n) => (h < 0.06 ? mix(0xa89878, 0x8f8a62, n) : mix(0x8fbf5a, 0x5f9440, h + n * 0.3)) },
   serra:  { amp: 115, colors: (h, n) => (n > 0.62 && h > 0.15 ? mix(0x8d97a3, 0x6b7480, n) : mix(0xf2f6fb, 0xd9e4ef, h * 0.6 + n * 0.3)) },
 };
 function mix(a, b, t) { return new THREE.Color(a).lerp(new THREE.Color(b), clamp(t, 0, 1)); }
@@ -74,7 +76,7 @@ export function buildTerrain(tr, groundY) {
     const clear = EDGE + 16 + Math.max(0, y) * 0.7;
     let k = smooth(clamp((d - clear) / 85, 0, 1));
     if (tr.def.theme === 'praia') k *= clamp((70 - z) / 110, 0, 1); // morros só longe do mar
-    for (const [wx, wz, ww, wd] of water) if (x > wx - 6 && x < wx + ww + 6 && z > wz - 6 && z < wz + wd + 6) return groundY - 0.6;
+    for (const [wx, wz, ww, wd] of water) if (x > wx - 6 && x < wx + ww + 6 && z > wz - 6 && z < wz + wd + 6) return Math.min(groundY - 0.6, (tr.def.waterY ?? 0) - 1.2);
     return groundY + R.amp * k * (0.3 + 0.7 * fbm(x, z));
   };
   tr.terrainY = height;
@@ -852,7 +854,8 @@ export function buildScenery(tr, rnd) {
   if (theme === 'praia') praia(tr, rnd);
   if (theme === 'serra') serra(tr, rnd);
   if (theme === 'vulcao') vulcao(tr, rnd);
-  placeBillboards(tr, rnd);
+  if (theme === 'oficina') oficina(tr, rnd, { SPR, ADS, adTexture, grandstand, sideWithRoom, findPlace, spot, sprite });
+  if (theme !== 'oficina') placeBillboards(tr, rnd); // na cidade, os anúncios são placas penduradas nas lojas
   placeChevrons(tr);
   // bandeirolas atravessando a reta de largada
   for (const k of [-14, 14]) {

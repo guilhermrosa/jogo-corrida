@@ -31,7 +31,9 @@ No celular aparecem os botões A, B, R e Z na tela.
 - **Toque triplo**: tocar rápido no acelerador, depois de uma batida, recupera a velocidade mais rápido.
 
 ## Regras do Grand Prix (iguais ao 64)
-- 8 pilotos, 3 voltas por corrida, copa com 4 pistas.
+- 8 pilotos, 3 voltas por corrida, copas com 4 pistas.
+- **Copa Bolota** (Campos, Praia, Serra, Vulcão) e **Copa Engrenagem**, no mundo steampunk das artes conceituais
+  (em construção: por enquanto só a Vila Engrenagem).
 - Pontos: **9, 6, 3 e 1** para os 4 primeiros.
 - Terminou em 5º ou pior? Não pontua e precisa **repetir a corrida**.
 - Na primeira corrida você larga em 8º; nas seguintes, na ordem de chegada da anterior.
@@ -102,6 +104,7 @@ Depois abra <http://localhost:8000>. O GitHub Pages também funciona sem configu
 js/data.js     regras, números, pilotos, itens e pistas
 js/track.js    pistas com relevo, pontes, quedas, água/lava
 js/textures.js texturas em pixel art pintadas à mão (pista, chão, barrancos, muros, água, lava)
+js/oficina.js  cenário da Vila Engrenagem (cidade-oficina)
 js/scenery.js  cenário: morros, marcos de cada pista, placas, arquibancadas, túneis e animações
 js/kart.js     física: pulo, derrapagem, mini-turbo, muros, queda e resgate
 js/items.js    caixas, roleta e todos os itens
@@ -115,7 +118,8 @@ js/main.js     Grand Prix, câmera, menus e pódio
 ```
 
 ## Registro visual
-Folhas comparando as versões dos pilotos e do cenário ficam em `docs/pilotos/` e `docs/cenario/`.
+Folhas comparando as versões dos pilotos e do cenário ficam em `docs/pilotos/` e `docs/cenario/`
+(as pistas novas em `docs/cenario/engrenagem/`).
 
 ## Próximos passos
 Contra o relógio com fantasma, batalha de balões e tela dividida para 2 jogadores.
