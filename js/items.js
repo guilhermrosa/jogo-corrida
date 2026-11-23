@@ -1,15 +1,15 @@
 import * as THREE from 'three';
-import { ITEM_ODDS, ITEM_FX } from './data.js';
+import { ITEM_ODDS, ITEM_FX, CPU_ITEM_ODDS, CPU_ITEMS_PER_LAP } from './data.js';
 import { EDGE } from './track.js';
 import { spriteTexture, drawSprite } from './sprites.js';
 import { wrapAngle } from './kart.js';
 
 const SELF_IMMUNE = 0.45;
 
-function pickItem(place) {
+function pickItem(place, table = ITEM_ODDS) {
   const p = Math.max(0, Math.min(7, place - 1));
   let r = Math.random() * 100;
-  for (const [id, odds] of Object.entries(ITEM_ODDS)) {
+  for (const [id, odds] of Object.entries(table)) {
     r -= odds[p];
     if (r < 0) return id;
   }
@@ -109,7 +109,7 @@ export class ItemSystem {
           b.respawn = ITEM_FX.boxRespawn;
           m.visible = false;
           this.events.push({ type: 'box', kart: k });
-          if (!k.item && k.rouletteT <= 0 && !this.heldOf(k).length) {
+          if ((k.isPlayer) && !k.item && k.rouletteT <= 0 && !this.heldOf(k).length) {
             k.rouletteT = ITEM_FX.roulette;
             k.pendingItem = pickItem(this.getPlace(k));
             if (k.isPlayer) this.events.push({ type: 'roulette', kart: k });
@@ -117,6 +117,22 @@ export class ItemSystem {
           break;
         }
       }
+    }
+  }
+
+  // Rivais: recebem itens direto, em até 3 pontos sorteados de cada volta
+  cpuGrants(k) {
+    if (k.isPlayer) return;
+    const N = this.track.N;
+    const lap = Math.floor(k.progress / N);
+    if (k.grantLap !== lap) {
+      k.grantLap = lap;
+      k.grantSpots = Array.from({ length: CPU_ITEMS_PER_LAP }, () => Math.floor((0.1 + Math.random() * 0.85) * N)).sort((a, b) => a - b);
+    }
+    const pos = ((k.progress % N) + N) % N;
+    while (k.grantSpots.length && pos >= k.grantSpots[0]) {
+      k.grantSpots.shift();
+      if (!k.item && !this.heldOf(k).length) { k.item = pickItem(this.getPlace(k), CPU_ITEM_ODDS); k.itemCount = 1; }
     }
   }
 
@@ -150,7 +166,8 @@ export class ItemSystem {
         this.consume(k);
         if (victims.length) {
           const o = victims[(Math.random() * victims.length) | 0];
-          k.item = o.item; k.itemCount = o.itemCount;
+          // rivais do computador só ficam com itens que eles podem usar; o resto é descartado
+          if (k.isPlayer || CPU_ITEM_ODDS[o.item]) { k.item = o.item; k.itemCount = o.itemCount; }
           o.item = null; o.itemCount = 0;
           this.events.push({ type: 'steal', kart: k, victim: o });
         }
@@ -275,6 +292,7 @@ export class ItemSystem {
 
     // roletas e itens com tempo
     for (const k of this.karts) {
+      this.cpuGrants(k);
       if (k.rouletteT > 0) {
         k.rouletteT -= dt;
         if (k.rouletteT <= 0) {

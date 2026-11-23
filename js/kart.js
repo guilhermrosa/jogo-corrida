@@ -22,6 +22,8 @@ export class Kart {
     this.isPlayer = isPlayer;
     this.stats = CLASS_STATS[driver.cls];
     this.weight = driver.weight;
+    this.sizeK = driver.size / 5.5;           // Rino e Juca são maiores, como Wario e Bowser
+    this.radius = RADIUS * this.sizeK;
     this.setCC(cc);
 
     // sprite com o atlas pré-renderizado
@@ -31,7 +33,7 @@ export class Kart {
     this.tex = tex;
     this.sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, alphaTest: 0.5, transparent: false }));
     this.sprite.center.set(0.5, 0.12);
-    this.baseScale = 2.7;
+    this.baseScale = 2.7 * this.sizeK;
     this.sprite.scale.set(this.baseScale, this.baseScale, 1);
     scene.add(this.sprite);
 
@@ -115,9 +117,10 @@ export class Kart {
       return true;
     }
     this.drift = 0; this.driftStage = 0; this.mtT = 0; this.boostT = 0;
-    if (kind === 'spin') { this.spinT = ITEM_FX.spinTime; this.speed = Math.min(this.speed, this.top * 0.45); }
-    else if (kind === 'tumble') { this.tumbleT = ITEM_FX.tumbleTime; this.tumbleKind = 'tumble'; this.speed = 0; this.vy = 7; this.airborne = true; }
-    else if (kind === 'blast') { this.tumbleT = ITEM_FX.blastTime; this.tumbleKind = 'blast'; this.speed = 0; this.vy = 11; this.airborne = true; }
+    const rec = this.fastRecover ? 0.5 : 1;   // no 150cc os 2 rivais se recuperam rápido
+    if (kind === 'spin') { this.spinT = ITEM_FX.spinTime * rec; this.speed = Math.min(this.speed, this.top * 0.45); }
+    else if (kind === 'tumble') { this.tumbleT = ITEM_FX.tumbleTime * rec; this.tumbleKind = 'tumble'; this.speed = 0; this.vy = 7; this.airborne = true; }
+    else if (kind === 'blast') { this.tumbleT = ITEM_FX.blastTime * rec; this.tumbleKind = 'blast'; this.speed = 0; this.vy = 11; this.airborne = true; }
     else if (kind === 'squash') { this.squashT = ITEM_FX.squashTime; this.speed = 0; }
     else if (kind === 'shrink') { this.shrinkT = ITEM_FX.shrinkTime; this.spinT = 0.8; this.speed *= 0.5; }
     this.events.push('hit');
@@ -251,7 +254,7 @@ export class Kart {
     this.lat = track.lateral(this.pos.x, this.pos.z, newIdx);
 
     // ----- bordas: muro (quica) ou queda
-    const lim = EDGE - RADIUS;
+    const lim = EDGE - this.radius;
     if (Math.abs(this.lat) > lim && !this.falling) {
       if (track.isFall(newIdx, this.lat)) {
         if (Math.abs(this.lat) > EDGE + 0.3) { this.falling = true; this.fallT = 0; this.airborne = true; this.drift = 0; }
@@ -404,7 +407,6 @@ export class Kart {
 
 // Colisão entre karts considerando o peso (pesados empurram leves)
 export function collideKarts(karts) {
-  const minD = RADIUS * 2;
   for (let i = 0; i < karts.length; i++) {
     for (let j = i + 1; j < karts.length; j++) {
       const a = karts[i], b = karts[j];
@@ -412,7 +414,7 @@ export function collideKarts(karts) {
       if (Math.abs(a.pos.y - b.pos.y) > 1.5) continue;
       const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z;
       const d2 = dx * dx + dz * dz;
-      const rr = minD * (a.shrunk || b.shrunk ? 0.75 : 1);
+      const rr = (a.radius + b.radius) * (a.shrunk || b.shrunk ? 0.75 : 1);
       if (d2 >= rr * rr || d2 < 1e-6) continue;
       // aura dourada derruba quem encosta; kart normal amassa kart encolhido
       if (a.invincible && !b.invincible) { b.hit('tumble'); continue; }

@@ -32,10 +32,13 @@ export const DRIVERS = [
   { id: 'mel',    name: 'Mel',    animal: 'gata',    cls: 'leve',   weight: 0.9, tap: 3,   kart: 0xffd54f, fur: 0xf4a340 },
   { id: 'faisca', name: 'Faísca', animal: 'raposa',  cls: 'medio',  weight: 1.2, tap: 2,   kart: 0xe53935, fur: 0xff7a1a },
   { id: 'bento',  name: 'Bento',  animal: 'cão',     cls: 'medio',  weight: 1.0, tap: 2,   kart: 0x43a047, fur: 0xb5835a },
-  { id: 'tonho',  name: 'Tonho',  animal: 'urso',    cls: 'pesado', weight: 2.0, tap: 1.5, kart: 0x8d6e63, fur: 0x7b4a2a },
-  { id: 'rino',   name: 'Rino',   animal: 'rinoceronte', cls: 'pesado', weight: 1.8, tap: 1.5, kart: 0x7e57c2, fur: 0x9e9ea6 },
-  { id: 'juca',   name: 'Juca',   animal: 'jacaré',  cls: 'pesado', weight: 2.3, tap: 3,   kart: 0x26a69a, fur: 0x4f8a3a },
+  { id: 'tonho',  name: 'Tonho',  animal: 'urso',    cls: 'pesado', weight: 2.0, tap: 1.5, size: 5.5, kart: 0x8d6e63, fur: 0x7b4a2a },
+  { id: 'rino',   name: 'Rino',   animal: 'rinoceronte', cls: 'pesado', weight: 1.8, tap: 1.5, size: 6, kart: 0x7e57c2, fur: 0x9e9ea6 },
+  { id: 'juca',   name: 'Juca',   animal: 'jacaré',  cls: 'pesado', weight: 2.3, tap: 3,   size: 6, kart: 0x26a69a, fur: 0x4f8a3a },
 ];
+
+// Tamanho no MK64: 5.5 para todos, exceto os dois maiores pesados (6)
+for (const d of DRIVERS) d.size = d.size || 5.5;
 
 // ---------------------------------------------------------------- Regras do Grand Prix
 export const LAPS = 3;
@@ -90,6 +93,21 @@ export const ITEM_ODDS = {
   pimenta:     [10, 5, 5, 5, 5, 0, 0, 0],
   pimenta3:    [0, 15, 20, 20, 25, 25, 10, 5],
   pimentaOuro: [0, 5, 10, 10, 10, 10, 10, 10],
+};
+
+// Rivais do computador (como no MK64): não pegam itens nas caixas. O jogo dá itens a eles
+// até 3 vezes por volta, de uma tabela própria, e eles só usam estes 6 itens:
+// casca simples, aura (estrela), sombra (Boo), presente falso, pimenta simples e trovão.
+// Nunca usam cocos, abelhas, vespão, itens triplos, penca ou pimenta dourada.
+// Fatos do original: casca 60% em 1º e raio só 1% em 8º. O resto da tabela é estimado.
+export const CPU_ITEMS_PER_LAP = 3;
+export const CPU_ITEM_ODDS = {
+  casca:    [60, 40, 40, 25, 25, 15, 15, 10],
+  presente: [15, 15, 15, 10, 10, 10, 10, 10],
+  pimenta:  [15, 25, 25, 35, 35, 35, 35, 34],
+  sombra:   [5, 5, 5, 5, 5, 5, 5, 5],
+  aura:     [5, 15, 15, 25, 25, 35, 35, 40],
+  trovao:   [0, 0, 0, 0, 0, 0, 0, 1],
 };
 
 // Durações e forças dos itens (o MK64 não tem esses valores documentados: estimados pelo comportamento)

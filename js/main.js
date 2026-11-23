@@ -188,6 +188,7 @@ function startRace() {
     k.lane = (Math.random() - 0.5) * 5;
     k.phase = Math.random() * 6;
     k.rival = G.rivals.includes(id);
+    k.fastRecover = k.rival && (G.cc === 150 || G.cc === 'espelho');
     if (AUTO && k.isPlayer) k.autopilot = true;
     return k;
   });

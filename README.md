@@ -48,6 +48,9 @@ No celular aparecem os botões A, B, R e Z na tela.
 | Pesado | Tonho (urso), Rino (rinoceronte), Juca (jacaré) | 290 / 310 / 320 | 1.15 |
 
 \* Em unidades internas do 64. No velocímetro, 324 ≈ 70 km/h.
+
+Cada piloto usa o peso, o "toque triplo" e o tamanho de um dos 8 originais
+(Rino e Juca são maiores, como Wario e Bowser).
 Leves aceleram mais rápido e perdem menos na grama. Médios têm a pior aceleração. Pesados empurram os outros.
 
 ## Itens (mesma função dos originais, outra roupagem)
@@ -66,15 +69,23 @@ Leves aceleram mais rápido e perdem menos na grama. Médios têm a pior acelera
 
 A chance de cada item por posição segue a tabela do 64 medida pela comunidade TASVideos.
 
+### Itens dos rivais (como no 64)
+Os pilotos do computador **não pegam itens nas caixas**: o jogo dá itens a eles até **3 vezes por volta**,
+de uma tabela própria. Eles só usam **casca simples, presente falso, pimenta simples, aura, máscara sombra e trovão**,
+nunca cocos, abelhas, vespão, itens triplos, penca ou pimenta dourada. No 150cc e no espelho, os 2 rivais da copa
+se recuperam mais rápido quando são atingidos.
+
 ## De onde vêm os números
 **Iguais ao original** (fontes: Super Mario Wiki e TASVideos): velocidade máxima por peso e cilindrada,
 fator de curva por peso, pesos e "toque triplo" de cada piloto, duração do mini-turbo (14 quadros),
 2 balanços para carregá-lo, duração do pulo (6 quadros), 3 voltas, 8 pilotos, pontos 9-6-3-1,
-regra de repetir a corrida, modo espelho e a tabela de chance dos itens.
+regra de repetir a corrida, modo espelho, a tabela de chance dos itens, os itens que os rivais podem usar
+e o limite de 3 itens por volta para eles.
 
 **Estimados** (não documentados publicamente, ajustados pelo comportamento do jogo):
 curvas de aceleração, perda na grama, ganho de velocidade do mini-turbo e dos itens,
-duração da estrela, do raio, do boo e das rodadas, e a janela da largada turbo.
+duração da estrela, do raio, do boo e das rodadas, a janela da largada turbo e a tabela de itens dos rivais
+(do original só se sabe que a casca é 60% em 1º e o raio só 1% em 8º).
 Todos ficam em `js/data.js`, fáceis de ajustar.
 
 ## Rodando no computador
