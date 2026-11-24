@@ -496,6 +496,8 @@ export function collideKarts(karts) {
     for (let j = i + 1; j < karts.length; j++) {
       const a = karts[i], b = karts[j];
       if (a.rescueT > 0 || b.rescueT > 0 || a.intangible || b.intangible || a.falling || b.falling) continue;
+      // kart atingido (rodando, capotando ou amassado) não trava quem vem atrás: passa por ele
+      if (a.spinT > 0 || a.tumbleT > 0 || a.squashT > 0 || b.spinT > 0 || b.tumbleT > 0 || b.squashT > 0) continue;
       if (Math.abs(a.pos.y - b.pos.y) > 1.5) continue;
       const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z;
       const d2 = dx * dx + dz * dz;
@@ -513,10 +515,23 @@ export function collideKarts(karts) {
       const ka = wb / (wa + wb), kb = wa / (wa + wb);
       a.pos.x -= nx * over * ka * 1.6; a.pos.z -= nz * over * ka * 1.6;
       b.pos.x += nx * over * kb * 1.6; b.pos.z += nz * over * kb * 1.6;
-      const avg = (a.speed * wa + b.speed * wb) / (wa + wb);
-      a.speed += (avg - a.speed) * 0.25;
-      b.speed += (avg - b.speed) * 0.25;
-      if (a.isPlayer || b.isPlayer) (a.isPlayer ? a : b).events.push('bump');
+      // troca de velocidade só quando um vem de encontro ao outro (não a cada quadro encostado)
+      const ha = [Math.sin(a.heading), Math.cos(a.heading)], hb = [Math.sin(b.heading), Math.cos(b.heading)];
+      const van = (ha[0] * nx + ha[1] * nz) * a.speed, vbn = (hb[0] * nx + hb[1] * nz) * b.speed;
+      const close = van - vbn;                    // > 0: estão se aproximando
+      if (close > 0.5) {
+        const imp = close * 0.6;
+        a.speed -= imp * ka * (ha[0] * nx + ha[1] * nz);
+        b.speed += imp * kb * (hb[0] * nx + hb[1] * nz);
+        if (a.isPlayer || b.isPlayer) (a.isPlayer ? a : b).events.push('bump');
+      }
+      // batida de traseira bem alinhada: desvia um pouco para o lado, para dar para ultrapassar
+      const ta = Math.abs(ha[0] * nx + ha[1] * nz);
+      if (ta > 0.9) {
+        const cr = ha[0] * nz - ha[1] * nx;      // de que lado o da frente está
+        const sx = -nz, sz = nx, side = (cr >= 0 ? 1 : -1) * 0.12;
+        a.pos.x -= sx * side; a.pos.z -= sz * side; b.pos.x += sx * side; b.pos.z += sz * side;
+      }
     }
   }
 }
