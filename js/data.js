@@ -213,17 +213,18 @@ TRACKS.pantano = {
   name: 'Brejo das Caldeiras',
   theme: 'pantano',
   // calçadão de tábuas sobre palafitas, serpenteando pelo pântano; sobe por cima do cano-mestre
-  points: [[0, 0, 1.2], [50, 0, 1.2], [90, -14, 1.3], [114, -48, 1.6], [104, -86, 2.6], [66, -106, 4.4], [26, -94, 3.2],
-    [4, -62, 1.6], [-26, -46, 1.3], [-60, -62, 1.3], [-84, -100, 1.8], [-120, -116, 2.2], [-152, -88, 1.8],
-    [-156, -44, 1.5], [-128, -8, 1.2], [-82, 10, 1.2], [-40, 8, 1.2]],
+  points: [[0, 0, 1.2], [50, 0, 1.2], [92, -12, 1.3], [114, -46, 1.6], [106, -84, 2.6], [70, -104, 4.4], [34, -96, 3],
+    [10, -70, 1.6], [-22, -58, 1.3], [-50, -76, 1.4], [-62, -106, 1.6], [-84, -128, 1.6], [-120, -130, 1.6], [-158, -130, 1.6],
+    [-186, -110, 1.6], [-192, -68, 1.5], [-172, -30, 1.3], [-130, -8, 1.2], [-80, 8, 1.2], [-40, 8, 1.2]],
   itemRows: [0.16, 0.46, 0.74],
   swampWater: true,
   waterY: -0.35,
   bridge: () => true,                                     // tudo é calçadão
   // sem corrimão do lado de fora em alguns trechos: dá para cair na água
-  bridgeEdge: (p, q, outer) => (outer && (p.x < -138 || (p.x > 96 && p.z > -70 && p.z < -20)) ? 'fall' : 'wall'),
+  bridgeEdge: (p, q, outer) => (outer && ((p.x < -170 && p.z > -100) || (p.x > 96 && p.z > -70 && p.z < -20)) ? 'fall' : 'wall'),
   edge: () => 'wall',
   pipe: [[66, -150], [66, -40]],                          // cano-mestre que passa por baixo da subida
+  ship: { x0: -158, x1: -84, zMax: -112 },               // navio-caldeira: a pista atravessa a casa de máquinas
 };
 
 export const THEMES = {

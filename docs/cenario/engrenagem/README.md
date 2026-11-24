@@ -5,7 +5,7 @@ Pistas novas no estilo das artes conceituais aprovadas (`docs/conceito/`), feita
 | Pista | Conceito de origem | Arquivos |
 |---|---|---|
 | Vila Engrenagem | cidade-oficina (`r2-chao-1-cidade-oficina.png`) | `vila-engrenagem-v1.jpg`, `vila-engrenagem-v1-mapa.png`, `vila-engrenagem-v2.jpg`, `comparativo-v1-v2.jpg` |
-| Brejo das Caldeiras | pântano com máquinas (`r2-chao-3-pantano-maquinas.png`) | `brejo-das-caldeiras-v1.jpg` |
+| Brejo das Caldeiras | pântano com máquinas (`r2-chao-3-pantano-maquinas.png`) | `brejo-das-caldeiras-v1.jpg`, `brejo-das-caldeiras-v2.jpg` |
 | _a fazer_ | deserto de sucata | |
 | _a fazer_ | ilhas com correntes | |
 
@@ -48,3 +48,13 @@ Seguindo o pedido sobre o conceito: céu e luz **azulados, um pouco mais fechado
   máquina enferrujada afundada e um barco a vapor de roda de pás dando voltas no pântano.
 - Lampiões pendurados no corrimão e varais de lanternas coloridas atravessando a pista.
 - Vaga-lumes piscando e libélulas voando em oito e parando para pairar.
+
+## Brejo das Caldeiras v2 — navio e máquinas
+Feedback da v1: faltavam as máquinas grandes do conceito, como o navio mecânico em que a ponte dava entrada.
+- **Navio-caldeira "Caldeirão"**: o traçado ganhou uma reta no lado sul e a pista entra no navio pela
+  rampa da proa (o visor fica levantado, como numa balsa), atravessa a casa de máquinas e sai pela popa.
+  Lá dentro: pistões gigantes subindo e descendo dos dois lados, virabrequins girando, canos, manômetros e lâmpadas no teto.
+  Por fora: casco de ferro rebitado com faixa vermelha, duas fileiras de vigias acesas, rodas de pás gigantes girando,
+  cabines, ponte de comando, duas chaminés fumegando, engrenagem de latão e mastro com bandeira.
+- **Draga a vapor**: corrente de caçambas descendo até o fundo e subindo com lama.
+- **Guindastes a vapor**: giram de um lado para o outro com a carga balançando.

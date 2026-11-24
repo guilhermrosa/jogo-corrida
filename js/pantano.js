@@ -81,6 +81,153 @@ export function pantano(tr, rnd, H) {
   H.grandstand(tr, 12, H.sideWithRoom(tr, 12), 50);
   for (let k = -20; k <= 40; k += 6) for (const s of [1, -1]) { const p = tr.point((k + N) % N, s * (EDGE + 12)); occupied.push([p.x, p.z, 3]); }
 
+  // ------------------------------------------------ NAVIO-CALDEIRA: a pista entra pela proa e atravessa a casa de máquinas
+  const shipAnims = [];
+  if (tr.def.ship) {
+    const mx = tr.mirror ? -1 : 1, sd = tr.def.ship;
+    const idx = [];
+    for (let i = 0; i < N; i++) { const x = mx * tr.px[i]; if (x >= sd.x0 && x <= sd.x1 && tr.pz[i] < sd.zMax) idx.push(i); }
+    if (idx.length > 20) {
+      // os índices podem dar a volta no fim da pista: ordena pela sequência contínua
+      idx.sort((a, b) => a - b);
+      let i0 = idx[0], i1 = idx[idx.length - 1];
+      const im = idx[Math.floor(idx.length / 2)];
+      const A = tr.point(i0, 0), B = tr.point(i1, 0);
+      const L = A.distanceTo(B);
+      const D = tr.py[im];
+      const g = new THREE.Group();
+      g.position.copy(A.clone().add(B).multiplyScalar(0.5)); g.position.y = 0;
+      g.rotation.y = Math.atan2(B.x - A.x, B.z - A.z); // +z local = sentido da corrida (proa em -z, por onde se entra)
+      tr.group.add(g);
+      for (let k = 0; k < idx.length; k += 4) { const p = tr.point(idx[k], 0); occupied.push([p.x, p.z, 26]); }
+      const W = EDGE + 3, T = 1.2;
+      const plate = pixelTex(64, 64, (c, w, h, r) => {
+        c.fillStyle = '#4a4440'; c.fillRect(0, 0, w, h);
+        for (let y = 0; y < h; y += 16) for (let x = 0; x < w; x += 32) {
+          const k = 0.85 + r() * 0.3; c.fillStyle = `rgb(${90 * k | 0},${82 * k | 0},${76 * k | 0})`; c.fillRect(x + 1, y + 1, 31, 15);
+          c.fillStyle = 'rgba(255,255,255,.15)'; c.fillRect(x + 1, y + 1, 31, 1);
+          c.fillStyle = '#c9a24a'; for (const [rx, ry] of [[3, 3], [28, 3], [3, 12], [28, 12]]) c.fillRect(x + rx, y + ry, 2, 2);
+        }
+      }, { seed: 41 });
+      plate.repeat.set(L / 6, 2);
+      const hullM = lam({ map: plate }), inner = lam({ map: plate.clone(), color: 0xd8c8b0 });
+      inner.map.repeat.set(L / 5, 1.5); inner.map.needsUpdate = true;
+      const red = lam({ color: 0x8a2e22 }), cream = lam({ color: 0xefe2c2 });
+      const box = (w, h, d, m, x, y, z, parent = g) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); parent.add(o); return o; };
+      const top = D + 9;
+      for (const s of [1, -1]) {
+        // costado: ferro rebitado, faixa vermelha na linha d'água e friso de latão
+        box(T, top - (WY - 2), L, hullM, s * (W + T / 2), (top + WY - 2) / 2, 0);
+        box(T + 0.3, 1.8, L + 0.2, red, s * (W + T / 2), WY + 0.5, 0);
+        box(T + 0.5, 0.5, L + 0.4, mats.brass, s * (W + T / 2), top + 0.1, 0);
+        box(0.3, 0.3, L, mats.brass, s * (W - 0.2), D + 3.2, 0); // corrimão interno
+      }
+      // vigias acesas dos dois lados
+      {
+        const port = [], rings = [];
+        for (const s of [1, -1]) for (let z = -L / 2 + 4; z < L / 2 - 3; z += 4.5) for (const y of [D + 5.6, WY + 2.6]) {
+          const c = new THREE.CircleGeometry(0.55, 10).toNonIndexed(); c.rotateY(s * Math.PI / 2); c.translate(s * (W + T + 0.02), y, z); port.push(c);
+          const r = new THREE.TorusGeometry(0.62, 0.1, 4, 10).toNonIndexed(); r.rotateY(s * Math.PI / 2); r.translate(s * (W + T + 0.04), y, z); rings.push(r);
+        }
+        g.add(new THREE.Mesh(mergeGeometries(port), mats.lamp));
+        g.add(new THREE.Mesh(mergeGeometries(rings), mats.brass));
+      }
+      // teto da casa de máquinas e convés
+      box(2 * (W + T), 0.8, L, inner, 0, top + 0.4, 0);
+      box(2 * (W + T) + 0.6, 0.3, L + 0.6, lam({ color: 0x7a5a3a }), 0, top + 0.95, 0);
+      // lâmpadas no teto
+      { const ls = []; for (let z = -L / 2 + 5; z < L / 2; z += 8) for (const x of [-6, 0, 6]) { const b = new THREE.BoxGeometry(1.2, 0.3, 1.2).toNonIndexed(); b.translate(x, top - 0.1, z); ls.push(b); } g.add(new THREE.Mesh(mergeGeometries(ls), mats.lamp)); }
+
+      // casa de máquinas: pistões gigantes subindo e descendo, virabrequim girando
+      for (const s of [1, -1]) {
+        const cx = s * (W - 1.6);
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, L - 6, 10), mats.iron); shaft.rotation.x = Math.PI / 2; shaft.position.set(cx, top - 1.6, 0); g.add(shaft);
+        shipAnims.push((t) => { shaft.rotation.y = t * 3; });
+        for (let k = 0; k < 5; k++) {
+          const z = -L / 2 + 8 + k * ((L - 16) / 4);
+          box(2.4, 2.2, 2.4, mats.copper, cx, D + 1.1, z);                        // cilindro
+          box(2.7, 0.3, 2.7, mats.brass, cx, D + 2.25, z);
+          const rod = box(0.45, 4.2, 0.45, mats.brass, cx, D + 4.2, z);            // haste
+          const head = box(1.6, 0.9, 1.6, mats.iron, cx, D + 6, z);               // cruzeta
+          const disc = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.4, 14), mats.copper); disc.rotation.x = Math.PI / 2; disc.position.set(cx, top - 1.6, z + 1.2); g.add(disc);
+          const ph = k * 1.25;
+          shipAnims.push((t) => { const y = Math.sin(t * 3 + ph) * 0.9; rod.position.y = D + 4.2 + y; head.position.y = D + 6 + y; disc.rotation.y = t * 3 + ph; });
+          // manômetro na parede
+          const gg = new THREE.Mesh(new THREE.CircleGeometry(0.6, 14), lam({ color: 0xf4ead2 })); gg.position.set(s * (W - 0.05), D + 5, z + 3); gg.rotation.y = -s * Math.PI / 2; g.add(gg);
+        }
+        // canos correndo pelas paredes
+        for (const y of [D + 7.4, D + 8]) { const pp = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, L, 8), y > D + 7.6 ? mats.copper : mats.brass); pp.rotation.x = Math.PI / 2; pp.position.set(s * (W - 0.4), y, 0); g.add(pp); }
+      }
+
+      // proa: visor levantado (como uma balsa) e rampa abaixada, a "ponte" de entrada
+      const W1 = W + T;
+      const bowShape = new THREE.Shape(); bowShape.moveTo(-W1, 0); bowShape.lineTo(W1, 0); bowShape.lineTo(W1 * 0.55, 9); bowShape.lineTo(0, 16); bowShape.lineTo(-W1 * 0.55, 9); bowShape.closePath();
+      const bowGeo = new THREE.ExtrudeGeometry(bowShape, { depth: top - WY + 1, bevelEnabled: false });
+      bowGeo.rotateX(-Math.PI / 2); bowGeo.translate(0, -(top - WY + 1), 0);
+      const visor = new THREE.Group(); visor.position.set(0, top + 0.8, -L / 2); g.add(visor);
+      const vm = new THREE.Mesh(bowGeo, [hullM, red]); visor.add(vm);
+      visor.rotation.x = 1.25;
+      const nameTex = pixelTex(128, 24, (c, w, h) => {
+        c.fillStyle = '#2a2624'; c.fillRect(0, 0, w, h); c.fillStyle = '#c9a24a'; c.fillRect(2, 2, w - 4, h - 4); c.fillStyle = '#5a1e14'; c.fillRect(4, 4, w - 8, h - 8);
+        c.fillStyle = '#ffd98a'; c.font = 'bold 14px monospace'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('CALDEIRÃO', w / 2, h / 2 + 1);
+      }, { repeat: false });
+      const name = new THREE.Mesh(new THREE.PlaneGeometry(12, 2.2), lam({ map: nameTex })); name.position.set(0, top + 2.6, -L / 2 - 0.05); name.rotation.y = Math.PI; g.add(name);
+      const nameBack = name.clone(); nameBack.rotation.y = 0; nameBack.position.z = -L / 2 + 0.6; g.add(nameBack);
+      box(2 * W1, 2.6, 0.6, hullM, 0, top + 2.5, -L / 2 + 0.3);                // viga acima da entrada
+      const ramp = box(2 * W - 2, 0.12, 10, lam({ map: plate.clone() }), 0, D + 0.12, -L / 2 - 5);
+      ramp.material.map.repeat.set(3, 2); ramp.material.map.needsUpdate = true;
+      for (const s of [1, -1]) {
+        const a0 = new THREE.Vector3(s * (W - 2), D + 0.2, -L / 2 - 9.5), a1 = new THREE.Vector3(s * (W - 2), top + 2.6, -L / 2 - 1);
+        const ch = new THREE.Mesh(limb(a0, a1, 0.1, 0.1, 5), mats.iron); g.add(ch);
+        box(1.4, 1.4, 1.4, mats.brass, s * (W - 0.6), top + 2.6, -L / 2);       // roldanas
+      }
+      // popa: saída com comporta levantada e leme
+      box(2 * W1, 2.6, 0.6, hullM, 0, top + 2.5, L / 2 - 0.3);
+      const gate = box(2 * W - 1, 7, 0.4, hullM, 0, 0, 0); gate.geometry.translate(0, -3.5, 0); gate.position.set(0, top + 2.4, L / 2); gate.rotation.x = -1.15;
+      box(0.8, 9, 5, red, 0, WY - 1, L / 2 + 3);
+
+      // rodas de pás gigantes nos dois lados
+      for (const s of [1, -1]) {
+        const wheel = new THREE.Group(); wheel.position.set(s * (W1 + 2.6), D + 3, -2); g.add(wheel);
+        for (const off of [-1.4, 1.4]) { const rim = new THREE.Mesh(new THREE.TorusGeometry(9, 0.35, 6, 28), mats.iron); rim.rotation.y = Math.PI / 2; rim.position.x = off; wheel.add(rim); }
+        for (let k = 0; k < 14; k++) {
+          const arm = new THREE.Group(); arm.rotation.x = (k / 14) * Math.PI * 2; wheel.add(arm);
+          const pad = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.3, 2.2), lam({ color: 0x6b4426 })); pad.position.y = 8.2; arm.add(pad);
+          const sp = new THREE.Mesh(new THREE.BoxGeometry(0.3, 8.6, 0.3), mats.iron); sp.position.y = 4.3; arm.add(sp);
+        }
+        const hub = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 4.4, 12), mats.brass); hub.rotation.z = Math.PI / 2; wheel.add(hub);
+        const house = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 4.4, 24, 1, true, 0, Math.PI), lam({ color: 0xc9a24a, side: THREE.DoubleSide })); house.rotation.z = Math.PI / 2; house.position.set(s * (W1 + 2.6), D + 3, -2); g.add(house);
+        shipAnims.push((t) => { wheel.rotation.x = -t * 0.7; });
+      }
+
+      // superestrutura: cabines, ponte de comando, chaminés e guindaste no convés
+      const deckY = top + 1.1;
+      box(2 * W - 6, 5, L * 0.42, cream, 0, deckY + 2.5, -L * 0.12);
+      { const ws = []; for (const s of [1, -1]) for (let z = -L * 0.32; z < L * 0.08; z += 3) { const w = new THREE.PlaneGeometry(1.4, 1.6).toNonIndexed(); w.rotateY(s * Math.PI / 2); w.translate(s * (W - 2.95), deckY + 3, z); ws.push(w); } g.add(new THREE.Mesh(mergeGeometries(ws), mats.lamp)); }
+      box(2 * W - 4, 0.4, L * 0.46, lam({ color: 0x2f6a5a }), 0, deckY + 5.2, -L * 0.12);
+      box(10, 4, 7, cream, 0, deckY + 7.4, -L * 0.26);
+      const bridgeWin = box(9, 1.4, 0.1, mats.lamp, 0, deckY + 8, -L * 0.26 - 3.56);
+      box(11, 0.4, 8, lam({ color: 0x2f6a5a }), 0, deckY + 9.6, -L * 0.26);
+      void bridgeWin;
+      const stacks = [];
+      for (const z of [L * 0.18, L * 0.32]) {
+        const st = new THREE.Mesh(new THREE.CylinderGeometry(2, 2.3, 16, 16), red); st.position.set(0, deckY + 8, z); g.add(st);
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2, 1.4, 16), lam({ color: 0x1e1a18 })); cap.position.set(0, deckY + 16.6, z); g.add(cap);
+        for (const y of [4, 9, 13]) { const b = new THREE.Mesh(new THREE.CylinderGeometry(2.35, 2.35, 0.5, 16), mats.brass); b.position.set(0, deckY + y, z); g.add(b); }
+        stacks.push(new THREE.Vector3(0, deckY + 17.5, z));
+      }
+      // engrenagem gigante entre as chaminés
+      const bigGear = new THREE.Mesh(new THREE.TorusGeometry(4, 0.6, 6, 24), mats.brass); bigGear.position.set(W - 4, deckY + 6, L * 0.25); bigGear.rotation.y = Math.PI / 2; g.add(bigGear);
+      for (let k = 0; k < 16; k++) { const a = (k / 16) * Math.PI * 2; const tth = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.1, 1), mats.brass); tth.position.set(Math.cos(a) * 4.7, Math.sin(a) * 4.7, 0); tth.rotation.z = a; bigGear.add(tth); }
+      shipAnims.push((t) => { bigGear.rotation.z = t * 0.5; });
+      // mastro com bandeirolas
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 14), mats.wood); mast.position.set(0, deckY + 7, -L * 0.42); g.add(mast);
+      for (const z of [-L * 0.42]) { const fl = new THREE.Mesh(new THREE.PlaneGeometry(3, 1.8), lam({ color: 0xb0322a, side: THREE.DoubleSide })); fl.position.set(1.5, deckY + 13, z); g.add(fl); shipAnims.push((t) => { fl.rotation.y = Math.sin(t * 2) * 0.3; }); }
+      for (const p of stacks) smokers.push(p.clone().applyQuaternion(g.quaternion).add(g.position), p.clone().applyQuaternion(g.quaternion).add(g.position).add(new THREE.Vector3(0, 0.5, 0)));
+      tr.landmarks = { ...(tr.landmarks || {}), ship: i0 };
+    }
+  }
+
   // ------------------------------------------------ árvores retorcidas com raízes e barba-de-velho
   {
     const trunks = [], crowns = [], moss = [];
@@ -349,6 +496,57 @@ export function pantano(tr, rnd, H) {
     const moss = new THREE.Mesh(new THREE.SphereGeometry(1.2, 8, 6), lam({ color: 0x4e7a3a })); moss.scale.set(1.4, 0.5, 1); moss.position.set(3.6, 1.4, 1); g.add(moss);
   }
 
+  // ------------------------------------------------ draga a vapor: corrente de caçambas tirando lama do fundo
+  const dredges = [];
+  for (let t = 0; t < 300 && dredges.length < 1; t++) {
+    const p = around(10, 22);
+    if (onLand(p.x, p.z) || !clear(p.x, p.z, EDGE + 9) || !free(p.x, p.z, 14)) continue;
+    occupied.push([p.x, p.z, 14]);
+    const g = new THREE.Group(); g.position.set(p.x, WY, p.z); tr.group.add(g);
+    const near = tr.dist(p.x, p.z).i; g.rotation.y = tr.heading(near);
+    const box = (w, h, d, m, x, y, z, parent = g) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); parent.add(o); return o; };
+    box(10, 1.6, 22, lam({ color: 0x5a3a2a }), 0, 0.5, 0);
+    box(10.4, 0.5, 22.4, mats.brass, 0, 1.4, 0);
+    box(7, 5, 8, lam({ color: 0x6f8a80 }), 0, 4, 4);
+    box(7.6, 0.4, 8.6, mats.rust, 0, 6.7, 4);
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 6, 10), mats.iron); st.position.set(2, 9.5, 6); g.add(st);
+    smokers.push(new THREE.Vector3(2, 12.8, 6).applyQuaternion(g.quaternion).add(g.position));
+    // pórtico em A segurando a escada de caçambas
+    for (const x of [-3.5, 3.5]) { g.add(new THREE.Mesh(limb(new THREE.Vector3(x, 1.6, -2), new THREE.Vector3(x * 0.4, 11, -6), 0.25, 0.25, 6), mats.iron)); g.add(new THREE.Mesh(limb(new THREE.Vector3(x, 1.6, -10), new THREE.Vector3(x * 0.4, 11, -6), 0.25, 0.25, 6), mats.iron)); }
+    const ladder = new THREE.Group(); ladder.position.set(0, 10, -6); ladder.rotation.x = -0.95; g.add(ladder);
+    const LL = 18;
+    box(0.5, 0.8, LL, mats.rust, -1.2, 0, -LL / 2, ladder); box(0.5, 0.8, LL, mats.rust, 1.2, 0, -LL / 2, ladder);
+    for (const z of [0, -LL]) { const tb = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 2.2, 8), mats.iron); tb.rotation.z = Math.PI / 2; tb.position.z = z; ladder.add(tb); }
+    const buckets = [];
+    const bGeo = new THREE.BoxGeometry(1.6, 0.9, 1.1), bMat = lam({ color: 0x8a4a2a });
+    for (let k = 0; k < 16; k++) { const b = new THREE.Mesh(bGeo, bMat); ladder.add(b); buckets.push(b); }
+    // calha despejando a lama
+    const chute = box(1.6, 0.3, 6, mats.rust, 4, 8, -4); chute.rotation.x = 0.3; chute.rotation.y = -0.6;
+    dredges.push({ buckets, LL });
+    tr.landmarks = { ...(tr.landmarks || {}), dredge: g.position.clone() };
+  }
+
+  // ------------------------------------------------ guindaste a vapor girando com a carga balançando
+  const cranes = [];
+  for (let t = 0; t < 300 && cranes.length < 2; t++) {
+    const p = around(6, 18);
+    if (!clear(p.x, p.z, EDGE + 5) || !free(p.x, p.z, 8)) continue;
+    occupied.push([p.x, p.z, 8]);
+    const g = new THREE.Group(); g.position.set(p.x, Math.max(p.y, WY), p.z); tr.group.add(g);
+    const deck = new THREE.Mesh(new THREE.CylinderGeometry(4, 4.4, 1.4, 12), mats.wood); deck.position.y = 0.6; g.add(deck);
+    const turn = new THREE.Group(); turn.position.y = 1.3; g.add(turn);
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3, 4), lam({ color: 0xe8a221 })); cab.position.set(0, 1.5, -0.8); turn.add(cab);
+    const boiler = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 2.6, 10), mats.copper); boiler.position.set(0, 1.4, -2.9); turn.add(boiler);
+    const stk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.35, 2.6, 8), mats.iron); stk.position.set(0, 3.8, -2.9); turn.add(stk);
+    const jib = new THREE.Mesh(limb(new THREE.Vector3(0, 1.5, 1), new THREE.Vector3(0, 12, 9), 0.35, 0.22, 6), mats.rust); turn.add(jib);
+    const tip = new THREE.Vector3(0, 12, 9);
+    const hook = new THREE.Group(); hook.position.copy(tip); turn.add(hook);
+    const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 6), mats.iron); cable.position.y = -3; hook.add(cable);
+    const load = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.6, 2.2), lam({ color: [0x9a6a3a, 0x6f8a80][cranes.length % 2] })); load.position.y = -6.8; hook.add(load);
+    cranes.push({ turn, hook, ph: rnd() * 6 });
+    tr.landmarks = { ...(tr.landmarks || {}), crane: g.position.clone() };
+  }
+
   // ------------------------------------------------ barco a vapor de roda de pás dando voltas no pântano
   const boat = new THREE.Group(); tr.group.add(boat);
   const paddles = [];
@@ -422,6 +620,19 @@ export function pantano(tr, rnd, H) {
   let t = 0;
   tr.animated.push((dt) => {
     t += dt;
+    for (const f of shipAnims) f(t);
+    for (const d of dredges) {
+      // caçambas correm em volta da escada: descem por baixo e sobem cheias por cima
+      const per = d.LL * 2 + Math.PI * 2.4;
+      d.buckets.forEach((b, k) => {
+        let u = ((t * 2 + (k / d.buckets.length) * per) % per);
+        if (u < d.LL) { b.position.set(0, 1.3, -u); b.rotation.x = 0; }
+        else if (u < d.LL + Math.PI * 1.2) { const a = (u - d.LL) / 1.2; b.position.set(0, Math.cos(a) * 1.3, -d.LL - Math.sin(a) * 1.3); b.rotation.x = a; }
+        else if (u < d.LL * 2 + Math.PI * 1.2) { b.position.set(0, -1.3, -d.LL + (u - d.LL - Math.PI * 1.2)); b.rotation.x = Math.PI; }
+        else { const a = (u - d.LL * 2 - Math.PI * 1.2) / 1.2; b.position.set(0, -Math.cos(a) * 1.3, Math.sin(a) * 1.3); b.rotation.x = Math.PI + a; }
+      });
+    }
+    for (const c of cranes) { c.turn.rotation.y = Math.sin(t * 0.25 + c.ph) * 1.6; c.hook.rotation.z = Math.sin(t * 1.3 + c.ph) * 0.12; c.hook.rotation.x = Math.cos(t * 1.1 + c.ph) * 0.08; }
     for (const j of jacks) { const a = Math.sin(t * 1.4 + j.ph) * 0.32; j.beamG.rotation.x = a; j.rod.position.y = 2.6 - a * 4; }
     for (const f of flies) {
       const arr = f.geo.attributes.position.array;
