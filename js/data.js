@@ -149,7 +149,7 @@ const SERRA_S = (pts) => pts.map(([x, z, y]) => [x * SK, z * SK, y]);
 
 export const CUPS = [
   {
-    name: 'Copa Caldeira',
+    name: 'Copa Pistão',
     tracks: ['campos', 'praia', 'serra', 'vulcao'],
   },
   {

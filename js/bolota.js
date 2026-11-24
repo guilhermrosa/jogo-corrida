@@ -4,7 +4,7 @@ import { EDGE } from './data.js';
 import { tinBot, giantBot, patrol } from './robots.js';
 
 // =====================================================================
-//  Copa Caldeira (antiga Copa Bolota) no mundo steampunk: cada pista mantém o tema (campo, praia,
+//  Copa Pistão (antiga Copa Bolota) no mundo steampunk: cada pista mantém o tema (campo, praia,
 //  neve, lava) e ganha máquinas, autômatos e peças de latão e cobre.
 // =====================================================================
 

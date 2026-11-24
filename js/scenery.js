@@ -721,7 +721,7 @@ export function buildScenery(tr, rnd) {
     const an = fundicao(tr, rnd, { SPR, findPlace, sideWithRoom, spot });
     let t = 0; tr.animated.push((dt) => { t += dt; for (const f of an) f(t, dt); });
   }
-  // Copa Caldeira no mundo steampunk: máquinas e autômatos por cima do tema de cada pista
+  // Copa Pistão no mundo steampunk: máquinas e autômatos por cima do tema de cada pista
   const STEAM = { campos: camposSteam, praia: praiaSteam, serra: serraSteam, vulcao: vulcaoSteam };
   if (STEAM[theme]) {
     const Hh = { SPR, findPlace, sideWithRoom, spot };
