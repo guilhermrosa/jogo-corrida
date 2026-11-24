@@ -6,7 +6,7 @@ import { lam, basic, phong, brickTex, plateTex, boardsTex, puffs, instances, TRS
 import { signTex, signGate } from './granja.js';
 
 // =====================================================================
-//  PORTO DO COQUEIRO — o porto dos escafandristas: canal da doca com a ponte
+//  PORTO DOS ESCAFANDROS — o porto dos escafandristas: canal da doca com a ponte
 //  levadiça (erguida, vira rampa), estaleiro de submarinos, píer com guindastes
 //  baixando sinos de mergulho, prensa de óleo de coco e o farol de lente giratória.
 // =====================================================================

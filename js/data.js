@@ -149,7 +149,7 @@ const SERRA_S = (pts) => pts.map(([x, z, y]) => [x * SK, z * SK, y]);
 
 export const CUPS = [
   {
-    name: 'Copa Bolota',
+    name: 'Copa Caldeira',
     tracks: ['campos', 'praia', 'serra', 'vulcao'],
   },
   {
@@ -160,7 +160,7 @@ export const CUPS = [
 
 export const TRACKS = {
   campos: {
-    name: 'Granja Bolota',
+    name: 'Fazenda dos Silos',
     theme: 'campos',
     // cooperativa de bolotas a vapor: reta dos silos, subida do moinho, viaduto de madeira e ferro
     // por cima da largada, descida até o canal de irrigação e volta pelo pomar
@@ -176,7 +176,7 @@ export const TRACKS = {
     ],
   },
   praia: {
-    name: 'Porto do Coqueiro',
+    name: 'Porto dos Escafandros',
     theme: 'praia',
     // porto dos escafandristas: calçadão, volta da doca do canal (com ponte levadiça), píer dos
     // submarinos sobre o mar, e subida ao promontório do farol
@@ -275,7 +275,7 @@ const helix = Array.from({ length: 15 }, (_, k) => {
 });
 const nearTower = (p) => Math.hypot(p.x - SUCATA_C[0], p.z - SUCATA_C[1]);
 TRACKS.sucata = {
-  name: 'Ferro-Velho do Sol',
+  name: 'Deserto da Sucata',
   theme: 'sucata',
   // largada, lombadas de duna, espiral subindo a torre, viaduto por cima da largada e ponte quebrada com salto
   points: [[0, 0, 0], [40, 0, 0], [62, -1, 0.2], [80, -4, 2.6], [99, -10, 0.2], [118, -20, 2.8], [136, -34, 0.2],

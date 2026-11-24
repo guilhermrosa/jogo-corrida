@@ -411,8 +411,9 @@ export class Track {
       c.fillStyle = '#2a2624'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#c9a24a'; c.fillRect(1, 1, w - 2, h - 2);
       c.fillStyle = '#5a1e14'; c.fillRect(3, 3, w - 6, h - 6);
-      c.fillStyle = '#ffd98a'; c.font = 'bold 11px monospace'; c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillText(this.def.name.toUpperCase(), w / 2, h / 2 + 1);
+      const txt = this.def.name.toUpperCase();
+      c.fillStyle = '#ffd98a'; c.font = `bold ${txt.length > 18 ? 9 : 11}px monospace`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(txt, w / 2, h / 2 + 1, w - 8);
     }, { repeat: false });
     const bmat = lam({ map: banner });
     const beam = new THREE.Mesh(new THREE.BoxGeometry(gateW + 1.2, 1.8, 0.5), [brass, brass, brass, brass, bmat, bmat]);

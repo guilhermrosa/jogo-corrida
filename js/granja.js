@@ -6,7 +6,7 @@ import { M, add, cyl, gearMesh } from './bolota.js';
 import { lam, basic, phong, shed, boardsTex, brickTex, plateTex, puffs, instances, TRS, freeNear, MX } from './kit.js';
 
 // =====================================================================
-//  GRANJA BOLOTA — a cooperativa que colhe, debulha e ensaca bolotas a vapor.
+//  FAZENDA DOS SILOS — a cooperativa que colhe, debulha e ensaca bolotas a vapor.
 //  Silos de cobre e uma esteira de caçambas por cima da largada, o celeiro-
 //  debulhadora (caminho alternativo por dentro), o viaduto de madeira e ferro,
 //  o moinho de latão, a colheitadeira a vapor e o pomar de carvalhos.

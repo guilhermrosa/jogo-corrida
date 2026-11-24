@@ -146,7 +146,7 @@ function facing(tr, i, side) {
 const ADS = [
   { bg: '#d32f2f', fg: '#fff', title: 'PIMENTA', sub: 'TURBO!', icon: 'pimenta' },
   { bg: '#1565c0', fg: '#fff', title: 'PNEUS', sub: 'TICO', who: 'tico' },
-  { bg: '#2e7d32', fg: '#fff59d', title: 'SUCO', sub: 'BOLOTA', icon: 'coco' },
+  { bg: '#2e7d32', fg: '#fff59d', title: 'SUCO', sub: 'DE COCO', icon: 'coco' },
   { bg: '#ff8f00', fg: '#fff', title: 'MEL', sub: 'KART CLUB', who: 'mel' },
   { bg: '#4a148c', fg: '#fff', title: 'RINO', sub: 'MOTORES', who: 'rino' },
   { bg: '#006064', fg: '#fff', title: 'JUCA', sub: 'NÁUTICA', who: 'juca' },
@@ -721,7 +721,7 @@ export function buildScenery(tr, rnd) {
     const an = fundicao(tr, rnd, { SPR, findPlace, sideWithRoom, spot });
     let t = 0; tr.animated.push((dt) => { t += dt; for (const f of an) f(t, dt); });
   }
-  // Copa Bolota no mundo steampunk: máquinas e autômatos por cima do tema de cada pista
+  // Copa Caldeira no mundo steampunk: máquinas e autômatos por cima do tema de cada pista
   const STEAM = { campos: camposSteam, praia: praiaSteam, serra: serraSteam, vulcao: vulcaoSteam };
   if (STEAM[theme]) {
     const Hh = { SPR, findPlace, sideWithRoom, spot };

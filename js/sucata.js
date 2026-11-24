@@ -5,7 +5,7 @@ import { pixelTex } from './textures.js';
 import { tinBot, giantBot } from './robots.js';
 
 // =====================================================================
-//  FERRO-VELHO DO SOL — deserto de sucata (Copa Engrenagem)
+//  DESERTO DA SUCATA — deserto de sucata (Copa Engrenagem)
 //  Torre de ferro-velho no meio da espiral, montes de sucata, cata-ventos,
 //  guindaste com ímã, esteira, ponte quebrada, carcaças, cactos e mesas.
 // =====================================================================
