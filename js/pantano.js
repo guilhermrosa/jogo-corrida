@@ -4,7 +4,7 @@ import { EDGE } from './data.js';
 import { pixelTex } from './textures.js';
 
 // =====================================================================
-//  BREJO DOS ALAMBIQUES — pântano com máquinas (Copa Engrenagem)
+//  BREJO DAS CALDEIRAS — pântano com máquinas (Copa Engrenagem)
 //  Calçadão de tábuas sobre a água, árvores retorcidas com barba-de-velho,
 //  cogumelos que brilham, vitórias-régias, lampiões, cano-mestre, bombas
 //  de vareta, barco a vapor, cabanas de caldeira, vaga-lumes e libélulas.
