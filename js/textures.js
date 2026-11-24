@@ -108,6 +108,13 @@ export const STYLE = {
     skirt: 'corrugated', skirtA: '#9a5a32', skirtB: '#5e3420',
     wall: ['#2a2624', '#2a2624'], wallTrim: '#8a4a2a', tires: true,
   },
+  ilhas: {
+    road: 'checker', paveA: '#b8403a', paveB: '#efe2c2', mortar: '#5a4a3a', line: '#c9a24a',
+    curb: ['#c9a24a', '#5a4a3a'], trim: '#c9a24a',
+    grass: ['#6aaa4a', '#5a9a3e', '#8ac45a', '#467a30'], flowers: ['#ff8fc8', '#ffffff', '#ffd84a'],
+    skirt: 'masonry', skirtA: '#a89878', skirtB: '#6a5a4a',
+    wall: ['#d8c8a8', '#c8b898'], wallTrim: '#c9a24a',
+  },
   vulcao: {
     road: 'plates', paveA: '#4b4447', mortar: '#1e1a1b', line: '#ffb84a',
     curb: ['#e8a221', '#2a2526'], trim: '#a0622e',
@@ -156,6 +163,12 @@ export function roadTexture(theme) {
         for (let i = 0; i < cuts.length - 1; i++) stone(g, cuts[i], y, cuts[i + 1] - cuts[i], 16, S.paveA, r);
       }
       for (let i = 0; i < 90; i++) px(g, x0 + r() * (x1 - x0), r() * H, 1, 1, 'rgba(235,245,255,.7)');
+    } else if (S.road === 'checker') {
+      // calçamento xadrez vermelho e creme, pedras arredondadas
+      const cw = (x1 - x0) / 8;
+      for (let y = 0, row = 0; y < H; y += 8, row++) for (let c = 0; c < 8; c++) {
+        stone(g, x0 + c * cw, y, Math.ceil(cw), 8, (row + c) % 2 ? S.paveA : S.paveB, r);
+      }
     } else if (S.road === 'dirt') {
       // terra batida com sulcos de pneu, pedrinhas e parafusos perdidos
       px(g, x0, 0, x1 - x0, H, S.paveA);
@@ -223,7 +236,13 @@ export function groundTexture(theme, kind = 'shoulder') {
   const S = STYLE[theme];
   const big = kind === 'terrain';
   return pixelTex(64, 64, (g, W, H, r) => {
-    if (theme === 'campos') tufts(g, W, H, r, S.grass, big ? 40 : 55, big ? null : S.flowers);
+    if (theme === 'campos' || (theme === 'ilhas' && big)) tufts(g, W, H, r, S.grass, big ? 40 : 55, big ? null : S.flowers);
+    else if (theme === 'ilhas') {
+      // tábuas de madeira com friso de latão: serve na ilha e na ponte
+      px(g, 0, 0, W, H, '#3a2414');
+      for (let y = 0; y < H; y += 8) { const k = 0.85 + r() * 0.3; px(g, 0, y, W, 7, shade('#9a6a40', k)); px(g, 0, y, W, 1, shade('#9a6a40', k * 1.2)); for (let i = 0; i < 3; i++) px(g, r() * W, y + 2 + r() * 4, 6 + r() * 10, 1, shade('#9a6a40', k * 0.8)); for (const x of [4, 36]) px(g, x, y + 3, 1, 1, '#2a1a0a'); }
+      px(g, W - 3, 0, 3, H, '#c9a24a'); px(g, W - 3, 0, 1, H, '#e8c070');
+    }
     else if (theme === 'pantano' && !big) {
       // tábuas do calçadão com musgo nas frestas
       px(g, 0, 0, W, H, '#2e2012');

@@ -7,7 +7,7 @@ Pistas novas no estilo das artes conceituais aprovadas (`docs/conceito/`), feita
 | Vila Engrenagem | cidade-oficina (`r2-chao-1-cidade-oficina.png`) | `vila-engrenagem-v1.jpg`, `vila-engrenagem-v1-mapa.png`, `vila-engrenagem-v2.jpg`, `comparativo-v1-v2.jpg` |
 | Brejo das Caldeiras | pântano com máquinas (`r2-chao-3-pantano-maquinas.png`) | `brejo-das-caldeiras-v1.jpg`, `brejo-das-caldeiras-v2.jpg`, `brejo-das-caldeiras-v3.jpg` |
 | Ferro-Velho do Sol | deserto de sucata (`r2-chao-2-deserto-sucata.png`) | `ferro-velho-do-sol-v1.jpg` |
-| _a fazer_ | ilhas com correntes | |
+| Ilhas das Correntes | ilhas com correntes (`r1-ilhas-2-correntes.png`) | `ilhas-das-correntes-v1.jpg` |
 
 ## Vila Engrenagem v1
 Circuito de rua de ~700 m: avenida da largada com arquibancada, curva para a ponte sobre o canal,
@@ -80,3 +80,18 @@ cata-vento e chaminé no topo, lâmpadas), esteira levando sucata até o alto da
 cata-ventos de bombear água, guindastes com eletroímã segurando um carro, placas tortas, carcaças meio enterradas,
 barris e pilhas de pneus, cactos e mesas de pedra ao longe. Muro de pneus empilhados, pista de terra batida com
 sulcos de pneu e barrancos de chapa ondulada enferrujada.
+
+## Ilhas das Correntes v1
+A pista inteira fica no céu (~800 m), sobre um mar de nuvens. Quem cai some nas nuvens e a coruja resgata.
+- **Ilha da largada** grande, com arquibancada e um dirigível atracado num mastro.
+- **Ponte pênsil descendo** até a segunda ilha, com um lado sem muro.
+- **Salto entre ilhas**: rampa e vão sobre o vazio (mesma regra da ponte quebrada: mantenha o acelerador).
+- **Subida de cremalheira** de 24% até a ilha mais alta, com engrenagens gigantes girando dos dois lados e trilho dentado.
+- **Espiral descendo** 1,5 volta (14 m) em volta de um pico de pedra, com o lado de fora sem muro.
+- Volta subindo até a ilha da largada.
+
+Cenário: ilhas de pedra em camadas com raízes penduradas, grama, árvores redondas coloridas e cogumelos
+vermelhos de bolinhas; correntes gigantes ligando as ilhas e pendendo até as nuvens; pontes pênseis com torres de
+latão, cabos e lampiões; farol-caldeira no alto do pico com facho de luz girando e cachoeira caindo nas nuvens;
+casa de caldeira com manômetro na ilha alta; dirigíveis passeando; nuvens soltas. Calçamento xadrez vermelho e
+creme (como no conceito) e acostamento de tábuas com friso de latão.

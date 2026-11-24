@@ -3,6 +3,7 @@ import { terrainDetail } from './textures.js';
 import { oficina } from './oficina.js';
 import { pantano } from './pantano.js';
 import { sucata } from './sucata.js';
+import { ilhas } from './ilhas.js';
 import { EDGE, ROAD_HALF } from './data.js';
 import { drawSprite } from './sprites.js';
 
@@ -869,11 +870,12 @@ export function buildScenery(tr, rnd) {
   if (theme === 'praia') praia(tr, rnd);
   if (theme === 'serra') serra(tr, rnd);
   if (theme === 'vulcao') vulcao(tr, rnd);
+  if (theme === 'ilhas') ilhas(tr, rnd, { SPR, ADS, adTexture, grandstand, sideWithRoom, findPlace, spot, sprite });
   if (theme === 'sucata') sucata(tr, rnd, { SPR, ADS, adTexture, grandstand, sideWithRoom, findPlace, spot, sprite, billboard, facing });
   if (theme === 'pantano') pantano(tr, rnd, { SPR, ADS, adTexture, grandstand, sideWithRoom, findPlace, spot, sprite });
   if (theme === 'oficina') oficina(tr, rnd, { SPR, ADS, adTexture, grandstand, sideWithRoom, findPlace, spot, sprite });
-  if (theme !== 'oficina') placeBillboards(tr, rnd); // na cidade, os anúncios são placas penduradas nas lojas
-  placeChevrons(tr);
+  if (theme !== 'oficina' && !tr.def.void) placeBillboards(tr, rnd); // na cidade, os anúncios são placas penduradas nas lojas
+  if (!tr.def.void) placeChevrons(tr);
   // bandeirolas atravessando a reta de largada
   for (const k of [-14, 14]) {
     const a = tr.point(k, EDGE + 0.8), b = tr.point(k, -(EDGE + 0.8));

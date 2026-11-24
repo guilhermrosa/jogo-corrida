@@ -213,7 +213,8 @@ export class Track {
     buildTerrain(this, GROUND_Y);
     const ground = this.mesh(new THREE.PlaneGeometry(4000, 4000), lam({ map: groundTex, polygonOffset: true, polygonOffsetFactor: 6, polygonOffsetUnits: 6 }));
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = Math.min(GROUND_Y - (this.def.lava ? 2 : 0.4), (this.def.waterY ?? 0.12) - 0.8);
+    ground.position.y = this.def.void ? -400 : Math.min(GROUND_Y - (this.def.lava ? 2 : 0.4), (this.def.waterY ?? 0.12) - 0.8);
+    if (this.def.void) { ground.visible = false; this.hazardY = -14; }
 
     if (this.def.water) {
       const wt = waterTexture(this.theme.waterColors);
@@ -369,6 +370,7 @@ export class Track {
         : this.def.theme === 'vulcao' ? [['#2a1414', 0.4], ['#1a0c0c', 0.6]]
           : this.def.theme === 'praia' ? [['#6aa7c9', 0.72]]
             : this.def.theme === 'oficina' ? [['#8a9fb0', 0.48], ['#6f9a5a', 0.66]]
+              : this.def.theme === 'ilhas' ? [['#c8b8e0', 0.62], ['#e8c8d8', 0.74]]
               : this.def.theme === 'pantano' ? [['#3c6466', 0.5], ['#2a4a44', 0.64], ['#1e3632', 0.76]]
                 : this.def.theme === 'sucata' ? [['#d89a6a', 0.46], ['#b86a42', 0.62]] : [['#5f8f6a', 0.5], ['#3f7a4a', 0.68]];
       for (const [col, base] of layers) {
