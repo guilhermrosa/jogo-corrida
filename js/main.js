@@ -9,6 +9,7 @@ import { GameAudio } from './audio.js';
 import { Hud, fmtTime } from './hud.js';
 import { bakeDriver, spriteTexture } from './sprites.js';
 import { ART } from './scenery.js';
+import { buildPodiumScene } from './podium.js';
 
 const params = new URLSearchParams(location.search);
 const AUTO = params.has('auto');
@@ -452,19 +453,16 @@ function startPodium() {
   hemi.color.set(0xffffff); hemi.intensity = 2.1; sun.color.set(0xffffff); sun.intensity = 1.6;
   podium = { group: new THREE.Group(), karts: [], t: 0 };
   scene.add(podium.group);
-  scene.background = new THREE.Color(0x4fb3ff);
-  scene.fog = new THREE.Fog(0x9fd8ff, 60, 300);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshLambertMaterial({ color: 0x4caf50 }));
-  ground.rotation.x = -Math.PI / 2;
-  podium.group.add(ground);
-  const heights = [3, 2, 1.2], xs = [0, -3.4, 3.4], cols = [0xffd54f, 0xcfd8dc, 0xff9e5e];
+  // praça de oficina no fim de tarde
+  scene.background = new THREE.Color(0x8ab8d8);
+  scene.fog = new THREE.Fog(0xe8cfa0, 40, 160);
+  hemi.color.set(0xfff0d8); sun.color.set(0xffdca8);
+  podium.update = buildPodiumScene(podium.group, spriteTexture('fumaca'));
+  const heights = [3, 2, 1.2], xs = [0, -3.4, 3.4];
   for (let i = 0; i < 3; i++) {
-    const b = new THREE.Mesh(new THREE.BoxGeometry(3.2, heights[i], 3), new THREE.MeshLambertMaterial({ color: cols[i] }));
-    b.position.set(xs[i], heights[i] / 2, 0);
-    podium.group.add(b);
     const d = DRIVERS.find((x) => x.id === standings[i]);
     const k = new Kart(scene, d, bakes[d.id], 100, { isPlayer: d.id === G.driverId });
-    k.pos.set(xs[i], heights[i], 0);
+    k.pos.set(xs[i], heights[i] + 0.2, 0);
     k.heading = Math.PI;
     podium.karts.push(k);
   }
@@ -577,9 +575,10 @@ function frame() {
     R.track.backdrop.position.set(camera.position.x, 140, camera.position.z);
   } else if (podium) {
     podium.t += dt;
+    podium.update?.(podium.t);
     const a = podium.t * 0.25;
-    camera.position.set(Math.sin(a) * 3 + 0, 4.2, 9.5);
-    camera.lookAt(0, 2.4, 0);
+    camera.position.set(Math.sin(a) * 3 + 0, 4.6, 11);
+    camera.lookAt(0, 3, 0);
     for (const k of podium.karts) { k.heading = Math.atan2(camera.position.x - k.pos.x, camera.position.z - k.pos.z); k.syncView(dt, camera); }
   } else if (showTrack) {
     showTrack.update(dt, camera);
@@ -622,7 +621,7 @@ show('title');
 
 // acesso para testes automatizados: ?auto&start=1&track=praia&cc=150
 window.__game = {
-  get R() { return R; }, G, startGP, startRace, input, camera, THREE, renderer,
+  get R() { return R; }, G, startGP, startRace, startPodium, input, camera, THREE, renderer,
   simulate(seconds, step = 1 / 60) {
     for (let t = 0; t < seconds && R && R.phase !== 'results'; t += step) { stepRace(step); }
     return R && R.phase;
