@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { EDGE } from './data.js';
 import { pixelTex } from './textures.js';
+import { tinBot, giantBot } from './robots.js';
 
 // =====================================================================
 //  FERRO-VELHO DO SOL — deserto de sucata (Copa Engrenagem)
@@ -13,7 +14,17 @@ const lam = (o) => new THREE.MeshLambertMaterial(o);
 const basic = (o) => new THREE.MeshBasicMaterial(o);
 const phong = (o) => new THREE.MeshPhongMaterial(o);
 const BRASS = 0xc9a24a, IRON = 0x3b3632, COPPER = 0xb8673a;
-const RUSTS = [0x8a4a2a, 0x9a5a32, 0x6a3a22, 0xb0603a, 0x7a6a5a, 0x5a6a6a, 0x9a8a6a, 0x4a6a8a, 0xb0482a, 0x6a7a3a];
+// ferrugem, ferro sujo e tinta descascada (nada de cor viva: é ferro-velho)
+const RUSTS = [0x7a4a30, 0x8a5a3a, 0x5e3e2a, 0x6a6058, 0x585450, 0x7a6a58, 0x6a4a38, 0x4e4a46, 0x8a6a4a, 0x5a5a50, 0x7a5a48, 0x4a5458];
+// textura de ferrugem em tons de cinza (multiplica a cor de cada peça)
+function rustTex() {
+  return pixelTex(32, 32, (c, w, h, r) => {
+    c.fillStyle = '#d8d8d8'; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 260; i++) { const v = 120 + r() * 120 | 0; c.fillStyle = `rgb(${v},${v * 0.92 | 0},${v * 0.85 | 0})`; c.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 2); }
+    for (let i = 0; i < 8; i++) { const x = r() * w; for (let y = r() * h, k = 0; k < 10; k++, y++) { c.fillStyle = 'rgba(90,40,20,.35)'; c.fillRect(x, y, 1, 1); } }
+    for (let i = 0; i < 6; i++) { c.fillStyle = '#f0e8e0'; c.fillRect(r() * w, r() * h, 1, 1); }
+  }, { seed: 61 });
+}
 
 function tint(geo, color) {
   const c = new THREE.Color(color);
@@ -59,7 +70,7 @@ export function sucata(tr, rnd, H) {
   const mats = {
     iron: lam({ color: IRON }), rust: lam({ color: 0x8a4a2a }), wood: lam({ color: 0x8a5a34 }),
     brass: phong({ color: BRASS, shininess: 70, specular: 0x887755 }), copper: phong({ color: COPPER, shininess: 50, specular: 0x553322 }),
-    lamp: basic({ color: 0xffd98a }), vc: lam({ vertexColors: true }),
+    lamp: basic({ color: 0xffd98a }), vc: lam({ vertexColors: true, map: rustTex() }),
   };
   const puffTex = H.SPR.fumaca();
   const smokers = [];
@@ -193,17 +204,20 @@ export function sucata(tr, rnd, H) {
       for (let k = 0; k < 10 + R * 3; k++) {
         const a = rnd() * Math.PI * 2, d = rnd() * R, hh = (1 - d / R) * R * 0.9;
         const kind = rnd();
-        let geo;
-        if (kind < 0.4) geo = new THREE.BoxGeometry(0.8 + rnd() * 2, 0.6 + rnd() * 1.4, 0.8 + rnd() * 2).toNonIndexed();
-        else if (kind < 0.65) geo = new THREE.CylinderGeometry(0.4 + rnd() * 0.6, 0.4 + rnd() * 0.6, 1 + rnd() * 1.5, 8).toNonIndexed();
-        else if (kind < 0.85) geo = new THREE.TorusGeometry(0.6 + rnd() * 0.4, 0.28, 5, 10).toNonIndexed(); // pneus
-        else geo = new THREE.CylinderGeometry(0.1, 0.1, 2 + rnd() * 3, 4).toNonIndexed(); // canos
+        let geo, col = RUSTS[(rnd() * RUSTS.length) | 0];
+        if (kind < 0.25) geo = new THREE.BoxGeometry(1.5 + rnd() * 2.5, 0.08, 1 + rnd() * 1.6).toNonIndexed();          // chapas
+        else if (kind < 0.4) geo = new THREE.CylinderGeometry(0.5, 0.5, 1.2, 10).toNonIndexed();                    // tambores
+        else if (kind < 0.55) { geo = new THREE.TorusGeometry(0.6 + rnd() * 0.3, 0.26, 5, 12).toNonIndexed(); col = 0x262220; } // pneus
+        else if (kind < 0.68) geo = new THREE.CylinderGeometry(0.12, 0.12, 2.5 + rnd() * 3, 6).toNonIndexed();      // canos
+        else if (kind < 0.8) geo = new THREE.CylinderGeometry(0.55, 0.55, 0.3, 12).toNonIndexed();                  // rodas e engrenagens
+        else if (kind < 0.9) geo = new THREE.BoxGeometry(1.8, 0.9, 1).toNonIndexed();                                // motores
+        else geo = new THREE.TorusGeometry(0.9, 0.12, 4, 14).toNonIndexed();                                         // aros
         geo.rotateX(rnd() * 3); geo.rotateY(rnd() * 3); geo.rotateZ(rnd() * 3);
         geo.translate(p.x + Math.cos(a) * d, p.y + hh * rnd() + 0.3, p.z + Math.sin(a) * d);
-        parts.push(tint(geo, kind > 0.65 && kind < 0.85 ? 0x2a2624 : RUSTS[(rnd() * RUSTS.length) | 0]));
+        parts.push(tint(geo, col));
       }
       const mound = new THREE.SphereGeometry(R, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2).toNonIndexed(); mound.scale(1, 0.5, 1); mound.translate(p.x, p.y - 0.2, p.z);
-      parts.push(tint(mound, 0x6a4a32));
+      parts.push(tint(mound, 0x5a4434));
     }
     tr.group.add(new THREE.Mesh(mergeGeometries(parts), mats.vc));
   }
@@ -221,7 +235,7 @@ export function sucata(tr, rnd, H) {
     g.add(new THREE.Mesh(mergeGeometries(frame), mats.iron));
     const head = new THREE.Group(); head.position.y = h + 0.6; g.add(head);
     const rot = new THREE.Group(); rot.position.z = 0.8; head.add(rot);
-    for (let k = 0; k < 14; k++) { const bl = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.6, 0.06), lam({ color: k % 2 ? 0xc8c0b0 : 0xb0482a })); bl.geometry.translate(0, 1.7, 0); bl.rotation.z = (k / 14) * Math.PI * 2; bl.rotation.y = 0.35; rot.add(bl); }
+    for (let k = 0; k < 14; k++) { const bl = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.6, 0.06), lam({ color: k % 2 ? 0xb8b0a0 : 0x8a4a2a })); bl.geometry.translate(0, 1.7, 0); bl.rotation.z = (k / 14) * Math.PI * 2; bl.rotation.y = 0.35; rot.add(bl); }
     const vane = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.4, 2.6), lam({ color: 0xefe2c2 })); vane.position.z = -2; head.add(vane);
     const tank = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 2.2, 14), mats.copper); tank.position.set(3.4, 1.1, 0); g.add(tank);
     const sp = 1.5 + rnd(), ph = rnd() * 6;
@@ -345,6 +359,60 @@ export function sucata(tr, rnd, H) {
     }
     tr.group.add(new THREE.Mesh(mergeGeometries(mesas), lam({ vertexColors: true, flatShading: true })));
   }
+
+  // ------------------------------------------------ autômatos: robozinhos de lata trabalhando, carregando e torcendo
+  const bots = [];
+  {
+    const modes = ['walk', 'walk', 'carry', 'work', 'walk', 'carry', 'work'];
+    for (let t = 0, made = 0; t < 400 && made < 14; t++) {
+      const i = (rnd() * N) | 0, s = rnd() < 0.5 ? 1 : -1;
+      const lat = s * (EDGE + 2.5 + rnd() * 6);
+      const a = tr.point(i, lat), b = tr.point((i + 10) % N, lat);
+      a.y = tr.terrainY(a.x, a.z); b.y = tr.terrainY(b.x, b.z);
+      if (tr.bridge[i] || tr.bridge[(i + 10) % N] || !clear(a.x, a.z, EDGE + 1.8) || !clear(b.x, b.z, EDGE + 1.8) || !free(a.x, a.z, 2)) continue;
+      made++; occupied.push([a.x, a.z, 2]);
+      const mode = modes[made % modes.length];
+      const bot = tinBot(rnd, { mode });
+      bot.group.position.copy(a); tr.group.add(bot.group);
+      if (!tr.landmarks?.bot) tr.landmarks = { ...(tr.landmarks || {}), bot: a.clone(), botI: i };
+      const sp = 0.08 + rnd() * 0.06, ph = rnd() * 6;
+      bots.push((t, dt) => {
+        if (mode !== 'work') {
+          // vai e volta pela calçada, virando no fim do caminho
+          const u = (Math.sin(t * sp * 6 + ph) + 1) / 2, dir = Math.cos(t * sp * 6 + ph);
+          bot.group.position.lerpVectors(a, b, u);
+          bot.group.rotation.y = Math.atan2(b.x - a.x, b.z - a.z) + (dir < 0 ? Math.PI : 0);
+        } else bot.group.rotation.y = Math.atan2(s * tr.tz[i], -s * tr.tx[i]); // de frente para a pista
+        bot.update(t, dt);
+      });
+    }
+    // torcida de robôs perto da largada, do lado sem arquibancada
+    const side = -H.sideWithRoom(tr, 12);
+    for (let k = 0; k < 7; k++) {
+      const i = (N - 10 + k * 5) % N;
+      const p = tr.point(i, side * (EDGE + 2.2 + (k % 2) * 1.6)); p.y = tr.terrainY(p.x, p.z);
+      const bot = tinBot(rnd, { mode: 'cheer' });
+      bot.group.position.copy(p); bot.group.rotation.y = Math.atan2(side * tr.tz[i], -side * tr.tx[i]); tr.group.add(bot.group);
+      bots.push((t, dt) => bot.update(t, dt));
+    }
+    // robô gigante levantando uma carcaça perto da pista
+    for (let t = 0; t < 200; t++) {
+      const i = (rnd() * N) | 0, s = rnd() < 0.5 ? 1 : -1;
+      const p = tr.point(i, s * (EDGE + 9)); p.y = tr.terrainY(p.x, p.z);
+      if (tr.bridge[i] || !clear(p.x, p.z, EDGE + 7) || !free(p.x, p.z, 6)) continue;
+      occupied.push([p.x, p.z, 6]);
+      const car = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.2, 4.4), lam({ color: 0x6a6058, map: mats.vc.map })); car.add(body);
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.9, 2.2), body.material); roof.position.y = 1; car.add(roof);
+      const gb = giantBot(rnd, car);
+      gb.group.position.copy(p); gb.group.rotation.y = Math.atan2(s * tr.tz[i], -s * tr.tx[i]); tr.group.add(gb.group);
+      smokers.push(gb.smokeAt.clone().applyEuler(gb.group.rotation).add(gb.group.position));
+      bots.push((t, dt) => gb.update(t, dt));
+      tr.landmarks = { ...(tr.landmarks || {}), giant: p.clone(), giantI: i };
+      break;
+    }
+  }
+  anims.push((t) => { const dt = 1 / 60; for (const b of bots) b(t, dt); });
 
   // ------------------------------------------------ fumaça e animações
   const puffs = [];

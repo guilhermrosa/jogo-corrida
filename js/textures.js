@@ -109,8 +109,8 @@ export const STYLE = {
     wall: ['#2a2624', '#2a2624'], wallTrim: '#8a4a2a', tires: true,
   },
   ilhas: {
-    road: 'checker', paveA: '#b8403a', paveB: '#efe2c2', mortar: '#5a4a3a', line: '#c9a24a',
-    curb: ['#c9a24a', '#5a4a3a'], trim: '#c9a24a',
+    road: 'cobble', paveA: '#8e8a80', mortar: '#4a4440', line: '#e8d8a8',
+    curb: ['#8a4a2a', '#d8ccb0'], trim: '#c9a24a',
     grass: ['#6aaa4a', '#5a9a3e', '#8ac45a', '#467a30'], flowers: ['#ff8fc8', '#ffffff', '#ffd84a'],
     skirt: 'masonry', skirtA: '#a89878', skirtB: '#6a5a4a',
     wall: ['#d8c8a8', '#c8b898'], wallTrim: '#c9a24a',

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { EDGE } from './data.js';
 import { pixelTex, groundTexture } from './textures.js';
+import { tinBot } from './robots.js';
 
 // =====================================================================
 //  ILHAS DAS CORRENTES — ilhas flutuantes presas por correntes (Copa Engrenagem)
@@ -59,7 +60,14 @@ function rockGeo(r, depth, seed, topY) {
 export function ilhas(tr, rnd, H) {
   const N = tr.N;
   const mx = tr.mirror ? -1 : 1;
-  const ISL = tr.def.islands.map(([x, z, r, lv]) => ({ c: new THREE.Vector3(mx * x, 0, z), r, lv }));
+  const ISL = tr.def.islands.map(([x, z, r, lv], n, all) => {
+    const c = new THREE.Vector3(mx * x, 0, z);
+    if (n === all.length - 1) return { c, r, lv, top: lv };      // o pico fica no meio da espiral, sem pista em cima
+    let low = Infinity;
+    for (let i = 0; i < tr.N; i++) if (Math.hypot(tr.px[i] - c.x, tr.pz[i] - c.z) < r) low = Math.min(low, tr.py[i]);
+    const top = (low === Infinity ? lv : low) - 1.0;              // grama logo abaixo do tabuleiro mais baixo
+    return { c, r, lv: top + 1, top };
+  });
   const onIsland = (x, z, m = 0) => ISL.find((s) => Math.hypot(x - s.c.x, z - s.c.z) < s.r - m);
   const clear = (x, z, need) => tr.dist(x, z).d >= need;
   const mats = {
@@ -77,7 +85,7 @@ export function ilhas(tr, rnd, H) {
   {
     const rocks = [], tops = [];
     ISL.forEach((s, n) => {
-      const top = s.lv - 1.0;
+      const top = s.top;
       const spire = n === ISL.length - 1;
       if (spire) {
         // pico de pedra alto no meio da espiral
@@ -116,14 +124,14 @@ export function ilhas(tr, rnd, H) {
       for (let k = 0, tries = 0; k < count && tries < count * 20; tries++) {
         const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * (s.r - 2);
         const x = s.c.x + Math.cos(a) * d, z = s.c.z + Math.sin(a) * d;
-        if (!clear(x, z, EDGE + 2)) continue;
+        if (!clear(x, z, EDGE + 6)) continue;
         k++;
         const y = s.lv - 1;
-        if (rnd() < 0.55) {
+        if (rnd() < 0.8) {
           const h = 3 + rnd() * 4;
           trunks.push(limb(new THREE.Vector3(x, y, z), new THREE.Vector3(x + (rnd() - 0.5), y + h, z + (rnd() - 0.5)), 0.4, 0.25));
           const cr = new THREE.IcosahedronGeometry(2.2 + rnd() * 1.6, 1).toNonIndexed(); cr.translate(x, y + h + 1.4, z);
-          crowns.push(tint(cr, [0x6aaa4a, 0x8ac45a, 0xe8a0c0, 0xf0c070][(rnd() * 4) | 0]));
+          crowns.push(tint(cr, [0x4e7a3a, 0x5e8a40, 0x6a7a3a, 0x3e6a34][(rnd() * 4) | 0]));
         } else {
           const sc = 0.8 + rnd() * 1.8, h = sc * 1.4;
           const st = new THREE.CylinderGeometry(sc * 0.2, sc * 0.28, h, 8).toNonIndexed(); st.translate(x, y + h / 2, z); stems.push(st);
@@ -135,8 +143,8 @@ export function ilhas(tr, rnd, H) {
     tr.group.add(new THREE.Mesh(mergeGeometries(trunks), lam({ color: 0x6a4a32 })));
     tr.group.add(new THREE.Mesh(mergeGeometries(crowns), lam({ vertexColors: true, flatShading: true })));
     tr.group.add(new THREE.Mesh(mergeGeometries(stems), lam({ color: 0xf4ead2 })));
-    tr.group.add(new THREE.Mesh(mergeGeometries(caps), lam({ color: 0xd8382e })));
-    tr.group.add(new THREE.Mesh(mergeGeometries(spots), lam({ color: 0xffffff })));
+    tr.group.add(new THREE.Mesh(mergeGeometries(caps), lam({ color: 0x8a5a3a })));
+    tr.group.add(new THREE.Mesh(mergeGeometries(spots), lam({ color: 0xe8dcc0 })));
   }
 
   // ------------------------------------------------ correntes gigantes ligando as ilhas e pendendo para as nuvens
@@ -152,27 +160,49 @@ export function ilhas(tr, rnd, H) {
         links.push(new THREE.Matrix4().compose(p, q, new THREE.Vector3(1, 1, 1)));
       }
     };
-    const order = [0, 1, 2, 3, 4, 0];
-    for (let k = 0; k < order.length - 1; k++) {
-      const a = ISL[order[k]], b = ISL[order[k + 1]];
-      const dir = b.c.clone().sub(a.c).setY(0).normalize();
-      for (const off of [-1, 1]) {
-        const side = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(off * Math.min(a.r, b.r) * 0.5);
-        const p0 = a.c.clone().add(dir.clone().multiplyScalar(a.r * 0.8)).add(side); p0.y = a.lv - 7;
-        const p1 = b.c.clone().add(dir.clone().multiplyScalar(-b.r * 0.8)).add(side); p1.y = b.lv - 7;
-        const mid = p0.clone().lerp(p1, 0.5); mid.y -= p0.distanceTo(p1) * 0.12;
-        linkAlong([p0, p0.clone().lerp(mid, 0.5).setY((p0.y + mid.y) / 2 - 1), mid, mid.clone().lerp(p1, 0.5).setY((p1.y + mid.y) / 2 - 1), p1]);
+    // a corrente não pode passar perto de nenhum trecho da pista (em planta e em altura)
+    const chainOk = (pts) => {
+      const curve = new THREE.CatmullRomCurve3(pts);
+      for (let k = 0; k <= 40; k++) {
+        const p = curve.getPointAt(k / 40);
+        for (let i = 0; i < N; i += 2) if (Math.hypot(p.x - tr.px[i], p.z - tr.pz[i]) < EDGE + 4 && Math.abs(p.y - tr.py[i]) < 12) return false;
+        for (const o of ISL) if (Math.hypot(p.x - o.c.x, p.z - o.c.z) < o.r * 0.95 && p.y < o.top && p.y > o.top - o.r * 1.2) return false;
+      }
+      return true;
+    };
+    const winches = [];
+    const order = [[0, 1], [1, 2], [2, 3], [3, 0], [0, 2]];
+    for (const [ia, ib] of order) {
+      const A = ISL[ia], B = ISL[ib];
+      const base = Math.atan2(B.c.z - A.c.z, B.c.x - A.c.x);
+      let made = 0;
+      for (const off of [0.9, -0.9, 1.3, -1.3, 0.5, -0.5]) {
+        if (made >= 2) break;
+        const aa = base + off, ab = base + Math.PI - off;
+        const p0 = new THREE.Vector3(A.c.x + Math.cos(aa) * (A.r + 0.5), A.top + 0.6, A.c.z + Math.sin(aa) * (A.r + 0.5));
+        const p1 = new THREE.Vector3(B.c.x + Math.cos(ab) * (B.r + 0.5), B.top + 0.6, B.c.z + Math.sin(ab) * (B.r + 0.5));
+        const sag = p0.distanceTo(p1) * 0.22;
+        const mid = p0.clone().lerp(p1, 0.5); mid.y -= sag;
+        const pts = [p0, p0.clone().lerp(mid, 0.5).setY((p0.y + mid.y) / 2 - sag * 0.15), mid, mid.clone().lerp(p1, 0.5).setY((p1.y + mid.y) / 2 - sag * 0.15), p1];
+        if (!chainOk(pts.slice(1, 4))) continue;
+        if (!clear(p0.x, p0.z, EDGE + 5) || !clear(p1.x, p1.z, EDGE + 5)) continue;
+        linkAlong(pts);
+        winches.push([p0, aa], [p1, ab]);
+        made++;
       }
     }
-    // correntes de âncora descendo das ilhas até sumir nas nuvens
-    ISL.forEach((s, n) => {
-      if (n === ISL.length - 1) return;
-      for (let k = 0; k < 2; k++) {
-        const a = rnd() * Math.PI * 2;
-        const p0 = new THREE.Vector3(s.c.x + Math.cos(a) * s.r * 0.4, s.lv - s.r * 0.9, s.c.z + Math.sin(a) * s.r * 0.4);
-        linkAlong([p0, p0.clone().add(new THREE.Vector3(3, -20, 3)), p0.clone().add(new THREE.Vector3(5, -45, 6))]);
-      }
-    });
+    // guinchos de latão segurando cada corrente na borda da ilha
+    const wg = [];
+    for (const [p, ang] of winches) {
+      const inward = new THREE.Vector3(-Math.cos(ang), 0, -Math.sin(ang));
+      const c = p.clone().add(inward.clone().multiplyScalar(2.2));
+      const yaw = Math.atan2(inward.x, inward.z);
+      const add = (geo, x, y, z) => { geo.rotateY(yaw); geo.translate(c.x + x, c.y + y, c.z + z); wg.push(geo.toNonIndexed()); };
+      add(new THREE.BoxGeometry(3.4, 1, 2.4), 0, -0.1, 0);
+      const drum = new THREE.CylinderGeometry(0.9, 0.9, 2.6, 12); drum.rotateZ(Math.PI / 2); add(drum, 0, 1.1, 0);
+      const gear = new THREE.TorusGeometry(1.2, 0.25, 5, 12); gear.rotateY(Math.PI / 2); add(gear, 1.5, 1.1, 0);
+    }
+    if (wg.length) tr.group.add(new THREE.Mesh(mergeGeometries(wg), mats.brass));
     const lg = new THREE.TorusGeometry(0.6, 0.2, 5, 10); lg.scale(1.5, 1, 1);
     const im = new THREE.InstancedMesh(lg, phong({ color: 0x5a5250, shininess: 60, specular: 0x888888 }), links.length);
     links.forEach((m, i) => im.setMatrixAt(i, m));
@@ -185,7 +215,9 @@ export function ilhas(tr, rnd, H) {
     let cur = null;
     for (let i = 0; i <= N; i++) {
       const k = i % N;
-      const air = !onIsland(tr.px[k], tr.pz[k], 3) && !tr.gap[k];
+      const sp = tr.def.spire;
+      const nearSpire = sp && Math.hypot(tr.px[k] - mx * sp[0], tr.pz[k] - sp[1]) < 36;
+      const air = !onIsland(tr.px[k], tr.pz[k], 3) && !tr.gap[k] && !nearSpire;
       if (air && !cur) cur = [k];
       else if (air && cur) cur.push(k);
       else if (!air && cur) { if (cur.length > 18) spans.push(cur); cur = null; }
@@ -221,6 +253,28 @@ export function ilhas(tr, rnd, H) {
     if (towers.length) tr.group.add(new THREE.Mesh(mergeGeometries(towers), mats.brass));
     if (cables.length) tr.group.add(new THREE.Mesh(mergeGeometries([...cables, ...hangers]), mats.iron));
     if (lamps.length) tr.group.add(new THREE.Mesh(mergeGeometries(lamps), mats.lamp));
+  }
+
+  // ------------------------------------------------ turbinas de latão embaixo de cada ilha
+  {
+    ISL.forEach((s, n) => {
+      if (n === ISL.length - 1) return;
+      const depth = s.r * 1.4 + 0.6;
+      const g = new THREE.Group(); g.position.set(s.c.x, s.top - depth + 1.5, s.c.z); tr.group.add(g);
+      const k = Math.max(0.6, s.r / 30);
+      g.scale.setScalar(k);
+      const nac = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 2.2, 5, 16), mats.copper); nac.position.y = -2; g.add(nac);
+      for (const y of [-0.2, -2, -3.8]) { const b = new THREE.Mesh(new THREE.CylinderGeometry(3.3, 3.3, 0.35, 16), mats.brass); b.position.y = y; g.add(b); }
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(7.4, 0.45, 6, 28), mats.brass); ring.rotation.x = Math.PI / 2; ring.position.y = -5; g.add(ring);
+      for (let m = 0; m < 4; m++) { const a = (m / 4) * Math.PI * 2; const arm = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 7.4), mats.iron); arm.position.set(Math.cos(a) * 3.7, -5, Math.sin(a) * 3.7); arm.rotation.y = -a + Math.PI / 2; g.add(arm); }
+      const rotor = new THREE.Group(); rotor.position.y = -5.3; g.add(rotor);
+      for (let m = 0; m < 5; m++) { const bl = new THREE.Mesh(new THREE.BoxGeometry(6.8, 0.15, 1.4), lam({ color: 0x8a6a4a })); bl.geometry.translate(3.4, 0, 0); bl.rotation.y = (m / 5) * Math.PI * 2; bl.rotation.x = 0.25; rotor.add(bl); }
+      const hub = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), mats.brass); hub.position.y = -5.3; g.add(hub);
+      const sp = 2 + n * 0.4;
+      anims.push((t) => { rotor.rotation.y = t * sp; });
+      // escapes de vapor nas laterais da turbina
+      smokers.push(new THREE.Vector3(s.c.x + 3.4 * k, s.top - depth + 1.5 - 1 * k, s.c.z));
+    });
   }
 
   // ------------------------------------------------ cremalheira: engrenagens gigantes girando ao lado da subida
@@ -282,10 +336,25 @@ export function ilhas(tr, rnd, H) {
     }, { seed: 12 });
     wt.repeat.set(3, 6);
     anims.push((t) => { wt.offset.y = t * 0.9; });
-    const fallH = s.lv + 60;
-    const water = new THREE.Mesh(new THREE.CylinderGeometry(4, 6, fallH, 10, 1, true, -0.9, 1.8), basic({ map: wt, transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
-    water.position.set(s.c.x + 9.5, s.lv - fallH / 2, s.c.z); water.rotation.y = Math.PI / 2;
-    tr.group.add(water);
+    {
+      const D = ISL[3];
+      let best = null;
+      for (let k = 0; k < 72; k++) {
+        const a = (k / 72) * Math.PI * 2;
+        const x = D.c.x + Math.cos(a) * (D.r + 1), z = D.c.z + Math.sin(a) * (D.r + 1);
+        const d = tr.dist(x, z).d;
+        if (!best || d > best.d) best = { a, d, x, z };
+      }
+      const fallH = D.top + 26;
+      const water = new THREE.Mesh(new THREE.CylinderGeometry(3, 4.5, fallH, 10, 1, true, -0.9, 1.8), basic({ map: wt, transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
+      water.position.set(best.x, D.top - fallH / 2, best.z); water.rotation.y = -best.a + Math.PI / 2;
+      tr.group.add(water);
+      // riacho em cima da ilha correndo até a borda
+      const brook = new THREE.Mesh(new THREE.PlaneGeometry(2.4, D.r * 0.5), basic({ map: wt, transparent: true, opacity: 0.8 }));
+      brook.rotation.x = -Math.PI / 2; brook.rotation.z = -best.a + Math.PI / 2;
+      brook.position.set(D.c.x + Math.cos(best.a) * D.r * 0.78, D.top + 0.05, D.c.z + Math.sin(best.a) * D.r * 0.78);
+      tr.group.add(brook);
+    }
     smokers.push(new THREE.Vector3(s.c.x + 2, s.lv + 19.5, s.c.z));
   }
 
@@ -341,7 +410,7 @@ export function ilhas(tr, rnd, H) {
     if (spot) {
       const mast = new THREE.Mesh(limb(spot, spot.clone().add(new THREE.Vector3(0, 16, 0)), 0.6, 0.4, 8), mats.iron); tr.group.add(mast);
       const ring = new THREE.Mesh(new THREE.TorusGeometry(1, 0.25, 6, 12), mats.brass); ring.position.copy(spot).add(new THREE.Vector3(0, 16, 0)); tr.group.add(ring);
-      const docked = makeShip(1, 0xe8c070);
+      const docked = makeShip(1, 0xc8a878);
       const out = spot.clone().sub(A.c).setY(0).normalize();
       docked.position.copy(spot).add(new THREE.Vector3(0, 16, 0)).add(out.clone().multiplyScalar(13.5));
       docked.rotation.y = Math.atan2(-out.z, out.x) + Math.PI;
@@ -349,7 +418,7 @@ export function ilhas(tr, rnd, H) {
       anims.push((t) => { docked.position.y = base.y + Math.sin(t * 0.8) * 0.4; docked.rotation.z = Math.sin(t * 0.6) * 0.03; docked.userData.prop.rotation.x += 0.02; });
     }
     const C = tr.center;
-    for (const [rad, h, sp, col, sc] of [[190, 48, 0.03, 0xc8a0d8, 1.1], [240, 30, -0.022, 0xa8d0e8, 0.8], [150, 70, 0.04, 0xf0b080, 0.7]]) {
+    for (const [rad, h, sp, col, sc] of [[190, 48, 0.03, 0x8a9a8a, 1.1], [240, 30, -0.022, 0xb8a080, 0.8], [150, 70, 0.04, 0xb8673a, 0.7]]) {
       const s = makeShip(sc, col);
       const ph = rnd() * 6;
       ships.push({ s, rad, h, sp, ph, C });
@@ -359,10 +428,10 @@ export function ilhas(tr, rnd, H) {
   // ------------------------------------------------ mar de nuvens e nuvens soltas
   {
     const ct = pixelTex(128, 128, (c, w, h, r) => {
-      c.fillStyle = '#f6e2ea'; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#e8ecf0'; c.fillRect(0, 0, w, h);
       for (let i = 0; i < 26; i++) {
         const x = r() * w, y = r() * h, rr = 14 + r() * 22;
-        for (const [ox, oy] of [[0, 0], [w, 0], [-w, 0], [0, h], [0, -h]]) { c.fillStyle = 'rgba(232,214,236,.5)'; c.beginPath(); c.arc(x + ox, y + oy + 4, rr, 0, Math.PI * 2); c.fill(); c.fillStyle = 'rgba(255,255,255,.75)'; c.beginPath(); c.arc(x + ox, y + oy, rr, 0, Math.PI * 2); c.fill(); }
+        for (const [ox, oy] of [[0, 0], [w, 0], [-w, 0], [0, h], [0, -h]]) { c.fillStyle = 'rgba(196,206,220,.5)'; c.beginPath(); c.arc(x + ox, y + oy + 4, rr, 0, Math.PI * 2); c.fill(); c.fillStyle = 'rgba(255,255,255,.75)'; c.beginPath(); c.arc(x + ox, y + oy, rr, 0, Math.PI * 2); c.fill(); }
       }
     }, { seed: 33 });
     ct.repeat.set(7, 7);
@@ -376,12 +445,32 @@ export function ilhas(tr, rnd, H) {
       if (tr.dist(p.x, p.z).d < EDGE + 20 && p.y > 0) continue;
       const g = new THREE.Group(); g.position.copy(p); tr.group.add(g);
       for (let m = 0; m < 4; m++) {
-        const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: puff, color: 0xfff4f6, transparent: true, opacity: 0.85, depthWrite: false }));
+        const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: puff, color: 0xf4f6f8, transparent: true, opacity: 0.85, depthWrite: false }));
         s.position.set((m - 1.5) * 6, rnd() * 3, rnd() * 4); s.scale.setScalar(10 + rnd() * 8); g.add(s);
       }
       const sp = (rnd() - 0.5) * 2;
       anims.push((t) => { g.position.x = p.x + Math.sin(t * 0.03 + a) * 20 * sp; });
     }
+  }
+
+  // ------------------------------------------------ robozinhos cuidando dos guinchos e acenando para quem passa
+  {
+    const bots = [];
+    let made = 0;
+    ISL.forEach((s, n) => {
+      if (n === ISL.length - 1) return;
+      for (let k = 0, tries = 0; k < 3 && tries < 60; tries++) {
+        const a = rnd() * Math.PI * 2, d = s.r * (0.3 + rnd() * 0.6);
+        const x = s.c.x + Math.cos(a) * d, z = s.c.z + Math.sin(a) * d;
+        if (!clear(x, z, EDGE + 2.5) || tr.dist(x, z).d > EDGE + 9) continue;
+        k++; made++;
+        const b = tinBot(rnd, { mode: made % 3 === 0 ? 'cheer' : made % 3 === 1 ? 'work' : 'walk' });
+        b.group.position.set(x, s.top, z);
+        const ti = tr.dist(x, z).i; b.group.lookAt(tr.px[ti], s.top, tr.pz[ti]);
+        tr.group.add(b.group); bots.push(b);
+      }
+    });
+    anims.push((t) => { for (const b of bots) b.update(t, 1 / 60); });
   }
 
   // ------------------------------------------------ fumaça e animações

@@ -270,7 +270,7 @@ TRACKS.ilhas = {
     [-100, -17, 11.5], [-75, -8, 14.5], [-58, -2, 17.5]],
   itemRows: [0.06, 0.36, 0.58, 0.86],
   void: true,                                              // embaixo só há nuvens
-  islands: [[0, 0, 50, 20], [98, -96, 24, 14], [24, -122, 26, 11], [-86, -78, 22, 24], [-125, -45, 12, 34]],
+  islands: [[0, 0, 40, 20], [98, -96, 24, 14], [24, -122, 26, 11], [-86, -78, 22, 24], [-125, -45, 12, 34]],
   spire: ILHAS_E,
   bridge: () => true,
   bridgeEdge: (p, q) => {
@@ -291,6 +291,6 @@ export const THEMES = {
   oficina: { sky: 0x8fbfe0, fog: 0xe9cf9a, light: 0xfff0d8, sun: 0xffdca8, ground: '#8fae5a', ground2: '#7f9e4c', shoulder: '#b7aa94', shoulder2: '#a89a82', skirt: '#a0563a', wall: ['#efe2c2', '#8e3b2a'], decor: 'arvore', decorMin: 50, decorCount: 120, music: 0 },
   pantano: { sky: 0x426e80, fog: 0x4f7a7c, fogNear: 70, fogFar: 560, light: 0xb8d8d8, sun: 0xc8e4dc, lightI: 1.35, sunI: 0.8, ground: '#3e4a2a', ground2: '#34402a', shoulder: '#6e5236', shoulder2: '#5e4630', skirt: '#5e4630', wall: ['#7a5c3c', '#5e4630'], decor: 'arvore', decorCount: 0, deck: 0x4a3622, pillar: 0x5a4030, pillarW: 0.7, pillarStep: 6, pillarDeep: 2, waterColors: ['#2c6266', '#347070', '#94d4c4', '#22504e'], music: 2 },
   sucata: { sky: 0x6cc0dc, fog: 0xf2d8a4, light: 0xfff0d8, sun: 0xffe2b0, ground: '#e2b872', ground2: '#d4a862', shoulder: '#d8ae6a', shoulder2: '#c89c5a', skirt: '#9a6a3a', wall: ['#2a2624', '#2a2624'], decor: 'arvore', decorCount: 0, deck: 0x5a3a2a, pillar: 0x6a3a22, pillarW: 1.2, music: 1 },
-  ilhas: { sky: 0x8ec4ec, fog: 0xf2d4dc, fogNear: 160, fogFar: 1100, light: 0xfff0e8, sun: 0xffe4c8, ground: '#6aaa4a', ground2: '#5a9a3e', shoulder: '#6aaa4a', shoulder2: '#5a9a3e', skirt: '#8a6a4a', wall: ['#d8c8a8', '#b8a888'], decor: 'arvore', decorCount: 0, deck: 0x6a4a32, pillarStep: 1e9, music: 0 },
+  ilhas: { sky: 0x86bce4, fog: 0xe4dccc, fogNear: 160, fogFar: 1100, light: 0xfff0e8, sun: 0xffe4c8, ground: '#6aaa4a', ground2: '#5a9a3e', shoulder: '#6aaa4a', shoulder2: '#5a9a3e', skirt: '#8a6a4a', wall: ['#d8c8a8', '#b8a888'], decor: 'arvore', decorCount: 0, deck: 0x6a4a32, pillarStep: 1e9, music: 0 },
   vulcao: { sky: 0x3a1a24, fog: 0x5a2420, ground: '#3b2a26', ground2: '#2f211e', shoulder: '#5a4038', shoulder2: '#4b352f', skirt: '#2a1e1c', wall: ['#ffb300', '#212121'], decor: 'rocha', music: 3 },
 };

@@ -6,8 +6,8 @@ Pistas novas no estilo das artes conceituais aprovadas (`docs/conceito/`), feita
 |---|---|---|
 | Vila Engrenagem | cidade-oficina (`r2-chao-1-cidade-oficina.png`) | `vila-engrenagem-v1.jpg`, `vila-engrenagem-v1-mapa.png`, `vila-engrenagem-v2.jpg`, `comparativo-v1-v2.jpg` |
 | Brejo das Caldeiras | pântano com máquinas (`r2-chao-3-pantano-maquinas.png`) | `brejo-das-caldeiras-v1.jpg`, `brejo-das-caldeiras-v2.jpg`, `brejo-das-caldeiras-v3.jpg` |
-| Ferro-Velho do Sol | deserto de sucata (`r2-chao-2-deserto-sucata.png`) | `ferro-velho-do-sol-v1.jpg` |
-| Ilhas das Correntes | ilhas com correntes (`r1-ilhas-2-correntes.png`) | `ilhas-das-correntes-v1.jpg` |
+| Ferro-Velho do Sol | deserto de sucata (`r2-chao-2-deserto-sucata.png`) | `ferro-velho-do-sol-v1.jpg`, `ferro-velho-do-sol-v2.jpg` |
+| Ilhas das Correntes | ilhas com correntes (`r1-ilhas-2-correntes.png`) | `ilhas-das-correntes-v1.jpg`, `ilhas-das-correntes-v2.jpg` |
 
 ## Vila Engrenagem v1
 Circuito de rua de ~700 m: avenida da largada com arquibancada, curva para a ponte sobre o canal,
@@ -95,3 +95,24 @@ vermelhos de bolinhas; correntes gigantes ligando as ilhas e pendendo até as nu
 latão, cabos e lampiões; farol-caldeira no alto do pico com facho de luz girando e cachoeira caindo nas nuvens;
 casa de caldeira com manômetro na ilha alta; dirigíveis passeando; nuvens soltas. Calçamento xadrez vermelho e
 creme (como no conceito) e acostamento de tábuas com friso de latão.
+
+## Ferro-Velho do Sol v2 — sucata de verdade e autômatos
+Feedback da v1: os montes de blocos coloridos pareciam brinquedos; faltavam autômatos/robozinhos steampunk, meio desajeitados.
+- Sucata em cores de ferrugem, ferro sujo e tinta descascada, com textura enferrujada, e peças de verdade:
+  chapas, tambores, pneus, canos, rodas, motores e aros.
+- **Autômatos** (`js/robots.js`, reutilizáveis nas outras pistas): robozinhos de lata com corpo de barril,
+  cabeça de cúpula, olhos de lâmpada que piscam, antena e manômetro na barriga. Andam de um lado para o outro
+  cambaleando (e às vezes tropeçam), carregam caixas, martelam a sucata e fazem torcida pulando na largada.
+  Um **robô gigante** de caldeira fica ao lado da pista levantando uma carcaça de carro e soltando fumaça pela cabeça.
+
+## Ilhas das Correntes v2 — sem atravessar, menos doce
+Feedback da v1: objetos passando uns por dentro dos outros (chão, terra, grama, correntes) e cara de "terra dos doces".
+- A altura de cada ilha agora vem da pista: a grama fica sempre logo abaixo do tabuleiro, nunca por cima.
+- Correntes saem de guinchos de latão na borda das ilhas e só são colocadas onde não passam perto da pista,
+  das pontes ou da pedra de outra ilha; as correntes enfiadas na pedra saíram.
+- A cachoeira saiu do pico (atravessava a espiral) e agora cai da borda da ilha alta, no ponto mais longe da pista.
+- A espiral não tem mais cabos de ponte pênsil (passavam pelo andar de cima); árvores ficam mais longe da pista.
+- Menos doce: calçamento de pedra cinza no lugar do xadrez vermelho, árvores verdes, cogumelos marrons,
+  nuvens e céu sem rosa, dirigíveis em cores sóbrias.
+- Mais steampunk: **turbinas de latão girando embaixo de cada ilha** (é o que as mantém no ar) e robozinhos
+  cuidando dos guinchos e acenando para quem passa.
