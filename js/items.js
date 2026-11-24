@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { follow } from './branch.js';
 import { ITEM_ODDS, ITEM_FX, CPU_ITEM_ODDS, CPU_ITEMS_PER_LAP } from './data.js';
 import { EDGE } from './track.js';
 import { spriteTexture, drawSprite } from './sprites.js';
@@ -68,7 +69,7 @@ export class ItemSystem {
     }
     obj.position.copy(pos);
     this.group.add(obj);
-    const e = { type, owner, pos: obj.position, obj, mode: 'ground', age: 0, vx: 0, vz: 0, vy: 0, idx: owner ? owner.idx : 0, bounces: 0, dead: false, ...extra };
+    const e = { type, owner, pos: obj.position, obj, mode: 'ground', age: 0, vx: 0, vz: 0, vy: 0, idx: owner ? owner.idx : 0, path: owner?.path ?? null, bidx: owner?.bidx ?? 0, bounces: 0, dead: false, ...extra };
     this.entities.push(e);
     return e;
   }
@@ -243,7 +244,7 @@ export class ItemSystem {
       const back = aim < 0;
       const dir = back ? k.heading + Math.PI : k.heading;
       e.pos.set(k.pos.x + Math.sin(dir) * 2.2, k.pos.y + 0.5, k.pos.z + Math.cos(dir) * 2.2);
-      e.idx = k.idx;
+      e.idx = k.idx; e.path = k.path; e.bidx = k.bidx;
       e.heading = dir;
       if (e.type === 'abelha' && !back) {
         e.mode = 'homing';
@@ -259,11 +260,11 @@ export class ItemSystem {
         e.pos.set(k.pos.x + fx * 1.5, k.pos.y + 1.2, k.pos.z + fz * 1.5);
         const sp = Math.max(k.speed, 0) + 12;
         e.vx = fx * sp; e.vz = fz * sp; e.vy = 6;
-        e.idx = k.idx;
+        e.idx = k.idx; e.path = k.path; e.bidx = k.bidx;
       } else {
         e.mode = 'ground';
         e.pos.set(k.pos.x - fx * 2.4, k.pos.y, k.pos.z - fz * 2.4);
-        e.idx = k.idx;
+        e.idx = k.idx; e.path = k.path; e.bidx = k.bidx;
       }
     }
   }
@@ -338,10 +339,9 @@ export class ItemSystem {
         case 'arc': {
           e.vy -= 25 * dt;
           e.pos.x += e.vx * dt; e.pos.z += e.vz * dt; e.pos.y += e.vy * dt;
-          e.idx = tr.nearest(e.pos.x, e.pos.z, e.idx);
-          const lat = tr.lateral(e.pos.x, e.pos.z, e.idx);
-          const g = tr.groundY(e.pos.x, e.pos.z, e.idx);
-          if (Math.abs(lat) > EDGE && tr.isFall(e.idx, lat) && e.pos.y < g - 1) { this.kill(e); break; }
+          const { S, si, lat } = follow(tr, e);
+          const g = S.groundY(e.pos.x, e.pos.z, si);
+          if (Math.abs(lat) > EDGE && S.isFall(si, lat) && e.pos.y < g - 1) { this.kill(e); break; }
           if (e.pos.y <= g && e.vy < 0) { e.pos.y = g; e.mode = 'ground'; }
           break;
         }
@@ -364,16 +364,16 @@ export class ItemSystem {
     const sp = ITEM_FX.shellSpeed;
     e.pos.x += Math.sin(e.heading) * sp * dt;
     e.pos.z += Math.cos(e.heading) * sp * dt;
-    e.idx = tr.nearest(e.pos.x, e.pos.z, e.idx);
-    const lat = tr.lateral(e.pos.x, e.pos.z, e.idx);
-    e.pos.y = tr.groundY(e.pos.x, e.pos.z, e.idx) + 0.5;
+    const { S, si, lat, exit } = follow(tr, e);
+    if (exit === 'launch' || S.gap[si]) { this.kill(e); return; }
+    e.pos.y = S.groundY(e.pos.x, e.pos.z, si) + 0.5;
     if (Math.abs(lat) > EDGE - 0.4) {
-      if (tr.isFall(e.idx, lat)) { this.kill(e); return; }
+      if (S.isFall(si, lat)) { this.kill(e); return; }
       // quica no muro
-      const th = tr.heading(e.idx);
+      const th = S.heading(si);
       e.heading = wrapAngle(th - wrapAngle(e.heading - th));
       const push = (Math.abs(lat) - (EDGE - 0.4)) * Math.sign(lat);
-      e.pos.x += tr.tz[e.idx] * push; e.pos.z -= tr.tx[e.idx] * push;
+      e.pos.x += S.tz[si] * push; e.pos.z -= S.tx[si] * push;
       e.bounces++;
       this.events.push({ type: 'bounce', pos: e.pos });
       if (e.bounces > ITEM_FX.shellBounces) this.kill(e);
@@ -391,18 +391,19 @@ export class ItemSystem {
       e.heading = wrapAngle(e.heading + wrapAngle(want - e.heading) * Math.min(1, 10 * dt));
     } else {
       // segue a pista até chegar perto do alvo
-      const ahead = (e.idx + 8) % tr.N;
-      const wantLat = t ? Math.max(-4, Math.min(4, t.lat)) : 0;
+      const P = e.path || tr;
+      const ahead = e.path ? Math.min(P.N - 1, e.bidx + 8) : (e.idx + 8) % tr.N;
+      const wantLat = t && t.path === e.path ? Math.max(-4, Math.min(4, t.lat)) : 0;
       e.lat += (wantLat - e.lat) * Math.min(1, 2 * dt);
-      const px = tr.px[ahead] - tr.tz[ahead] * e.lat, pz = tr.pz[ahead] + tr.tx[ahead] * e.lat;
+      const px = P.px[ahead] - P.tz[ahead] * e.lat, pz = P.pz[ahead] + P.tx[ahead] * e.lat;
       const want = Math.atan2(px - e.pos.x, pz - e.pos.z);
       e.heading = wrapAngle(e.heading + wrapAngle(want - e.heading) * Math.min(1, 8 * dt));
     }
     e.pos.x += Math.sin(e.heading) * sp * dt;
     e.pos.z += Math.cos(e.heading) * sp * dt;
-    e.idx = tr.nearest(e.pos.x, e.pos.z, e.idx);
-    const lat = tr.lateral(e.pos.x, e.pos.z, e.idx);
-    e.pos.y = tr.groundY(e.pos.x, e.pos.z, e.idx) + 0.6;
+    const { S, si, lat, exit } = follow(tr, e);
+    if (exit === 'launch') { this.kill(e); return; }
+    e.pos.y = S.groundY(e.pos.x, e.pos.z, si) + 0.6;
     if (Math.abs(lat) > EDGE - 0.3) this.kill(e); // abelha bate no muro e some
     if (e.age > 14) this.kill(e);
   }

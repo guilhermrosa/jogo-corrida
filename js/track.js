@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TRACKS, THEMES, ROAD_HALF, SHOULDER, EDGE } from './data.js';
 import { buildTerrain, buildScenery } from './scenery.js';
+import { Branch } from './branch.js';
 import { roadTexture, groundTexture, terrainDetail, skirtTexture, wallTexture, waterTexture, lavaTexture } from './textures.js';
 
 export { ROAD_HALF, SHOULDER, EDGE };
@@ -83,6 +84,8 @@ export class Track {
 
     // Tipo de cada borda: 0 = muro, 1 = queda.  [i*2] = lado +, [i*2+1] = lado -
     this.edgeFall = new Uint8Array(N * 2);
+    this.open = new Uint8Array(N * 2);   // borda aberta para um atalho colado (id do atalho + 1)
+    this.closed = true;
     this.bridge = new Uint8Array(N);
     this.gap = new Uint8Array(N);
     const q = { x: 0, y: 0, z: 0 };
@@ -104,10 +107,15 @@ export class Track {
 
     // Rampa de salto logo antes do vão (a pista sobe reto até a borda)
     if (this.def.kick && this.gap.some((g) => g)) {
-      let g0 = 0; while (!this.gap[g0] || this.gap[(g0 - 1 + N) % N]) g0 = (g0 + 1) % N;
       const { len, rise } = this.def.kick;
-      for (let k = 1; k <= len; k++) this.py[(g0 - k + N) % N] += rise * (1 - (k - 1) / len);
+      for (let g0 = 0; g0 < N; g0++) {
+        if (!this.gap[g0] || this.gap[(g0 - 1 + N) % N]) continue;   // começo de cada vão
+        for (let k = 1; k <= len; k++) this.py[(g0 - k + N) % N] += rise * (1 - (k - 1) / len);
+      }
     }
+
+    // Atalhos e caminhos alternativos
+    this.branches = (this.def.branches || []).map((b, n) => new Branch(this, b, n));
 
     // Caixas de itens: fileiras atravessando a pista
     this.itemSpots = [];
@@ -172,16 +180,17 @@ export class Track {
   isFall(i, lat) { return this.edgeFall[i * 2 + (lat >= 0 ? 0 : 1)] === 1; }
 
   // ------------------------------------------------------------------ construção visual
-  ribbon(fa, fb, vLen, skip) {
-    const N = this.N, pos = [], uv = [], idx = [];
+  ribbon(fa, fb, vLen, skip, P = this) {
+    const N = P.N, pos = [], uv = [], idx = [];
     const a = new THREE.Vector3(), b = new THREE.Vector3();
-    for (let i = 0; i <= N; i++) {
+    const last = P.closed ? N : N - 1;
+    for (let i = 0; i <= last; i++) {
       const k = i % N;
       fa(k, a); fb(k, b);
       pos.push(a.x, a.y, a.z, b.x, b.y, b.z);
-      const v = (i * this.step) / vLen;
+      const v = (i * P.step) / vLen;
       uv.push(0, v, 1, v);
-      if (i < N && !(skip && skip(k))) { const j = i * 2; idx.push(j, j + 2, j + 1, j + 1, j + 2, j + 3); }
+      if (i < last && !(skip && skip(k))) { const j = i * 2; idx.push(j, j + 2, j + 1, j + 1, j + 2, j + 3); }
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -192,6 +201,78 @@ export class Track {
   }
 
   mesh(geo, mat) { const m = new THREE.Mesh(geo, mat); this.group.add(m); return m; }
+
+  buildRoad(P, M) {
+    const N = P.N;
+    const R = (lat, dy = 0) => (k, out) => P.point(k, lat, out).setY(P.py[k] + dy);
+    const nx = (k) => (P.closed ? (k + 1) % N : Math.min(N - 1, k + 1));
+    const G = (k) => P.gap[k] || P.gap[nx(k)]; // vão da ponte quebrada: sem nada
+    // atalho: asfalto um pouco acima (onde se sobrepõe à principal) e acostamento um pouco abaixo
+    const ry = P.closed ? 0.06 : 0.075, sy = P.closed ? 0.03 : 0.015;
+    this.mesh(this.ribbon(R(ROAD_HALF, ry), R(-ROAD_HALF, ry), 16, G, P), P.closed ? M.asphalt : M.asphaltB);
+    const shoulderMat = M.shoulder;
+    this.mesh(this.ribbon(R(EDGE, sy), R(ROAD_HALF, sy), 6, G, P), shoulderMat);
+    this.mesh(this.ribbon(R(-ROAD_HALF, sy), R(-EDGE, sy), 6, G, P), shoulderMat);
+
+    // Encostas (barrancos) da pista até o chão, exceto nas pontes
+    const base = this.def.lava ? -0.8 : GROUND_Y;
+    const skirtMat = M.skirt;
+    for (const [s, kk] of [[1, 0], [-1, 1]]) {
+      const top = (k, out) => P.point(k, s * EDGE, out);
+      const bot = (k, out) => P.point(k, s * (EDGE + Math.max(0, P.py[k] - base) * 0.7 + 0.3), out).setY(base);
+      this.mesh(this.ribbon(top, bot, 8, (k) => G(k) || P.bridge[k] || P.bridge[nx(k)] || P.open[k * 2 + kk] || P.open[nx(k) * 2 + kk], P), skirtMat);
+    }
+
+    // Muros baixos onde a borda não é uma queda
+    const wallMat = M.wall;
+    for (const [s, kk] of [[1, 0], [-1, 1]]) {
+      const lo = (k, out) => P.point(k, s * EDGE, out);
+      const hi = (k, out) => P.point(k, s * EDGE, out).setY(P.py[k] + 1.0);
+      this.mesh(this.ribbon(lo, hi, 4, (k) => G(k) || P.edgeFall[k * 2 + kk] || P.edgeFall[nx(k) * 2 + kk] || P.open[k * 2 + kk] || P.open[nx(k) * 2 + kk], P), wallMat);
+    }
+
+    // Pontes: parte de baixo do tabuleiro e pilares
+    if (P.bridge.some((b) => b)) {
+      const under = M.under;
+      const bl = (k, out) => P.point(k, EDGE, out).setY(P.py[k] - 0.8);
+      const br = (k, out) => P.point(k, -EDGE, out).setY(P.py[k] - 0.8);
+      this.mesh(this.ribbon(bl, br, 8, (k) => !P.bridge[k] || G(k), P), under);
+      for (const s of [1, -1]) {
+        const a = (k, out) => P.point(k, s * EDGE, out);
+        const b = (k, out) => P.point(k, s * EDGE, out).setY(P.py[k] - 0.8);
+        this.mesh(this.ribbon(a, b, 8, (k) => !P.bridge[k] || G(k), P), under);
+      }
+      const pillarMat = M.pillar;
+      const v = new THREE.Vector3();
+      const mats = [];
+      const pw = this.theme.pillarW ?? 1.4;
+      for (let i = 0; i < N; i += this.theme.pillarStep ?? 10) {
+        if (!P.bridge[i] || P.gap[i] || P.gap[P.wrap(i + 3)] || P.gap[P.wrap(i - 3)]) continue;
+        for (const s of [1, -1]) {
+          P.point(i, s * (EDGE - 1), v);
+          // não colocar pilar em cima de outro trecho da pista
+          let clash = false;
+          for (let j = 0; j < this.N; j += 2) {
+            if (Math.abs(this.py[j] - P.py[i]) < 4) continue;
+            if (Math.hypot(v.x - this.px[j], v.z - this.pz[j]) < EDGE + 3) { clash = true; break; }
+          }
+          for (const o of this.branches) for (let j = 0; j < o.N && !clash; j += 2) {
+            if (Math.abs(o.py[j] - P.py[i]) < 4) continue;
+            if (Math.hypot(v.x - o.px[j], v.z - o.pz[j]) < EDGE + 3) clash = true;
+          }
+          if (clash) continue;
+          const h = P.py[i] - base + (this.theme.pillarDeep ?? 0);
+          mats.push(new THREE.Matrix4().compose(new THREE.Vector3(v.x, P.py[i] - 0.8 - h / 2, v.z), new THREE.Quaternion(), new THREE.Vector3(pw, h, pw)));
+        }
+      }
+      if (mats.length) {
+        const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), pillarMat, mats.length);
+        mats.forEach((m, n) => im.setMatrixAt(n, m));
+        this.group.add(im);
+      }
+    }
+
+  }
 
   build() {
     const th = this.theme, N = this.N;
@@ -248,67 +329,15 @@ export class Track {
     }
     if (this.hazardY === undefined) this.hazardY = GROUND_Y;
 
-    // ---------- pista
-    const P = (lat, dy = 0) => (k, out) => this.point(k, lat, out).setY(this.py[k] + dy);
-    const G = (k) => this.gap[k] || this.gap[(k + 1) % N]; // vão da ponte quebrada: sem nada
-    this.mesh(this.ribbon(P(ROAD_HALF, 0.06), P(-ROAD_HALF, 0.06), 16, G), lam({ map: asphalt }));
-    const shoulderMat = lam({ map: shoulderTex });
-    this.mesh(this.ribbon(P(EDGE, 0.03), P(ROAD_HALF, 0.03), 6, G), shoulderMat);
-    this.mesh(this.ribbon(P(-ROAD_HALF, 0.03), P(-EDGE, 0.03), 6, G), shoulderMat);
-
-    // Encostas (barrancos) da pista até o chão, exceto nas pontes
-    const base = this.def.lava ? -0.8 : GROUND_Y;
-    const skirtMat = lam({ map: skirtTex, side: THREE.DoubleSide });
-    for (const s of [1, -1]) {
-      const top = (k, out) => this.point(k, s * EDGE, out);
-      const bot = (k, out) => this.point(k, s * (EDGE + Math.max(0, this.py[k] - base) * 0.7 + 0.3), out).setY(base);
-      this.mesh(this.ribbon(top, bot, 8, (k) => this.bridge[k] || this.bridge[(k + 1) % N]), skirtMat);
-    }
-
-    // Muros baixos onde a borda não é uma queda
-    const wallMat = lam({ map: wallTex, side: THREE.DoubleSide });
-    for (const [s, kk] of [[1, 0], [-1, 1]]) {
-      const lo = (k, out) => this.point(k, s * EDGE, out);
-      const hi = (k, out) => this.point(k, s * EDGE, out).setY(this.py[k] + 1.0);
-      this.mesh(this.ribbon(lo, hi, 4, (k) => G(k) || this.edgeFall[k * 2 + kk] || this.edgeFall[((k + 1) % N) * 2 + kk]), wallMat);
-    }
-
-    // Pontes: parte de baixo do tabuleiro e pilares
-    if (this.bridge.some((b) => b)) {
-      const under = lam({ color: this.theme.deck ?? 0x6d4c41, side: THREE.DoubleSide });
-      const bl = (k, out) => this.point(k, EDGE, out).setY(this.py[k] - 0.8);
-      const br = (k, out) => this.point(k, -EDGE, out).setY(this.py[k] - 0.8);
-      this.mesh(this.ribbon(bl, br, 8, (k) => !this.bridge[k] || G(k)), under);
-      for (const s of [1, -1]) {
-        const a = (k, out) => this.point(k, s * EDGE, out);
-        const b = (k, out) => this.point(k, s * EDGE, out).setY(this.py[k] - 0.8);
-        this.mesh(this.ribbon(a, b, 8, (k) => !this.bridge[k] || G(k)), under);
-      }
-      const pillarMat = lam({ color: this.theme.pillar ?? 0x8d8d8d });
-      const v = new THREE.Vector3();
-      const mats = [];
-      const pw = this.theme.pillarW ?? 1.4;
-      for (let i = 0; i < N; i += this.theme.pillarStep ?? 10) {
-        if (!this.bridge[i] || this.gap[i] || this.gap[(i + 3) % N] || this.gap[(i - 3 + N) % N]) continue;
-        for (const s of [1, -1]) {
-          this.point(i, s * (EDGE - 1), v);
-          // não colocar pilar em cima de outro trecho da pista
-          let clash = false;
-          for (let j = 0; j < N; j += 2) {
-            if (Math.abs(this.py[j] - this.py[i]) < 4) continue;
-            if (Math.hypot(v.x - this.px[j], v.z - this.pz[j]) < EDGE + 3) { clash = true; break; }
-          }
-          if (clash) continue;
-          const h = this.py[i] - base + (this.theme.pillarDeep ?? 0);
-          mats.push(new THREE.Matrix4().compose(new THREE.Vector3(v.x, this.py[i] - 0.8 - h / 2, v.z), new THREE.Quaternion(), new THREE.Vector3(pw, h, pw)));
-        }
-      }
-      if (mats.length) {
-        const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), pillarMat, mats.length);
-        mats.forEach((m, n) => im.setMatrixAt(n, m));
-        this.group.add(im);
-      }
-    }
+    // ---------- pista (principal e atalhos)
+    const M = {
+      asphalt: lam({ map: asphalt }), asphaltB: lam({ map: asphalt, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }), shoulder: lam({ map: shoulderTex }),
+      skirt: lam({ map: skirtTex, side: THREE.DoubleSide }), wall: lam({ map: wallTex, side: THREE.DoubleSide }),
+      under: lam({ color: this.theme.deck ?? 0x6d4c41, side: THREE.DoubleSide }), pillar: lam({ color: this.theme.pillar ?? 0x8d8d8d }),
+    };
+    this.roadMats = M;
+    this.buildRoad(this, M);
+    for (const br of this.branches) this.buildRoad(br, M);
 
     // ---------- largada: faixa quadriculada e pórtico
     const checker = retroTex(16, 4, (c, w, h) => {
@@ -465,6 +494,7 @@ export class Track {
       for (let j = 0; j < this.N; j += 3) {
         if (Math.hypot(v.x - this.px[j], v.z - this.pz[j]) < EDGE + Math.max(0, this.py[j]) * 0.7 + dmin - 1) { ok = false; break; }
       }
+      if (ok && this.dist(v.x, v.z).d < EDGE + dmin) ok = false;
       if (ok && this.water) for (const [x, z, w, d] of this.water) if (v.x > x - 4 && v.x < x + w + 4 && v.z > z - 4 && v.z < z + d + 4) ok = false;
       if (ok && this.def.lava) ok = false;
       if (!ok) continue;

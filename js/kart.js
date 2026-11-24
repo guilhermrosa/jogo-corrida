@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TOP_SPEED, CLASS_STATS, UNIT, DRIVE, ITEM_FX } from './data.js';
 import { ROAD_HALF, EDGE } from './track.js';
+import { follow } from './branch.js';
 import { FRAMES, POSES, SPRITE_WORLD, SPRITE_GROUND, spriteTexture } from './sprites.js';
 
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -75,6 +76,7 @@ export class Kart {
     this.idx = 0; this.lat = 0; this.progress = 0; this.lapsDone = 0; this.lapStart = 0; this.lapTimes = [];
     this.finished = false; this.finishTime = 0; this.autopilot = false;
     this.wrongWay = 0; this.safeIdx = 0; this.stuck = 0;
+    this.path = null; this.bidx = 0; this.safePath = null; this.flying = false; this.flyT = 0;
     this.prevThrottle = false; this.lastTap = -1; this.lastBrakeT = -10; this.clock = 0;
     this.item = null; this.itemCount = 0; this.rouletteT = 0; this.holding = false;
     this.events = [];
@@ -93,7 +95,7 @@ export class Kart {
     idx = track.wrap(Math.round(idx));
     track.point(idx, lat, this.pos);
     this.heading = track.heading(idx);
-    this.idx = idx; this.safeIdx = idx; this.lat = lat;
+    this.idx = idx; this.safeIdx = idx; this.lat = lat; this.path = null; this.safePath = null; this.flying = false;
     this.progress = idx > track.N / 2 ? idx - track.N : idx;
   }
 
@@ -258,25 +260,30 @@ export class Kart {
     this.pos.x += Math.sin(moveAngle) * this.speed * dt;
     this.pos.z += Math.cos(moveAngle) * this.speed * dt;
 
-    const newIdx = track.nearest(this.pos.x, this.pos.z, this.idx);
-    let d = newIdx - this.idx;
+    // pista principal ou atalho
+    const prevIdx = this.idx;
+    const fw = follow(track, this);
+    const S = fw.S, newIdx = fw.si;
+    const midx = this.path ? this.path.mainIdx[newIdx] : newIdx;
+    let d = midx - prevIdx;
     if (d > track.N / 2) d -= track.N;
     if (d < -track.N / 2) d += track.N;
     this.progress += d;
-    this.idx = newIdx;
-    this.lat = track.lateral(this.pos.x, this.pos.z, newIdx);
+    this.idx = midx;
+    this.lat = fw.lat;
+    if (fw.exit === 'launch' && !this.falling) { this.flying = true; this.flyT = 0; this.airborne = true; this.drift = 0; }
 
     // ----- bordas: muro (quica) ou queda
     const lim = EDGE - this.radius;
-    if (Math.abs(this.lat) > lim && !this.falling) {
-      if (track.isFall(newIdx, this.lat)) {
+    if (Math.abs(this.lat) > lim && !this.falling && !this.flying) {
+      if (S.isFall(newIdx, this.lat)) {
         if (Math.abs(this.lat) > EDGE + 0.3) { this.falling = true; this.fallT = 0; this.airborne = true; this.drift = 0; }
       } else {
         const push = (Math.abs(this.lat) - lim) * Math.sign(this.lat);
-        this.pos.x -= -track.tz[newIdx] * push;
-        this.pos.z -= track.tx[newIdx] * push;
+        this.pos.x -= -S.tz[newIdx] * push;
+        this.pos.z -= S.tx[newIdx] * push;
         this.lat -= push;
-        const th = track.heading(newIdx);
+        const th = S.heading(newIdx);
         const rel = wrapAngle(this.heading - th);
         // velocidade lateral (positiva = para o lado +): -sin(rel) * v. Indo contra o muro? espelha o ângulo (quique)
         const into = -Math.sin(rel) * this.speed * Math.sign(this.lat);
@@ -298,7 +305,7 @@ export class Kart {
     }
 
     // ----- altura: chão / ar
-    const ground = track.groundY(this.pos.x, this.pos.z, newIdx);
+    const ground = S.groundY(this.pos.x, this.pos.z, newIdx);
     const predicted = this.pos.y + this.vy * dt - 0.5 * GRAVITY * dt * dt;
     if (this.falling) {
       this.vy -= GRAVITY * dt;
@@ -308,7 +315,7 @@ export class Kart {
         this.events.push(track.def.lava ? 'lava' : track.def.water || track.def.swampWater ? 'splash' : 'fall');
         this.startRescue(track);
       }
-    } else if (!this.airborne && track.gap[newIdx]) {
+    } else if (!this.airborne && S.gap[newIdx]) {
       // chegou ao vão da ponte quebrada sem estar no ar: cai
       this.falling = true; this.fallT = 0; this.airborne = true; this.drift = 0;
     } else if (!this.airborne) {
@@ -320,20 +327,32 @@ export class Kart {
         this.pos.y = predicted;
         this.vy -= GRAVITY * dt;
       }
+    } else if (this.flying) {
+      // saltou da ponta de um atalho: só pousa se cair em cima da pista
+      this.vy -= GRAVITY * dt;
+      this.pos.y += this.vy * dt;
+      this.flyT += dt;
+      const over = Math.abs(this.lat) <= EDGE - 0.2;
+      if (over && this.pos.y <= ground && this.vy < 0) {
+        if (this.vy < -6) this.events.push('land');
+        this.pos.y = ground; this.vy = 0; this.airborne = false; this.flying = false;
+      } else if ((!over && this.pos.y < ground - 2) || this.pos.y < ground - 4 || this.flyT > 4) {
+        this.flying = false; this.falling = true; this.fallT = 0;
+      }
     } else {
       this.vy -= GRAVITY * dt;
       this.pos.y += this.vy * dt;
-      if (this.pos.y <= ground && track.gap[newIdx] && this.vy < 0) {
+      if (this.pos.y <= ground && S.gap[newIdx] && this.vy < 0) {
         this.falling = true; this.fallT = 0; // caiu dentro do vão
       } else if (this.pos.y <= ground) {
         if (this.vy < -6) this.events.push('land');
         this.pos.y = ground; this.vy = 0; this.airborne = false;
       }
     }
-    if (!this.airborne && !this.falling && Math.abs(this.lat) < ROAD_HALF) this.safeIdx = newIdx;
+    if (!this.airborne && !this.falling && Math.abs(this.lat) < ROAD_HALF) { this.safeIdx = newIdx; this.safePath = this.path; }
 
     // contramão
-    const relTrack = wrapAngle(this.heading - track.heading(newIdx));
+    const relTrack = wrapAngle(this.heading - S.heading(newIdx));
     this.wrongWay = Math.abs(relTrack) > 1.9 && this.speed > 2 ? this.wrongWay + dt : 0;
   }
 
@@ -344,6 +363,16 @@ export class Kart {
     this.rescueT = 2.6;
     this.speed = 0; this.drift = 0; this.driftStage = 0; this.boostT = 0; this.mtT = 0;
     this.rescueFrom = this.pos.clone();
+    this.flying = false;
+    const sp = this.safePath;
+    if (sp) {
+      // caiu num atalho: atalho de salto (ou com vão) volta para antes da entrada; os outros voltam no próprio atalho
+      if (sp.launch || sp.gap.some((g) => g)) { this.rescuePath = null; this.setRescue(track, track.wrap(sp.ia - 6)); }
+      else { this.rescuePath = sp; this.setRescue(sp, Math.max(0, this.safeIdx - 4)); }
+      this.events.push('rescue');
+      return;
+    }
+    this.rescuePath = null;
     let idx = track.wrap(this.safeIdx - 4);
     // caiu no vão da ponte quebrada: a coruja leva para o outro lado (parado não dá para pular)
     for (let k = 0; k < 40; k++) if (track.gap[track.wrap(this.safeIdx + k)]) {
@@ -352,11 +381,15 @@ export class Kart {
       idx = track.wrap(e + 3);
       break;
     }
-    this.rescueTo = track.point(idx, 0);
-    this.rescueTo.y = track.py[idx];
-    this.rescueIdx = idx;
-    this.rescueHeading = track.heading(idx);
+    this.setRescue(track, idx);
     this.events.push('rescue');
+  }
+
+  setRescue(P, idx) {
+    this.rescueTo = P.point(idx, 0);
+    this.rescueTo.y = P.py[idx];
+    this.rescueIdx = idx;
+    this.rescueHeading = P.heading(idx);
   }
 
   updateRescue(dt, track, input) {
@@ -379,7 +412,15 @@ export class Kart {
     if (this.rescueT <= 0) {
       this.rescueT = 0;
       this.pos.copy(this.rescueTo);
-      this.idx = this.rescueIdx; this.safeIdx = this.rescueIdx; this.lat = 0;
+      // volta para a pista (ou atalho) certa e corrige o progresso da volta
+      const P = this.rescuePath;
+      const midx = P ? P.mainIdx[this.rescueIdx] : this.rescueIdx;
+      let d = midx - this.idx;
+      if (d > track.N / 2) d -= track.N;
+      if (d < -track.N / 2) d += track.N;
+      this.progress += d;
+      this.path = P; this.bidx = this.rescueIdx; this.safePath = P;
+      this.idx = midx; this.safeIdx = this.rescueIdx; this.lat = 0;
       this.vy = 0;
       // segurar o acelerador ao ser solto: sai com embalo
       if (input.throttle) this.speed = this.top * 0.5;

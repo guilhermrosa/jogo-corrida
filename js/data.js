@@ -144,6 +144,10 @@ function lemniscate(n, ax, az, yf) {
   return pts;
 }
 
+// a serra é desenhada em escala maior e encolhida um pouco (volta mais curta)
+const SK = 0.86;
+const SERRA_S = (pts) => pts.map(([x, z, y]) => [x * SK, z * SK, y]);
+
 export const CUPS = [
   {
     name: 'Copa Bolota',
@@ -157,43 +161,78 @@ export const CUPS = [
 
 export const TRACKS = {
   campos: {
-    name: 'Campos Bolota',
+    name: 'Granja Bolota',
     theme: 'campos',
-    // [x, z, altura]
-    points: [[0, 0, 0], [56, 0, 0], [104, -12, 1], [132, -56, 3], [120, -104, 5], [76, -124, 4], [36, -96, 2],
-      [4, -108, 1], [-40, -140, 1], [-96, -128, 2], [-128, -76, 3], [-108, -28, 2], [-64, -36, 1], [-32, -4, 0]],
-    itemRows: [0.2, 0.52, 0.78],
+    // cooperativa de bolotas a vapor: reta dos silos, subida do moinho, viaduto de madeira e ferro
+    // por cima da largada, descida até o canal de irrigação e volta pelo pomar
+    points: [[-40, 0, 0], [20, 0, 0], [64, -4, 0], [100, -24, 1], [118, -58, 3.5], [108, -96, 7], [76, -116, 9.5], [36, -112, 10],
+      [10, -84, 10], [2, -44, 10], [2, -4, 10], [4, 34, 8.5], [-10, 66, 5.5], [-42, 80, 2], [-80, 84, 0.4], [-100, 108, 0.2],
+      [-130, 112, 0.2], [-158, 104, 0.2], [-176, 80, 0.2], [-178, 50, 0.2], [-168, 18, 0], [-140, -6, 0], [-104, -14, 0], [-74, -8, 0]],
+    itemRows: [0.08, 0.42, 0.66],
+    bridge: (p) => p.y > 3,
     edge: () => 'wall',
+    branches: [
+      // caminho alternativo: por dentro do celeiro-debulhadora, mais curto e mais fechado
+      { from: [92, -18], mid: [[84, -50, 3.5], [70, -72, 6.5], [58, -92, 9]], to: [28, -108], ai: 0.5, bridge: () => false },
+    ],
   },
   praia: {
-    name: 'Praia do Coqueiro',
+    name: 'Porto do Coqueiro',
     theme: 'praia',
-    points: [[0, -30, 0.6], [60, -45, 0.6], [120, -25, 0.6], [150, 25, 0.6], [120, 72, 0.6], [62, 84, 0.8],
-      [0, 80, 2.6], [-60, 88, 0.8], [-122, 66, 0.6], [-150, 25, 0.6], [-120, -10, 0.6], [-60, -30, 0.6]],
-    itemRows: [0.15, 0.45, 0.75],
-    water: [[-400, 100, 800, 400], [-20, 40, 40, 62]],       // retângulos [x, z, largura, profundidade]
-    bridge: (p) => Math.abs(p.x) < 28 && p.z > 40,
-    edge: (p, q) => (q.z > 100 ? 'fall' : 'wall'),
+    // porto dos escafandristas: calçadão, volta da doca do canal (com ponte levadiça), píer dos
+    // submarinos sobre o mar, e subida ao promontório do farol
+    points: [[-20, 0, 0.6], [14, 2, 0.6], [24, -24, 0.8], [26, -60, 1], [29, -84, 1.2], [41, -96, 1.2], [53, -84, 1.2], [56, -60, 1], [56, -20, 0.8], [57, 2, 0.6], [66, 12, 0.6], [82, 17, 0.6],
+      [108, 20, 0.6], [146, 34, 1.4], [164, 72, 1.8], [150, 108, 1.8], [110, 120, 1.8], [64, 116, 1.8], [24, 104, 1.8], [-16, 108, 1.8],
+      [-56, 100, 1.6], [-98, 80, 1.2], [-128, 48, 2.6], [-142, 10, 5.5], [-132, -28, 8.5], [-104, -46, 9.5], [-78, -30, 6], [-54, -8, 2]],
+    itemRows: [0.1, 0.44, 0.7],
+    water: [[-400, 70, 800, 400], [37, -84, 8, 160]],      // mar ao sul e o canal da doca
+    waterY: -0.6,
+    bridge: (p) => p.z > 66,
+    bridgeEdge: (p, q) => (q.z > p.z + 6 && p.x > -40 && p.x < 130 ? 'fall' : 'wall'),
+    edge: (p, q, outer) => (outer && p.y > 4 ? 'fall' : 'wall'),
+    branches: [
+      // ponte levadiça erguida: serve de rampa por cima do canal da doca
+      { from: [-16, 0], overlap: 16, mid: [[16, 13, 0.9], [28, 12, 2.4], [36, 12, 3.4]], launch: { len: 12, rise: 3 }, to: [68, 12], ai: 0.3, bridge: (p) => p.i > p.n - 26 },
+    ],
   },
   serra: {
     name: 'Serra Gelada',
     theme: 'serra',
-    points: [[0, 0, 0], [70, 0, 0], [130, -20, 2], [160, -80, 8], [130, -140, 14], [60, -160, 20], [0, -130, 24],
-      [-36, -84, 27], [-64, -46, 18], [-120, -20, 10], [-150, -70, 6], [-190, -40, 3], [-160, 20, 1], [-90, 30, 0], [-40, 14, 0]],
-    itemRows: [0.18, 0.45, 0.72],
+    // Companhia de Gelo da Serra: depósito no vale, subida em zigue-zague, túnel da geleira,
+    // crista dos teleféricos, descida pela calha de gelo e o lago congelado onde cortam os blocos
+    points: SERRA_S([[0, 0, 0], [60, 0, 0], [110, -8, 1], [140, -36, 3], [146, -76, 6], [122, -106, 9.5], [80, -112, 12.5], [40, -100, 15],
+      [6, -116, 17.5], [-24, -146, 20], [-62, -152, 22], [-86, -174, 22.5], [-102, -194, 22.5], [-124, -194, 21.5], [-138, -172, 19.5], [-140, -144, 17.5], [-142, -110, 16], [-146, -72, 14], [-128, -42, 12],
+      [-150, -12, 8.5], [-160, 22, 5], [-136, 52, 2], [-94, 60, 0.5], [-54, 42, 0], [-30, 14, 0]]),
+    itemRows: [0.12, 0.44, 0.7],
     edge: (p, q, outer) => (p.y > 9 && outer ? 'fall' : 'wall'),
+    // gretas na geleira: dois saltos obrigatórios (na crista e no começo da descida)
+    gap: (p) => { const x = p.x / SK, z = p.z / SK; return (z < -140 && x < -44 && x > -52) || (x < -130 && z > -128 && z < -121); },
+    kick: { len: 12, rise: 2.2 },
+    branches: [
+      // pelo lago congelado, entre os cortadores de gelo
+      { from: [-156 * SK, -2 * SK], mid: SERRA_S([[-130, 18, 2], [-100, 30, 0.6]]), to: [-60 * SK, 44 * SK], ai: 0.5 },
+    ],
   },
   vulcao: {
-    name: 'Vulcão Oito',
+    name: 'Fundição do Vulcão',
     theme: 'vulcao',
-    points: lemniscate(18, 150, 80, (t) => 2 + 4.5 * (1 + Math.sin(t))),
+    // fundição dentro do vulcão: oito com viaduto por cima da largada, galpão de fundição,
+    // passarela sem muretas por cima do poço de corrida e rampa de escória por cima do canal de lava
+    points: [[-60, 0, 2], [-20, 0, 2.2], [30, 4, 2.6], [80, 20, 3], [124, 10, 3.5], [142, -30, 4.5], [122, -72, 6], [80, -84, 8],
+      [40, -54, 10], [6, -14, 11], [-24, 22, 10.5], [-62, 50, 8.5], [-100, 66, 6], [-134, 54, 4.5], [-148, 18, 3.4], [-138, -18, 2.6],
+      [-106, -22, 2], [-80, -8, 2]],
     itemRows: [0.12, 0.4, 0.62, 0.88],
     lava: true,
-    bridge: (p) => Math.abs(p.x) < 34 && Math.abs(p.z) < 34 && p.y > 6,
-    edge: (p, q, outer) => (outer && Math.abs(p.x) > 110 ? 'fall' : 'wall'),
+    bridge: (p) => p.y > 7,
+    edge: (p, q, outer) => (outer && (p.x > 100 || p.x < -130) ? 'fall' : 'wall'),
+    branches: [
+      // passarela da casa de corrida: sem muretas, por cima do metal derretido
+      { from: [60, 14], mid: [[92, -14, 4], [98, -46, 5.8]], to: [70, -80], ai: 0.35, edge: () => 'fall', bridge: () => true },
+      // rampa do monte de escória: pula o canal de lava e cai na volta oeste
+      { from: [-50, 44], mid: [[-86, 44, 8.6], [-112, 30, 8.8], [-130, 10, 9]], launch: { len: 14, rise: 2.6 }, to: [-148, 6], ai: 0.25 },
+    ],
   },
 };
-
 TRACKS.oficina = {
   name: 'Vila Engrenagem',
   theme: 'oficina',
@@ -207,6 +246,8 @@ TRACKS.oficina = {
   bridge: (p) => Math.abs(p.z + 66) < 17 && p.y > 1.4,
   edge: () => 'wall',
   tower: [0, -108],                                     // torre do relógio, no meio da praça
+  // rotatória da torre: dá para passar pelo norte (pista principal) ou pelo sul, rente ao canal
+  branches: [{ from: [60, -104], mid: [[22, -92, 0], [0, -91.5, 0], [-22, -93, 0]], to: [-64, -110], ai: 0.5, overlap: 22 }],
 };
 
 TRACKS.pantano = {
@@ -285,8 +326,8 @@ TRACKS.ilhas = {
 };
 
 export const THEMES = {
-  campos: { sky: 0x7ec8ff, fog: 0xb8e2ff, ground: '#5aa63a', ground2: '#4c9430', shoulder: '#6fb84a', shoulder2: '#5ea53c', skirt: '#8a6a43', wall: ['#ffffff', '#e53935'], decor: 'arvore', music: 0 },
-  praia:  { sky: 0x6fd0ff, fog: 0xc9f0ff, ground: '#f2d99a', ground2: '#e8cc85', shoulder: '#f5e2aa', shoulder2: '#ead291', skirt: '#d9b870', wall: ['#ffffff', '#1e88e5'], decor: 'coqueiro', music: 1 },
+  campos: { sky: 0x7ec8ff, fog: 0xb8e2ff, deck: 0x5a3a22, pillar: 0x6b4426, pillarW: 1.0, pillarStep: 7, ground: '#5aa63a', ground2: '#4c9430', shoulder: '#6fb84a', shoulder2: '#5ea53c', skirt: '#8a6a43', wall: ['#ffffff', '#e53935'], decor: 'arvore', music: 0 },
+  praia:  { sky: 0x6fd0ff, fog: 0xc9f0ff, deck: 0x6a4a32, pillar: 0x5a4030, pillarW: 0.8, pillarStep: 6, pillarDeep: 2, ground: '#f2d99a', ground2: '#e8cc85', shoulder: '#f5e2aa', shoulder2: '#ead291', skirt: '#d9b870', wall: ['#ffffff', '#1e88e5'], decor: 'coqueiro', music: 1 },
   serra:  { sky: 0xa9c8e8, fog: 0xdfe8f2, ground: '#eef4fa', ground2: '#dde8f2', shoulder: '#f4f8fc', shoulder2: '#e3ecf5', skirt: '#7d8794', wall: ['#ffffff', '#3949ab'], decor: 'pinheiro', music: 2 },
   oficina: { sky: 0x8fbfe0, fog: 0xe9cf9a, light: 0xfff0d8, sun: 0xffdca8, ground: '#8fae5a', ground2: '#7f9e4c', shoulder: '#b7aa94', shoulder2: '#a89a82', skirt: '#a0563a', wall: ['#efe2c2', '#8e3b2a'], decor: 'arvore', decorMin: 50, decorCount: 120, music: 0 },
   pantano: { sky: 0x426e80, fog: 0x4f7a7c, fogNear: 70, fogFar: 560, light: 0xb8d8d8, sun: 0xc8e4dc, lightI: 1.35, sunI: 0.8, ground: '#3e4a2a', ground2: '#34402a', shoulder: '#6e5236', shoulder2: '#5e4630', skirt: '#5e4630', wall: ['#7a5c3c', '#5e4630'], decor: 'arvore', decorCount: 0, deck: 0x4a3622, pillar: 0x5a4030, pillarW: 0.7, pillarStep: 6, pillarDeep: 2, waterColors: ['#2c6266', '#347070', '#94d4c4', '#22504e'], music: 2 },

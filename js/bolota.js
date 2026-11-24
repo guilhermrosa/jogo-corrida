@@ -11,16 +11,16 @@ import { tinBot, giantBot } from './robots.js';
 const lam = (o) => new THREE.MeshLambertMaterial(o);
 const basic = (o) => new THREE.MeshBasicMaterial(o);
 const phong = (o) => new THREE.MeshPhongMaterial(o);
-const M = () => ({
+export const M = () => ({
   brass: phong({ color: 0xc9a24a, shininess: 70, specular: 0x887755 }),
   copper: phong({ color: 0xb8673a, shininess: 50, specular: 0x553322 }),
   iron: lam({ color: 0x3b3632 }), wood: lam({ color: 0x8a5a34 }), rust: lam({ color: 0x8a4a2a }),
   lamp: basic({ color: 0xffd98a }), verd: lam({ color: 0x6fb09c }), cream: lam({ color: 0xefe2c2 }),
 });
-const add = (parent, geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
-const cyl = (a, b, h, s = 12) => new THREE.CylinderGeometry(a, b, h, s);
+export const add = (parent, geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
+export const cyl = (a, b, h, s = 12) => new THREE.CylinderGeometry(a, b, h, s);
 
-function gearMesh(R, T, mat, depth = 0.5) {
+export function gearMesh(R, T, mat, depth = 0.5) {
   const s = new THREE.Shape();
   for (let k = 0; k < T; k++) {
     const a = (k / T) * Math.PI * 2, st = (Math.PI * 2) / T, P = (aa, rr) => [Math.cos(aa) * rr, Math.sin(aa) * rr];
@@ -32,7 +32,7 @@ function gearMesh(R, T, mat, depth = 0.5) {
   return new THREE.Mesh(g, mat);
 }
 
-function airship(parent, col, m) {
+export function airship(parent, col, m) {
   const s = new THREE.Group();
   const env = add(s, new THREE.SphereGeometry(5, 18, 12), phong({ color: col, shininess: 30 })); env.scale.set(2.6, 1, 1);
   for (let k = -2; k <= 2; k++) { const b = add(s, new THREE.TorusGeometry(5.02 * Math.sqrt(1 - (k / 2.9) ** 2), 0.12, 4, 20), m.brass, k * 4, 0, 0); b.rotation.y = Math.PI / 2; }

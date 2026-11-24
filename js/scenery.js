@@ -4,6 +4,10 @@ import { oficina } from './oficina.js';
 import { pantano } from './pantano.js';
 import { sucata } from './sucata.js';
 import { ilhas } from './ilhas.js';
+import { granja } from './granja.js';
+import { porto } from './porto.js';
+import { geleira } from './geleira.js';
+import { fundicao } from './fundicao.js';
 import { camposSteam, praiaSteam, serraSteam, vulcaoSteam, robotCrew, steamKit } from './bolota.js';
 import { EDGE, ROAD_HALF } from './data.js';
 import { drawSprite } from './sprites.js';
@@ -43,7 +47,9 @@ const basic = (o) => new THREE.MeshBasicMaterial(o);
 // ---------------------------------------------------------------- distância até a pista
 function makeDist(tr) {
   const xs = [], zs = [], ys = [];
-  for (let i = 0; i < tr.N; i += 2) { xs.push(tr.px[i]); zs.push(tr.pz[i]); ys.push(tr.py[i]); }
+  const is = [];
+  for (let i = 0; i < tr.N; i += 2) { xs.push(tr.px[i]); zs.push(tr.pz[i]); ys.push(tr.py[i]); is.push(i); }
+  for (const b of tr.branches || []) for (let i = 0; i < b.N; i += 2) { xs.push(b.px[i]); zs.push(b.pz[i]); ys.push(b.py[i]); is.push(b.mainIdx[i]); }
   return (x, z) => {
     let bd = Infinity, bi = 0;
     for (let k = 0; k < xs.length; k++) {
@@ -51,7 +57,7 @@ function makeDist(tr) {
       const d = dx * dx + dz * dz;
       if (d < bd) { bd = d; bi = k; }
     }
-    return { d: Math.sqrt(bd), y: ys[bi], i: bi * 2 };
+    return { d: Math.sqrt(bd), y: ys[bi], i: is[bi] };
   };
 }
 
@@ -435,135 +441,13 @@ const SPR = {
   bonecoNeve: null,
 };
 
-// ================================================================= CAMPOS BOLOTA
-function campos(tr, rnd) {
-  const c = tr.center;
-  // (o balão de ar quente virou dirigível: ver bolota.js)
-
-  // moinho de vento
-  const mill = findPlace(tr, rnd, 40, 90);
-  if (mill) {
-    const g = new THREE.Group(); g.position.copy(mill); tr.group.add(g);
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 4.2, 16, 8), lam({ color: 0xb5654a }));
-    tower.position.y = 8; g.add(tower);
-    const cap = new THREE.Mesh(new THREE.ConeGeometry(3.6, 4, 8), lam({ color: 0x6fb09c }));
-    cap.position.y = 18; g.add(cap);
-    const hub = new THREE.Group(); hub.position.set(0, 15, 3.2); g.add(hub);
-    for (let k = 0; k < 4; k++) {
-      const blade = new THREE.Mesh(new THREE.BoxGeometry(1.6, 9, 0.2), new THREE.MeshPhongMaterial({ color: 0xc9a24a, shininess: 60 }));
-      blade.position.y = 4.5; const arm = new THREE.Group(); arm.rotation.z = (k * Math.PI) / 2; arm.add(blade); hub.add(arm);
-    }
-    g.lookAt(c.x, mill.y, c.z);
-    tr.animated.push((dt) => { hub.rotation.z += dt * 0.8; });
-  }
-
-  // celeiro com cerca e vaquinhas
-  const barn = findPlace(tr, rnd, 45, 100);
-  if (barn) {
-    const g = new THREE.Group(); g.position.copy(barn); g.rotation.y = rnd() * 6; tr.group.add(g);
-    const body = new THREE.Mesh(new THREE.BoxGeometry(14, 8, 10), lam({ color: 0xc62828 }));
-    body.position.y = 4; g.add(body);
-    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 8.4, 5, 4, 1), lam({ color: 0x6fb09c }));
-    roof.scale.set(1.25, 1, 0.9); roof.position.y = 10.5; roof.rotation.y = Math.PI / 4; g.add(roof);
-    const door = new THREE.Mesh(new THREE.PlaneGeometry(5, 6), lam({ color: 0xffffff }));
-    door.position.set(0, 3, 5.01); g.add(door);
-    const doorIn = new THREE.Mesh(new THREE.PlaneGeometry(4, 5), lam({ color: 0x8e2020 }));
-    doorIn.position.set(0, 2.6, 5.02); g.add(doorIn);
-    // cerca
-    const postGeo = new THREE.BoxGeometry(0.3, 1.4, 0.3), railGeo = new THREE.BoxGeometry(0.15, 0.15, 4);
-    const wood = lam({ color: 0xd7ccc8 });
-    for (let k = 0; k < 14; k++) {
-      const a = (k / 14) * Math.PI * 2;
-      const x = Math.cos(a) * 20, z = Math.sin(a) * 20 + 4;
-      const p = new THREE.Mesh(postGeo, wood); p.position.set(x, 0.7, z); g.add(p);
-      const r = new THREE.Mesh(railGeo, wood); r.position.set(Math.cos(a + 0.22) * 20, 1, Math.sin(a + 0.22) * 20 + 4); r.rotation.y = -a; g.add(r);
-    }
-    const cow = SPR.vaca();
-    for (let k = 0; k < 5; k++) {
-      const s = sprite(cow, [3.2, 3.2], new THREE.Vector3(Math.cos(k * 1.3) * 12, 0, Math.sin(k * 1.3) * 12 + 6));
-      g.add(s);
-    }
-  }
-
-  // campos de girassóis
-  const sf = SPR.girassol();
-  for (let p = 0; p < 4; p++) {
-    const at = findPlace(tr, rnd, 22, 60);
-    if (!at) continue;
-    for (let k = 0; k < 40; k++) {
-      const x = at.x + (rnd() - 0.5) * 22, z = at.z + (rnd() - 0.5) * 14;
-      if (tr.dist(x, z).d < EDGE + 6) continue;
-      tr.group.add(sprite(sf, [2.2, 2.2], new THREE.Vector3(x, tr.terrainY(x, z), z)));
-    }
-  }
-
-  // bolota gigante (mascote da copa) perto da largada
-  const ac = spot(tr, 25, -(EDGE + 22), EDGE + 14) || spot(tr, 25, EDGE + 22, EDGE + 14);
-  if (ac) {
-    const g = new THREE.Group(); g.position.copy(ac); tr.group.add(g);
-    const nut = new THREE.Mesh(new THREE.SphereGeometry(4, 20, 14), new THREE.MeshPhongMaterial({ color: 0xc7894b, shininess: 50 }));
-    nut.scale.set(1, 1.25, 1); nut.position.y = 7; g.add(nut);
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(4.4, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), lam({ color: 0x6d4c41 }));
-    cap.position.y = 9.5; g.add(cap);
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 2), lam({ color: 0x4e342e }));
-    stem.position.y = 14.5; g.add(stem);
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(4, 5, 2, 12), new THREE.MeshPhongMaterial({ color: 0xc9a24a, shininess: 70 }));
-    base.position.y = 1; g.add(base);
-    let t = 0;
-    tr.animated.push((dt) => { t += dt; g.rotation.y = Math.sin(t * 0.5) * 0.3; });
-  }
-
-  grandstand(tr, 12, sideWithRoom(tr, 12), 56);
-  buildTunnel(tr, 0.58, 0.66, 'pedra');
-}
-
 // ================================================================= PRAIA DO COQUEIRO
 function praia(tr, rnd) {
   const c = tr.center;
-  // farol numa pedra dentro do mar
-  let far = 0;
-  for (let i = 0; i < tr.N; i++) if (tr.pz[i] > tr.pz[far]) far = i;
-  const lh = new THREE.Group();
-  lh.position.set(tr.px[far] + (tr.mirror ? 40 : -40), 0, 150);
-  tr.group.add(lh);
-  const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(12, 0), lam({ color: 0x795548, flatShading: true }));
-  rock.scale.set(1.2, 0.5, 1.2); rock.position.y = 1; lh.add(rock);
-  const stripes = tex(16, 64, (g, w, h) => { for (let k = 0; k < 8; k++) { g.fillStyle = k % 2 ? '#e8c070' : '#b8673a'; g.fillRect(0, (k * h) / 8, w, h / 8); g.fillStyle = '#5a3a24'; for (let x = 1; x < w; x += 4) g.fillRect(x, (k * h) / 8 + 1, 1, 1); } });
-  const tower = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 3.6, 24, 16), lam({ map: stripes }));
-  tower.position.y = 16; lh.add(tower);
-  const room = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 3, 12), basic({ color: 0xfff59d }));
-  room.position.y = 29.5; lh.add(room);
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(3.2, 3, 12), lam({ color: 0x212121 }));
-  roof.position.y = 32.5; lh.add(roof); roof.material.color.set(0x6fb09c);
-  const beam = new THREE.Mesh(new THREE.ConeGeometry(4, 40, 12, 1, true), basic({ color: 0xfffde7, transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide }));
-  beam.geometry.translate(0, -20, 0); beam.geometry.rotateZ(Math.PI / 2);
-  const beamPivot = new THREE.Group(); beamPivot.position.y = 29.5; beamPivot.add(beam); lh.add(beamPivot);
-  tr.animated.push((dt) => { beamPivot.rotation.y += dt * 0.9; });
-
-  // arco de pedra natural sobre a pista
-  const ai = Math.round(tr.N * 0.3);
-  const arch = new THREE.Group();
-  tr.point(ai, 0, arch.position);
-  arch.rotation.y = tr.heading(ai);   // eixo x local atravessa a pista
-  tr.group.add(arch);
-  const rockMat = lam({ color: 0xa1887f, flatShading: true });
-  const R = EDGE + 3;
-  for (let k = 0; k <= 14; k++) {
-    const a = (k / 14) * Math.PI;
-    const r = new THREE.Mesh(new THREE.DodecahedronGeometry(2.8 + rnd() * 1.4, 0), rockMat);
-    r.position.set(Math.cos(a) * R, tr.py[ai] + Math.sin(a) * 13 + 1, (rnd() - 0.5) * 1.5);
-    r.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3);
-    arch.add(r);
-  }
-  for (const s of [1, -1]) for (let k = 0; k < 3; k++) {
-    const r = new THREE.Mesh(new THREE.DodecahedronGeometry(3.5, 0), rockMat);
-    r.position.set(s * (R + 1), tr.py[ai] - 1 + k * 2.5, 0); arch.add(r);
-  }
-
   // guarda-sóis, cadeiras e castelos de areia
   const umbColors = [0xe53935, 0x1e88e5, 0xffeb3b, 0x43a047, 0xff9800, 0xab47bc];
   for (let k = 0; k < 26; k++) {
-    const at = findPlace(tr, rnd, EDGE + 8, 45, (p) => p.z > 20 && p.z < 98);
+    const at = findPlace(tr, rnd, EDGE + 8, 45, (p) => p.z > 24 && p.z < 66 && Math.abs(p.x - (tr.mirror ? -41 : 41)) > 14);
     if (!at) continue;
     const g = new THREE.Group(); g.position.copy(at); tr.group.add(g);
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.2), lam({ color: 0xffffff }));
@@ -581,7 +465,7 @@ function praia(tr, rnd) {
   }
   // cabanas com pranchas de surfe
   for (let k = 0; k < 4; k++) {
-    const at = findPlace(tr, rnd, EDGE + 14, 55, (p) => p.z < 40);
+    const at = findPlace(tr, rnd, EDGE + 14, 55, (p) => p.z < 40 && p.z > -40 && Math.abs(p.x - (tr.mirror ? -41 : 41)) > 16);
     if (!at) continue;
     const g = new THREE.Group(); g.position.copy(at); g.lookAt(c.x, at.y, c.z); tr.group.add(g);
     for (const [x, z] of [[2.5, 2.5], [-2.5, 2.5], [2.5, -2.5], [-2.5, -2.5]]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 2), lam({ color: 0x8d6e63 })); p.position.set(x, 1, z); g.add(p); }
@@ -609,7 +493,7 @@ function praia(tr, rnd) {
   const crab = SPR.caranguejo();
   const crabs = [];
   for (let k = 0; k < 10; k++) {
-    const at = findPlace(tr, rnd, EDGE + 4, 30, (p) => p.z > 40);
+    const at = findPlace(tr, rnd, EDGE + 4, 30, (p) => p.z > 40 && p.z < 66);
     if (!at) continue;
     const s = sprite(crab, [1.4, 1.4], at); tr.group.add(s); crabs.push({ s, x: at.x, ph: rnd() * 6 });
   }
@@ -617,7 +501,7 @@ function praia(tr, rnd) {
   const foam = tex(64, 8, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = 'rgba(255,255,255,.85)'; for (let x = 0; x < w; x += 4) g.fillRect(x, 2 + Math.sin(x) * 2, 3, 3); }, true);
   foam.repeat.set(60, 1);
   const foamM = new THREE.Mesh(new THREE.PlaneGeometry(800, 4), basic({ map: foam, transparent: true, depthWrite: false }));
-  foamM.rotation.x = -Math.PI / 2; foamM.position.set(c.x, 0.16, 101); tr.group.add(foamM);
+  foamM.rotation.x = -Math.PI / 2; foamM.position.set(c.x, -0.5, 71); tr.group.add(foamM);
 
   let t = 0;
   tr.animated.push((dt) => {
@@ -628,7 +512,7 @@ function praia(tr, rnd) {
     for (const g of gulls) { const a = t * g.sp + g.ph; g.s.position.set(g.cx + Math.cos(a) * g.r, g.h + Math.sin(t * 2 + g.ph), g.cz + Math.sin(a) * g.r); g.s.scale.y = 2.2 * (0.7 + 0.3 * Math.abs(Math.sin(t * 6 + g.ph))); }
     for (const cr of crabs) cr.s.position.x = cr.x + Math.sin(t * 0.7 + cr.ph) * 3;
     foam.offset.y = Math.sin(t * 0.8) * 0.15;
-    foamM.position.z = 101 + Math.sin(t * 0.8) * 1.2;
+    foamM.position.z = 71 + Math.sin(t * 0.8) * 1.2;
   });
 
   grandstand(tr, 10, sideWithRoom(tr, 10), 44);
@@ -655,13 +539,6 @@ function serra(tr, rnd) {
     fg.attributes.position.needsUpdate = true;
   });
 
-  // lago congelado no meio da pista
-  const lake = findPlace(tr, rnd, 40, 140, (p) => tr.terrainY(p.x, p.z) < 3);
-  if (lake) {
-    const ice = new THREE.Mesh(new THREE.CircleGeometry(26, 28), new THREE.MeshPhongMaterial({ color: 0xbfe6ff, shininess: 120, specular: 0xffffff }));
-    ice.rotation.x = -Math.PI / 2; ice.position.set(lake.x, Math.max(lake.y, tr.groundBase) + 0.25, lake.z); tr.group.add(ice);
-  }
-
   // chalé com fumaça na chaminé
   const ch = findPlace(tr, rnd, EDGE + 22, 70);
   if (ch) {
@@ -676,47 +553,6 @@ function serra(tr, rnd) {
     tr.animated.push((dt) => { for (const p of puffs) { p.t = (p.t + dt * 0.25) % 1; p.s.position.set(2.5 + p.t * 2, 11 + p.t * 9, 0); p.s.scale.setScalar(1 + p.t * 3); p.s.material.opacity = 0.8 * (1 - p.t); } });
   }
 
-  // bonecos de neve
-  for (let k = 0; k < 7; k++) {
-    const at = findPlace(tr, rnd, EDGE + 6, 30);
-    if (!at) continue;
-    const g = new THREE.Group(); g.position.copy(at); g.rotation.y = rnd() * 6; tr.group.add(g);
-    const white = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 20 });
-    [[1.3, 1.2], [0.95, 3.1], [0.7, 4.5]].forEach(([r, y]) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), white); b.position.y = y; g.add(b); });
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.6, 6), lam({ color: 0xff7043 })); nose.rotation.x = Math.PI / 2; nose.position.set(0, 4.5, 0.85); g.add(nose);
-    const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.8, 12), lam({ color: 0x212121 })); hat.position.y = 5.45; g.add(hat);
-    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.18, 6, 14), lam({ color: [0xe53935, 0x1e88e5, 0x43a047][k % 3] })); scarf.rotation.x = Math.PI / 2; scarf.position.y = 3.85; g.add(scarf);
-  }
-
-  // teleférico subindo a montanha
-  let ai = 0;
-  for (let i = 0; i < tr.N; i++) if (tr.py[i] < tr.py[ai]) ai = i;
-  const A = tr.point(ai, 0).add(new THREE.Vector3(0, 0, 0));
-  const dir = new THREE.Vector3(A.x - c.x, 0, A.z - c.z).normalize();
-  const start = A.clone().add(dir.clone().multiplyScalar(60));
-  const end = start.clone().add(dir.clone().multiplyScalar(420));
-  start.y = tr.terrainY(start.x, start.z); end.y = tr.terrainY(end.x, end.z);
-  const towers = 6, pts = [];
-  for (let k = 0; k <= towers; k++) {
-    const p = new THREE.Vector3().lerpVectors(start, end, k / towers);
-    p.y = tr.terrainY(p.x, p.z);
-    const tw = new THREE.Mesh(new THREE.BoxGeometry(0.8, 14, 0.8), lam({ color: 0x3b3632 }));
-    tw.position.set(p.x, p.y + 7, p.z); tr.group.add(tw);
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(5, 0.4, 0.4), new THREE.MeshPhongMaterial({ color: 0xc9a24a }));
-    arm.position.set(p.x, p.y + 14, p.z); arm.lookAt(p.x + dir.z, p.y + 14, p.z - dir.x); tr.group.add(arm);
-    pts.push(new THREE.Vector3(p.x, p.y + 13.6, p.z));
-  }
-  const cableCurve = new THREE.CatmullRomCurve3(pts);
-  tr.group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(cableCurve.getPoints(60)), new THREE.LineBasicMaterial({ color: 0x263238 })));
-  const cabins = Array.from({ length: 5 }, (_, k) => {
-    const g = new THREE.Group();
-    const box = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.2, 2.4), lam({ color: [0xb8673a, 0x6fb09c, 0xc9a24a, 0x8e3b2a, 0xb8673a][k] })); box.position.y = -2.4; g.add(box);
-    const win = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.8, 2.5), basic({ color: 0xffd98a })); win.position.y = -2.1; g.add(win);
-    const rod = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.4, 0.1), lam({ color: 0x333333 })); rod.position.y = -0.7; g.add(rod);
-    tr.group.add(g); return { g, t: k / 5 };
-  });
-  tr.animated.push((dt) => { for (const cb of cabins) { cb.t = (cb.t + dt * 0.015) % 1; cb.g.position.copy(cableCurve.getPointAt(cb.t)); } });
-
   // cristais de gelo
   const crystal = new THREE.MeshPhongMaterial({ color: 0x9fe2ff, transparent: true, opacity: 0.85, shininess: 140, specular: 0xffffff, flatShading: true });
   for (let k = 0; k < 10; k++) {
@@ -729,7 +565,6 @@ function serra(tr, rnd) {
     }
   }
 
-  buildTunnel(tr, 0.86, 0.93, 'gelo');
 }
 
 // ================================================================= VULCÃO OITO
@@ -846,10 +681,26 @@ function sideWithRoom(tr, i) {
 // ================================================================= entrada
 export function buildScenery(tr, rnd) {
   const theme = tr.def.theme;
-  if (theme === 'campos') campos(tr, rnd);
-  if (theme === 'praia') praia(tr, rnd);
-  if (theme === 'serra') serra(tr, rnd);
-  if (theme === 'vulcao') vulcao(tr, rnd);
+  if (theme === 'campos') {
+    grandstand(tr, 12, sideWithRoom(tr, 12), 56);
+    const an = granja(tr, rnd, { SPR, findPlace, sideWithRoom, spot });
+    let t = 0; tr.animated.push((dt) => { t += dt; for (const f of an) f(t, dt); });
+  }
+  if (theme === 'praia') {
+    praia(tr, rnd);
+    const an = porto(tr, rnd, { SPR, findPlace, sideWithRoom, spot });
+    let t = 0; tr.animated.push((dt) => { t += dt; for (const f of an) f(t, dt); });
+  }
+  if (theme === 'serra') {
+    serra(tr, rnd);
+    const an = geleira(tr, rnd, { SPR, findPlace, sideWithRoom, spot, buildTunnel });
+    let t = 0; tr.animated.push((dt) => { t += dt; for (const f of an) f(t, dt); });
+  }
+  if (theme === 'vulcao') {
+    vulcao(tr, rnd);
+    const an = fundicao(tr, rnd, { SPR, findPlace, sideWithRoom, spot });
+    let t = 0; tr.animated.push((dt) => { t += dt; for (const f of an) f(t, dt); });
+  }
   // Copa Bolota no mundo steampunk: máquinas e autômatos por cima do tema de cada pista
   const STEAM = { campos: camposSteam, praia: praiaSteam, serra: serraSteam, vulcao: vulcaoSteam };
   if (STEAM[theme]) {

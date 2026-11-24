@@ -22,16 +22,39 @@ export function aiDrive(k, track, items, player, time, dt) {
     }
   } else k.dodgeT -= dt;
 
+  if (k.path) k.wasOn = k.path; else if (k.wasOn) { k.wantBr = null; k.wasOn = null; }
   const look = Math.floor(6 + sp * 0.5);
-  const lane = clamp(k.lane + k.dodge + Math.sin(time * 0.3 + k.phase) * 1.2, -4, 4);
-  const ti = (k.idx + look) % N;
-  const tx = track.px[ti] - track.tz[ti] * lane;
-  const tz = track.pz[ti] + track.tx[ti] * lane;
+  let lane = clamp(k.lane + k.dodge + Math.sin(time * 0.3 + k.phase) * 1.2, -4, 4);
+
+  // atalhos: cada piloto decide (uma vez por passagem) se vai pegar o caminho alternativo
+  let S = track, si = k.idx;
+  if (k.path && (k.wantBr === k.path || k.path.mainHit[k.bidx] < 0)) { S = k.path; si = k.bidx; }
+  else if (!k.path) {
+    for (const br of track.branches) {
+      let dd = br.ia - k.idx; if (dd < -N / 2) dd += N; if (dd > N / 2) dd -= N;
+      if (dd > 0 && dd < 60 && k.brSeen !== br.id + ':' + Math.floor(k.progress / N)) {
+        k.brSeen = br.id + ':' + Math.floor(k.progress / N);
+        k.wantBr = Math.random() < br.ai ? br : null;
+      }
+      if (k.wantBr === br && dd <= 0 && dd > -br.N) { S = br; si = br.scan(k.pos.x, k.pos.z); lane *= 0.3; }
+    }
+  }
+  if (S !== track) lane = clamp(lane, -2.5, 2.5);
+  let tx, tz, curv = 0;
+  if (S === track) {
+    const ti = (k.idx + look) % N;
+    tx = track.px[ti] - track.tz[ti] * lane;
+    tz = track.pz[ti] + track.tx[ti] * lane;
+    for (let j = 0; j < 4; j++) curv = Math.max(curv, track.curv[(k.idx + 3 + j * 6) % N]);
+  } else {
+    let ti = si + look;
+    if (ti < S.N) { tx = S.px[ti] - S.tz[ti] * lane; tz = S.pz[ti] + S.tx[ti] * lane; }
+    else { const m = track.wrap(S.ib + (ti - S.N) + 4); tx = track.px[m]; tz = track.pz[m]; }
+    for (let j = 0; j < 4; j++) curv = Math.max(curv, S.curv[Math.min(S.N - 1, si + 3 + j * 6)]);
+    if (S.launch) curv = 0;              // na rampa de salto: pé no fundo
+  }
   const desired = Math.atan2(tx - k.pos.x, tz - k.pos.z);
   const steer = clamp(wrapAngle(desired - k.heading) * 2.4, -1, 1);
-
-  let curv = 0;
-  for (let j = 0; j < 4; j++) curv = Math.max(curv, track.curv[(k.idx + 3 + j * 6) % N]);
 
   // "elástico" do MK64: quem está atrás do jogador acelera, quem está muito à frente alivia.
   // Os 2 rivais da copa ficam mais grudados no jogador.
@@ -42,7 +65,8 @@ export function aiDrive(k, track, items, player, time, dt) {
     pace += clamp(gap / 120, -0.12, 0.12) * band;
     if (k.rival) pace += 0.015;
   }
-  const target = k.top * pace * clamp(1.12 - curv * 0.55, 0.5, 1.08);
+  let target = k.top * pace * clamp(1.12 - curv * 0.55, 0.5, 1.08);
+  if (S !== track && S.launch) target = k.top * 1.2;
 
   // usar itens
   if (k.item && k.controllable) aiItems(k, items, time, dt);

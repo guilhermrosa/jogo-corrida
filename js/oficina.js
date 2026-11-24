@@ -387,9 +387,9 @@ export function oficina(tr, rnd, H) {
     tw.y = tr.terrainY(tw.x, tw.z);
     const g = new THREE.Group(); g.position.copy(tw); tr.group.add(g);
     // praça de pedra
-    const plaza = new THREE.Mesh(new THREE.CircleGeometry(15, 24), lam({ color: 0xb8a890 }));
+    const plaza = new THREE.Mesh(new THREE.CircleGeometry(9, 24), lam({ color: 0xb8a890 }));
     plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.12; g.add(plaza);
-    const ring = new THREE.Mesh(new THREE.RingGeometry(13.5, 15, 24), lam({ color: 0x8a7a64 }));
+    const ring = new THREE.Mesh(new THREE.RingGeometry(7.8, 9, 24), lam({ color: 0x8a7a64 }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = 0.14; g.add(ring);
     const bt = brickTex('#b5654a', '#5e3324'); bt.repeat.set(2, 5);
     const body = new THREE.Mesh(new THREE.BoxGeometry(8, 24, 8), lam({ map: bt }));

@@ -513,7 +513,8 @@ function chaseCamera(dt) {
   const back = 5.8, up = 2.5;
   tmp.set(p.pos.x - Math.sin(camState.h) * back, p.pos.y + up, p.pos.z - Math.cos(camState.h) * back);
   camera.position.lerp(tmp, 1 - Math.exp(-12 * dt));
-  const ground = R.track.groundY(camera.position.x, camera.position.z, R.track.nearest(camera.position.x, camera.position.z, p.idx));
+  const CP = p.path || R.track;
+  const ground = CP.groundY(camera.position.x, camera.position.z, CP.nearest(camera.position.x, camera.position.z, p.path ? p.bidx : p.idx));
   if (camera.position.y < ground + 1.2) camera.position.y = ground + 1.2;
   tmp.set(p.pos.x + Math.sin(camState.h) * 3, p.pos.y + 1.1, p.pos.z + Math.cos(camState.h) * 3);
   camState.look.lerp(tmp, 1 - Math.exp(-14 * dt));

@@ -32,8 +32,12 @@ No celular aparecem os botões A, B, R e Z na tela.
 
 ## Regras do Grand Prix (iguais ao 64)
 - 8 pilotos, 3 voltas por corrida, copas com 4 pistas.
-- **Copa Bolota** (Campos, Praia, Serra, Vulcão) e **Copa Engrenagem** (Vila Engrenagem, Brejo das Caldeiras,
-  Ferro-Velho do Sol e Ilhas das Correntes), no mundo steampunk das artes conceituais.
+- **Copa Bolota** (Granja Bolota, Porto do Coqueiro, Serra Gelada, Fundição do Vulcão) e **Copa Engrenagem**
+  (Vila Engrenagem, Brejo das Caldeiras, Ferro-Velho do Sol e Ilhas das Correntes), no mundo steampunk das artes conceituais.
+- Cada pista tem a sua estrutura: viadutos cruzando a própria pista, espirais, saltos obrigatórios por cima de
+  vãos e gretas, **caminhos alternativos** (por dentro do celeiro, pelo lago congelado, pela passarela sem mureta,
+  pelos dois lados da torre do relógio) e **atalhos de salto arriscados** (a ponte levadiça erguida do porto e a
+  rampa de escória da fundição: sem velocidade, o kart cai).
 - Pontos: **9, 6, 3 e 1** para os 4 primeiros.
 - Terminou em 5º ou pior? Não pontua e precisa **repetir a corrida**.
 - Na primeira corrida você larga em 8º; nas seguintes, na ordem de chegada da anterior.
@@ -103,12 +107,18 @@ Depois abra <http://localhost:8000>. O GitHub Pages também funciona sem configu
 ```
 js/data.js     regras, números, pilotos, itens e pistas
 js/track.js    pistas com relevo, pontes, quedas, água/lava
+js/branch.js   atalhos e caminhos alternativos (saem da pista, voltam ou terminam numa rampa de salto)
+js/kit.js      peças comuns de cenário (galpões sobre a pista, texturas, fumaça, instâncias)
+js/granja.js   cenário da Granja Bolota (cooperativa de bolotas a vapor)
+js/porto.js    cenário do Porto do Coqueiro (escafandristas, submarinos, ponte levadiça)
+js/geleira.js  cenário da Serra Gelada (Companhia de Gelo: depósito, teleférico, gretas, lago)
+js/fundicao.js cenário da Fundição do Vulcão (galpão de fundição, poço de metal, escória)
 js/textures.js texturas em pixel art pintadas à mão (pista, chão, barrancos, muros, água, lava)
 js/oficina.js  cenário da Vila Engrenagem (cidade-oficina)
 js/pantano.js  cenário do Brejo das Caldeiras (pântano com máquinas)
 js/sucata.js   cenário do Ferro-Velho do Sol (deserto de sucata)
 js/ilhas.js    cenário das Ilhas das Correntes (ilhas flutuantes)
-js/bolota.js   Copa Bolota no mundo steampunk (máquinas, autômatos, lampiões, canos)
+js/bolota.js   máquinas e autômatos comuns da Copa Bolota (lampiões, canos de vapor, robôs)
 js/robots.js   autômatos steampunk (robozinhos de lata e robô gigante)
 js/podium.js   pódio: praça de oficina com pedestais de cobre, arco de engrenagem e robôs
 js/scenery.js  cenário: morros, marcos de cada pista, placas, arquibancadas, túneis e animações
