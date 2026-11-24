@@ -305,14 +305,33 @@ function buildHead(b, d, expr) {
     }
     case 'tonho': { // urso
       R = 0.43;
-      b.sphere(h, R, fur, [0, 0, 0], [1.08, 0.96, 0.96]);
-      for (const s of [1, -1]) { b.sphere(h, 0.13, fur, [s * 0.32, 0.3, -0.04]); b.sphere(h, 0.07, b.fur(0xd7a979), [s * 0.32, 0.3, 0.03], [1, 1, 0.5]); }
-      b.sphere(h, 0.2, b.fur(0xd7a979), surf(R * 0.8, 0, -0.28), [1.15, 0.8, 0.95]);
-      b.sphere(h, 0.075, b.plastic(0x111111, 100), surf(R * 1.02, 0, -0.14), [1.4, 0.9, 1]);
-      eyes(b, h, R, ex({ pitch: 0.12, size: 0.066 }));
-      mouth(b, h, R, ex({ pitch: -0.4, w: 0.08 }));
+      b.sphere(h, R, fur, [0, 0, 0], [1.1, 0.95, 0.95]);
+      // orelhas redondas saindo por cima do gorro
+      for (const s of [1, -1]) { b.sphere(h, 0.12, fur, [s * 0.34, 0.47, -0.04], [1, 1, 0.75]); b.sphere(h, 0.065, b.fur(0xd7a979), [s * 0.34, 0.47, 0.045], [1, 1, 0.4]); }
+      // focinho claro e arredondado, mais baixo, com nariz grande de urso em cima e boquinha embaixo
+      const tan = b.fur(0xd7a979);
+      const mz = [0, -0.14, 0.33];
+      b.sphere(h, 0.17, tan, mz, [1.25, 0.82, 0.9]);
+      b.sphere(h, 0.07, b.plastic(0x2a1a14, 110), [0, mz[1] + 0.07, mz[2] + 0.14], [1.35, 0.85, 0.9]);
+      b.sphere(h, 0.018, b.plastic(0xffffff, 10), [0.03, mz[1] + 0.105, mz[2] + 0.19], [1.4, 0.8, 0.5]);
+      b.add(h, new THREE.BoxGeometry(0.012, 0.05, 0.01), b.plastic(0x2a1a14), [0, mz[1] + 0.0, mz[2] + 0.165]);
+      if (expr === 'happy') {
+        b.sphere(h, 0.06, b.plastic(0x7a1a1a, 20), [0, mz[1] - 0.05, mz[2] + 0.13], [1.4, 0.8, 0.5]);
+        b.sphere(h, 0.035, b.plastic(0xff6f80, 20), [0, mz[1] - 0.07, mz[2] + 0.145], [1.3, 0.6, 0.4]);
+      } else if (expr === 'dizzy') {
+        b.add(h, new THREE.TorusGeometry(0.025, 0.008, 6, 12), b.plastic(0x2a1a14), [0, mz[1] - 0.06, mz[2] + 0.145]);
+      } else {
+        for (const sd of [1, -1]) b.add(h, new THREE.TorusGeometry(0.03, 0.008, 6, 12, Math.PI), b.plastic(0x2a1a14), [sd * 0.03, mz[1] - 0.03, mz[2] + 0.14], [0, 0, Math.PI]);
+      }
+      // olhos mais próximos e mais baixos, com sobrancelhas grossas e simpáticas
+      eyes(b, h, R, ex({ yaw: 0.25, pitch: 0.06, size: 0.07 }));
+      if (expr !== 'dizzy') for (const sd of [1, -1]) {
+        const br = b.add(h, new THREE.CapsuleGeometry(0.018, 0.07, 4, 8), b.fur(0x4a2a14), surf(R * 1.0, sd * 0.25, 0.27));
+        br.rotation.set(0.25, 0, Math.PI / 2 - sd * (expr === 'happy' ? 0.3 : 0.12));
+      }
+      cheeks(b, h, R * 1.05, 0xd9806a);
       // gorro de tricô com barra dobrada e pompom
-      const cap = new THREE.Group(); cap.position.set(0, 0.22, -0.05); cap.rotation.x = -0.25; h.add(cap);
+      const cap = new THREE.Group(); cap.position.set(0, 0.25, -0.06); cap.rotation.x = -0.28; h.add(cap);
       b.add(cap, new THREE.SphereGeometry(0.44, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2), b.fur(L.cap), [0, 0, 0], [0, 0, 0], [1.06, 0.95, 1.06]);
       b.add(cap, new THREE.TorusGeometry(0.43, 0.055, 8, 28), b.fur(0xe8e0d0), [0, 0.02, 0], [Math.PI / 2, 0, 0], [1.06, 1.06, 1]);
       b.sphere(cap, 0.1, b.fur(0xe8e0d0), [0, 0.43, 0]);
@@ -393,11 +412,11 @@ function buildKart(b, d, root, steerAng) {
   const iron = b.plastic(0x2e2a28, 30), brass = b.metal(0xc9a24a), copper = b.metal(0xb8673a), wood = b.plastic(0x8a5a34, 15);
   const leather = b.plastic(0x5a3a22, 20), glow = b.mat('glow', () => new THREE.MeshBasicMaterial({ color: 0xffa040 }));
   const id = d.id;
-  b.rbox(root, 1.1, 0.1, 1.9, 0.04, iron, [0, 0.19, -0.05]);                              // chassi
+  b.rbox(root, id === 'pipoca' ? 0.5 : 1.1, 0.1, 1.9, 0.04, iron, [0, 0.19, -0.05]);       // chassi
   b.rbox(root, 0.56, 0.5, 0.1, 0.05, leather, [0, 0.62, -0.62], [-0.25, 0, 0]);           // banco
   b.rbox(root, 0.56, 0.08, 0.42, 0.03, leather, [0, 0.33, -0.42]);
   // volante de madeira com raios de latão
-  b.limb(root, V(0, 0.42, 0.55), V(0, 0.74, 0.26), 0.025, brass);
+  if (id !== 'pipoca') b.limb(root, V(0, 0.42, 0.55), V(0, 0.74, 0.26), 0.025, brass);
   const wheel = new THREE.Group(); wheel.position.set(0, 0.78, 0.22); wheel.rotation.x = -1.0; root.add(wheel);
   const wr = new THREE.Group(); wr.rotation.z = steerAng; wheel.add(wr);
   b.add(wr, new THREE.TorusGeometry(0.17, 0.03, 8, 24), wood);
@@ -412,7 +431,7 @@ function buildKart(b, d, root, steerAng) {
     for (let k = 0; k < 6; k++) b.add(piv, new THREE.BoxGeometry(0.03, (r - 0.08) * 2, 0.03), brass, [0, 0, 0], [(k / 6) * Math.PI, 0, 0]);
     if (id === 'tonho' && !front) for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; b.sphere(piv, 0.03, b.metal(), [0, Math.sin(a) * r, Math.cos(a) * r]); } // pneus com cravos
   };
-  if (id !== 'tonho') for (const s of [1, -1]) wheelAt(s * 0.64, 0.66, 0.23, 0.22, 1);
+  if (id !== 'tonho' && id !== 'pipoca') for (const s of [1, -1]) wheelAt(s * 0.64, 0.66, 0.23, 0.22, 1);
   if (id !== 'juca') for (const s of [1, -1]) wheelAt(s * 0.68, -0.72, 0.29, 0.3, 0);
   const boiler = (x, z, h = 0.34, chim = 0.32) => {
     b.add(root, new THREE.CylinderGeometry(0.17, 0.17, h, 14), copper, [x, 0.38 + h / 2, z]);
@@ -422,54 +441,72 @@ function buildKart(b, d, root, steerAng) {
   const pontoons = (mat) => { for (const s of [1, -1]) b.rbox(root, 0.26, 0.24, 1.0, 0.09, mat, [s * 0.58, 0.33, -0.1]); };
 
   switch (id) {
-    case 'pipoca': { // carrinho do correio a vapor: cesto de vime com cartas e campainha
-      pontoons(paint);
-      b.rbox(root, 0.86, 0.26, 0.7, 0.1, paint, [0, 0.36, 0.72], [0.1, 0, 0]);
-      for (const s of [1, -1]) b.rbox(root, 0.03, 0.05, 1.0, 0.01, brass, [s * 0.715, 0.42, -0.1]);
+    case 'pipoca': { // velocípede do correio: roda dianteira gigante, quadro de latão e alforjes de cartas
+      const fw = new THREE.Group(); fw.position.set(0, 0.44, 1.04); fw.rotation.y = steerAng * 0.5; root.add(fw);
+      b.add(fw, new THREE.TorusGeometry(0.4, 0.045, 8, 28), tire, [0, 0, 0], [0, Math.PI / 2, 0]);
+      b.add(fw, new THREE.TorusGeometry(0.36, 0.015, 6, 28), brass, [0, 0, 0], [0, Math.PI / 2, 0]);
+      for (let k = 0; k < 8; k++) b.add(fw, new THREE.BoxGeometry(0.015, 0.72, 0.015), brass, [0, 0, 0], [(k / 8) * Math.PI, 0, 0]);
+      b.add(fw, new THREE.CylinderGeometry(0.06, 0.06, 0.16, 12), brass, [0, 0, 0], [0, 0, Math.PI / 2]);
+      for (const sd of [1, -1]) b.limb(fw, V(sd * 0.09, 0, 0), V(sd * 0.09, 0.5, -0.12), 0.022, brass);  // garfo
+      // cesto pequeno em cima da roda, com cartas
       const wicker = b.plastic(0xc8a060, 10);
-      b.rbox(root, 0.62, 0.3, 0.42, 0.04, wicker, [0, 0.66, 0.98]);
-      for (let k = -2; k <= 2; k++) b.add(root, new THREE.BoxGeometry(0.02, 0.3, 0.43), b.plastic(0x9a7a40, 10), [k * 0.12, 0.66, 0.98]);
-      for (const [x, z, r] of [[-0.12, 0.98, 0.1], [0.06, 0.92, -0.15], [0.18, 1.04, 0.2]]) b.rbox(root, 0.2, 0.14, 0.02, 0.005, b.plastic(0xf8f4ea, 10), [x, 0.86, z], [0, 0, r]);
-      b.rbox(root, 0.16, 0.12, 0.14, 0.02, b.plastic(0xa8784a, 10), [-0.16, 0.86, 1.05]);
-      b.sphere(root, 0.05, brass, [0.16, 0.86, 0.36], [1, 0.6, 1]);                      // campainha
-      b.add(root, new THREE.ConeGeometry(0.08, 0.3, 12, 1, true), brass, [-0.6, 0.62, 0.5], [-Math.PI / 2, 0, 0]); // buzina
-      boiler(0.26, -0.92);
+      b.rbox(root, 0.36, 0.2, 0.28, 0.03, wicker, [0, 1.0, 0.96]);
+      for (let k = -1; k <= 1; k++) b.add(root, new THREE.BoxGeometry(0.015, 0.2, 0.29), b.plastic(0x9a7a40, 10), [k * 0.12, 1.0, 0.96]);
+      for (const [x, r] of [[-0.06, 0.15], [0.07, -0.2]]) b.rbox(root, 0.16, 0.12, 0.015, 0.005, b.plastic(0xf8f4ea, 10), [x, 1.14, 0.96], [0, 0, r]);
+      // quadro fino pintado ligando a roda ao banco
+      b.tube(root, [V(0, 0.9, 0.9), V(0, 0.5, 0.45), V(0, 0.32, -0.1), V(0, 0.36, -0.8)], 0.07, paint);
+      b.rbox(root, 0.42, 0.2, 0.9, 0.08, paint, [0, 0.3, -0.45]);
+      for (const sd of [1, -1]) {
+        b.rbox(root, 0.2, 0.3, 0.42, 0.05, leather, [sd * 0.38, 0.52, -0.8]);                   // alforjes de cartas
+        b.rbox(root, 0.21, 0.08, 0.43, 0.03, b.plastic(0x7a4a2a, 20), [sd * 0.38, 0.66, -0.8]);
+        b.rbox(root, 0.015, 0.12, 0.18, 0.005, b.plastic(0xf8f4ea, 10), [sd * 0.38, 0.72, -0.72], [0, 0, sd * 0.15]);
+      }
+      b.sphere(root, 0.05, brass, [0.16, 0.86, 0.36], [1, 0.6, 1]);                             // campainha
+      b.add(root, new THREE.CylinderGeometry(0.035, 0.035, 1.3, 8), brass, [0, 0.29, -0.72], [0, 0, Math.PI / 2]);  // eixo traseiro
+      boiler(0, -1.12, 0.28, 0.26);
       break;
     }
-    case 'tico': { // estufa sobre rodas: redoma de vidro com cogumelos que brilham
-      pontoons(paint);
-      b.sphere(root, 0.46, paint, [0, 0.34, 0.78], [1, 0.4, 0.9]);
-      for (const [x, z, c, r] of [[0.58, 0.18, 0xffc84a, 0.08], [-0.58, 0.05, 0xe8541e, 0.07], [0.58, -0.35, 0xffffff, 0.06], [0.25, 1.05, 0xe8541e, 0.07]]) {
-        b.add(root, new THREE.CylinderGeometry(0.025, 0.03, 0.12, 8), b.fur(0xf3e5c0), [x, 0.5, z]);
-        b.add(root, new THREE.SphereGeometry(r, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), b.mat('gl' + c, () => new THREE.MeshBasicMaterial({ color: c })), [x, 0.55, z]);
+    case 'tico': { // vitória-régia sobre rodas: folha redonda, para-lamas de cogumelo e uma estufa grande atrás
+      const leaf = b.plastic(0x4f9a4a, 20);
+      b.add(root, new THREE.CylinderGeometry(0.82, 0.78, 0.1, 32, 1, false, 0.25, Math.PI * 2 - 0.5), leaf, [0, 0.3, 0.05]);
+      b.add(root, new THREE.TorusGeometry(0.8, 0.05, 6, 32, Math.PI * 2 - 0.5), b.plastic(0x7aba5a, 20), [0, 0.36, 0.05], [Math.PI / 2, 0, 0.25]);
+      for (let k = 0; k < 8; k++) b.add(root, new THREE.BoxGeometry(0.02, 0.012, 0.7), b.plastic(0x7aba5a, 20), [Math.sin((k / 8) * 6.28) * 0.38, 0.36, 0.05 + Math.cos((k / 8) * 6.28) * 0.38], [0, (k / 8) * 6.28, 0]);
+      // para-lamas: chapéus de cogumelo pintados sobre as quatro rodas
+      for (const [x, z, r, c] of [[0.66, 0.66, 0.28, 0xe8541e], [-0.66, 0.66, 0.28, 0xe8541e], [0.7, -0.72, 0.36, 0xffc84a], [-0.7, -0.72, 0.36, 0xffc84a]]) {
+        b.add(root, new THREE.SphereGeometry(r, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), b.plastic(c, 40), [x, r + 0.12, z], [0, 0, 0], [0.75, 0.75, 1]);
+        for (const [yy, zz] of [[0.6, 0.4], [0.75, -0.3], [0.3, 0.75]]) b.sphere(root, r * 0.16, b.plastic(0xfff3c4, 30), [x + Math.sign(x) * r * 0.5 * 0.75 * Math.cos(yy), r + 0.12 + r * 0.75 * Math.sin(yy), z + zz * r * 0.6], [1, 1, 0.5]);
       }
-      // redoma de estufa atrás do banco
-      b.add(root, new THREE.CylinderGeometry(0.32, 0.34, 0.08, 18), brass, [0, 0.42, -0.95]);
-      for (const [x, z, c] of [[0.1, -0.9, 0xe8541e], [-0.12, -1.0, 0xffc84a], [0.02, -1.08, 0x8ad8ff]]) {
-        b.add(root, new THREE.CylinderGeometry(0.03, 0.035, 0.18, 8), b.fur(0xf3e5c0), [x, 0.54, z]);
-        b.add(root, new THREE.SphereGeometry(0.09, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), b.mat('gl' + c, () => new THREE.MeshBasicMaterial({ color: c })), [x, 0.62, z]);
+      // estufa grande atrás do banco
+      b.add(root, new THREE.CylinderGeometry(0.46, 0.48, 0.12, 20), brass, [0, 0.42, -1.0]);
+      for (const [x, z, c, hh] of [[0.15, -0.92, 0xe8541e, 0.24], [-0.17, -1.05, 0xffc84a, 0.18], [0.04, -1.18, 0x8ad8ff, 0.3], [-0.05, -0.85, 0xffffff, 0.14]]) {
+        b.add(root, new THREE.CylinderGeometry(0.03, 0.04, hh, 8), b.fur(0xf3e5c0), [x, 0.48 + hh / 2, z]);
+        b.add(root, new THREE.SphereGeometry(0.1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), b.mat('gl' + c, () => new THREE.MeshBasicMaterial({ color: c })), [x, 0.48 + hh, z]);
       }
-      b.add(root, new THREE.SphereGeometry(0.33, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2), b.mat('glass', () => new THREE.MeshPhongMaterial({ color: 0xcfefff, transparent: true, opacity: 0.35, shininess: 150, specular: 0xffffff })), [0, 0.45, -0.95]);
-      for (let k = 0; k < 4; k++) b.add(root, new THREE.TorusGeometry(0.33, 0.012, 4, 18, Math.PI), brass, [0, 0.45, -0.95], [0, (k / 4) * Math.PI, 0]);
+      b.add(root, new THREE.SphereGeometry(0.46, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2), b.mat('glass', () => new THREE.MeshPhongMaterial({ color: 0xcfefff, transparent: true, opacity: 0.32, shininess: 150, specular: 0xffffff })), [0, 0.48, -1.0], [0, 0, 0], [1, 1.15, 1]);
+      for (let k = 0; k < 4; k++) b.add(root, new THREE.TorusGeometry(0.46, 0.012, 4, 20, Math.PI), brass, [0, 0.48, -1.0], [0, (k / 4) * Math.PI, 0], [1, 1.15, 1]);
+      b.sphere(root, 0.05, brass, [0, 1.02, -1.0]);
       // regador de cobre na frente
-      b.add(root, new THREE.CylinderGeometry(0.1, 0.12, 0.2, 12), copper, [0.3, 0.6, 0.9]);
-      b.limb(root, V(0.38, 0.62, 0.95), V(0.55, 0.78, 1.15), 0.025, copper);
+      b.add(root, new THREE.CylinderGeometry(0.1, 0.12, 0.2, 12), copper, [0.3, 0.46, 0.75]);
+      b.limb(root, V(0.38, 0.5, 0.8), V(0.52, 0.66, 1.0), 0.025, copper);
       break;
     }
-    case 'mel': { // kart de corda: mostrador de relógio no bico, engrenagens à mostra e chave de dar corda
-      pontoons(paint);
-      b.rbox(root, 0.86, 0.3, 0.72, 0.1, paint, [0, 0.38, 0.72], [0.1, 0, 0]);
-      b.add(root, new THREE.CylinderGeometry(0.28, 0.28, 0.08, 24), brass, [0, 0.55, 1.08], [Math.PI / 2 - 0.2, 0, 0]);
-      b.add(root, new THREE.CircleGeometry(0.24, 24), new THREE.MeshPhongMaterial({ map: clockFace(), shininess: 40 }), [0, 0.56, 1.125], [-0.2, 0, 0]);
-      for (const s of [1, -1]) {
-        const g1 = b.add(root, gearGeo(0.2, 10), brass, [s * 0.73, 0.4, 0.05], [0, Math.PI / 2, 0.3]);
-        const g2 = b.add(root, gearGeo(0.13, 8), copper, [s * 0.73, 0.4, -0.27], [0, Math.PI / 2, 0]);
-        void g1; void g2;
+    case 'mel': { // relógio de bolso gigante: caixa de latão em pé na frente, coroa em cima e chave de corda enorme atrás
+      b.rbox(root, 0.7, 0.24, 1.5, 0.08, paint, [0, 0.32, -0.25]);
+      const watch = new THREE.Group(); watch.position.set(0, 0.66, 1.0); watch.rotation.x = -0.15; root.add(watch);
+      b.add(watch, new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32), brass, [0, 0, 0], [Math.PI / 2, 0, 0]);
+      b.add(watch, new THREE.TorusGeometry(0.5, 0.05, 8, 32), b.metal(0xe0c070), [0, 0, 0.1]);
+      b.add(watch, new THREE.CircleGeometry(0.44, 32), new THREE.MeshPhongMaterial({ map: clockFace(), shininess: 40 }), [0, 0, 0.105]);
+      b.add(watch, new THREE.CylinderGeometry(0.06, 0.06, 0.12, 12), brass, [0, 0.56, 0]);        // coroa
+      b.add(watch, new THREE.CylinderGeometry(0.09, 0.09, 0.06, 14), brass, [0, 0.64, 0]);
+      b.add(watch, new THREE.TorusGeometry(0.12, 0.025, 6, 16), brass, [0, 0.78, 0], [Math.PI / 2, 0, 0]);
+      for (const sd of [1, -1]) {
+        b.add(root, gearGeo(0.26, 12), copper, [sd * 0.39, 0.42, -0.1], [0, Math.PI / 2, 0]);
+        b.add(root, gearGeo(0.16, 9), brass, [sd * 0.39, 0.5, -0.5], [0, Math.PI / 2, 0.2]);
       }
-      const key = new THREE.Group(); key.position.set(0, 0.62, -1.08); key.rotation.z = 0.5; root.add(key);
-      b.add(key, new THREE.CylinderGeometry(0.035, 0.035, 0.3, 8), brass, [0, 0, -0.1], [Math.PI / 2, 0, 0]);
-      for (const s of [1, -1]) b.add(key, new THREE.TorusGeometry(0.11, 0.035, 8, 16), brass, [s * 0.13, 0, -0.26], [0, 0, 0], [1, 0.8, 1]);
-      boiler(-0.28, -0.85, 0.26, 0.22);
+      const key = new THREE.Group(); key.position.set(0, 0.75, -1.12); root.add(key);
+      b.add(key, new THREE.CylinderGeometry(0.05, 0.05, 0.36, 8), brass, [0, -0.1, 0]);
+      b.add(key, new THREE.CylinderGeometry(0.09, 0.09, 0.08, 10), brass, [0, 0.1, 0]);
+      for (const sd of [1, -1]) b.add(key, new THREE.TorusGeometry(0.17, 0.05, 8, 18), brass, [sd * 0.2, 0.3, 0], [0, 0, 0], [1, 0.8, 1]);
       break;
     }
     case 'faisca': { // mini-dirigível sobre rodas: casco de charuto, lemes e hélice

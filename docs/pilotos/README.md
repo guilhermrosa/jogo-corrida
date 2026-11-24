@@ -18,13 +18,14 @@ Linhas: Pipoca, Tico, Mel, Faísca, Bento, Tonho, Rino e Juca.
 | `comparativo-v3-v4.png` | Pipoca e Tico na v3 (em cima) e na v4 (embaixo) |
 | `v5-identidades.png` | Quinta versão: cada piloto com um papel no mundo steampunk e um kart combinando (ver abaixo) |
 | `comparativo-v4-v5.png` | v4 à esquerda, v5 à direita |
+| `v5-tonho-rosto.png` | Rosto novo do Tonho: focinho mais baixo com nariz grande, boquinha, sobrancelhas, bochechas e orelhas saindo do gorro |
 
 ## Identidades (v5)
 | Piloto | Papel | Roupa e acessórios | Kart |
 |---|---|---|---|
-| Pipoca | Mensageira do correio a vapor | Jaqueta azul do correio com botões de latão, bolsa de cartas a tiracolo, óculos de aviadora | Carrinho do correio: cesto de vime com cartas e pacote, campainha, buzina de latão |
-| Tico | Botânico do Brejo, cultiva os cogumelos que brilham | Chapéu de cogumelo com lamelas, anel e dois cogumelinhos brotando; avental verde com lupa e muda no bolso | Estufa sobre rodas: redoma de vidro com cogumelos, cogumelos luminosos nos para-lamas, regador de cobre |
-| Mel | Relojoeira | Tiara de couro com lupa de joalheiro sobre o olho, avental de couro com ferramentas | Kart de corda: mostrador de relógio no bico, engrenagens à mostra, chave de dar corda |
+| Pipoca | Mensageira do correio a vapor | Jaqueta azul do correio com botões de latão, bolsa de cartas a tiracolo, óculos de aviadora | Velocípede do correio: roda dianteira gigante raiada, quadro fino, cesto com cartas, alforjes, campainha |
+| Tico | Botânico do Brejo, cultiva os cogumelos que brilham | Chapéu de cogumelo com lamelas, anel e dois cogumelinhos brotando; avental verde com lupa e muda no bolso | Vitória-régia sobre rodas: folha redonda, para-lamas de chapéu de cogumelo, estufa grande de vidro atrás, regador de cobre |
+| Mel | Relojoeira | Tiara de couro com lupa de joalheiro sobre o olho, avental de couro com ferramentas | Relógio de bolso gigante em pé na frente, engrenagens nas laterais e chave de corda enorme atrás |
 | Faísca | Piloto de dirigível | Jaqueta de couro com gola de lã, cachecol voando, óculos | Mini-dirigível: casco de charuto com cintas de latão, lemes e hélice de madeira |
 | Bento | Foguista da ferrovia | Quepe com distintivo, macacão azul com fuligem, lenço vermelho | Locomotiva: caldeira deitada, chaminé de funil, farol, sino e limpa-trilhos |
 | Tonho | Cortador de gelo da serra | Gorro de tricô com pompom, camisa xadrez, suspensórios, serrote nas costas | Trenó de gelo: esquis na frente, lâmina de neve, caixote com blocos de gelo, pneus com cravos |
