@@ -199,3 +199,19 @@ function signTex(text) {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 16; return t;
 }
 export { signTex };
+
+// placa por cima de um caminho (atalho): postes nas bordas, fora do caminho dos karts
+export function signGate(tr, m, P, i, text, h = 6.5) {
+  // anda pelo caminho até achar um ponto em que os postes não caiam na pista principal
+  const clear = (k) => [1, -1].every((s) => {
+    const q = P.point(k, s * (EDGE + 0.5)), j = tr.nearestGlobal(q.x, q.z);
+    return Math.abs(tr.lateral(q.x, q.z, j)) > EDGE + 1.2 || Math.abs(tr.py[j] - P.py[k]) > 3;
+  });
+  for (let d = 0; d < 30 && P !== tr && !clear(i); d++) i = Math.min(P.N - 6, i + 1);
+  const w = EDGE * 2 + 1.2, y = P.py[i];
+  const sg = add(tr.group, new THREE.BoxGeometry(Math.min(w, 12), 1.5, 0.3), [m.brass, m.brass, m.brass, m.brass, lam({ map: signTex(text) }), m.brass]);
+  const sp = P.point(i, 0); sg.position.set(sp.x, y + h, sp.z); sg.rotation.y = P.heading(i) + Math.PI;
+  const bar = add(tr.group, new THREE.BoxGeometry(w, 0.25, 0.25), m.iron, sp.x, y + h + 0.9, sp.z);
+  bar.rotation.y = P.heading(i);
+  for (const s of [1, -1]) { const pp = P.point(i, s * (EDGE + 0.5)); add(tr.group, new THREE.BoxGeometry(0.3, h + 1, 0.3), m.iron, pp.x, y + (h + 1) / 2, pp.z); }
+}

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { EDGE } from './data.js';
-import { tinBot } from './robots.js';
+import { tinBot, patrol } from './robots.js';
 import { M, add, cyl, gearMesh } from './bolota.js';
 import { lam, basic, phong, brickTex, plateTex, boardsTex, puffs, instances, TRS, freeNear } from './kit.js';
 import { signTex } from './granja.js';
@@ -74,7 +74,11 @@ export function geleira(tr, rnd, H) {
     smoke.push(new THREE.Vector3(dep.x + 25, dep.y + 19.5, dep.z - 5));
     for (const z of [-3, 0, 3]) cold.push(new THREE.Vector3(dep.x + 33.5, dep.y + 3, dep.z - 2 + z));
     // robôs carregando blocos
-    for (let k = 0; k < 3; k++) { const b = tinBot(rnd, { mode: 'carry', color: 0x9aa0a4 }); b.group.position.set(-8 + k * 5, 0, 15); g.add(b.group); anims.push((t, dt) => b.update(t, dt)); }
+    // robôs levando blocos de um lado para o outro na frente da casa de gelo
+    for (let k = 0; k < 3; k++) {
+      const b = tinBot(rnd, { mode: 'carry', color: 0x9aa0a4 }); g.add(b.group);
+      anims.push(patrol(b, new THREE.Vector3(-12, 0, 17.4 + k * 1.5), new THREE.Vector3(3, 0, 17.4 + k * 1.5), rnd, { speed: 0.9 }));
+    }
     tr.landmarks = { ...(tr.landmarks || {}), show: dep.clone() };
   }
 

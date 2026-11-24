@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { EDGE } from './data.js';
-import { tinBot } from './robots.js';
+import { tinBot, patrol } from './robots.js';
 import { M, add, cyl, gearMesh } from './bolota.js';
 import { lam, basic, phong, shed, brickTex, plateTex, puffs, instances, TRS, freeNear, MX } from './kit.js';
-import { signTex } from './granja.js';
+import { signTex, signGate } from './granja.js';
 
 // =====================================================================
 //  FUNDIÇÃO DO VULCÃO — a fundição que usa o calor do vulcão: galpão de
@@ -52,12 +52,13 @@ export function fundicao(tr, rnd, H) {
     anims.push((t) => { pool.material.color.setHSL(0.07 + Math.sin(t * 2) * 0.01, 1, 0.5 + Math.sin(t * 3) * 0.03); });
     // postinhos de ferro com lampiões (sem mureta) ao longo da passarela
     const posts = [], lamps = [];
-    for (let i = 8; i < cat.N - 8; i += 6) for (const s of [1, -1]) { const p = cat.point(i, s * (EDGE - 0.3)); posts.push(TRS(p.x, cat.py[i], p.z)); if (i % 18 === 8) lamps.push(TRS(p.x, cat.py[i] + 2.2, p.z)); }
+    for (let i = 8; i < cat.N - 8; i += 6) for (const s of [1, -1]) {
+      const p = cat.point(i, s * (EDGE - 0.3)), j = tr.nearestGlobal(p.x, p.z);
+      if (cat.mainHit[i] >= 0 || (Math.abs(tr.lateral(p.x, p.z, j)) < EDGE + 1 && Math.abs(tr.py[j] - cat.py[i]) < 3)) continue;   // onde encosta na pista principal
+      posts.push(TRS(p.x, cat.py[i], p.z)); if (i % 18 === 8) lamps.push(TRS(p.x, cat.py[i] + 2.2, p.z)); }
     const pg = cyl(0.08, 0.1, 2.2, 6); pg.translate(0, 1.1, 0); instances(tr, pg, m.iron, posts);
     instances(tr, new THREE.SphereGeometry(0.25, 6, 5), basic({ color: 0xffd98a }), lamps);
-    const sg = add(tr.group, new THREE.BoxGeometry(8, 1.4, 0.3), [m.brass, m.brass, m.brass, m.brass, lam({ map: signTex('SEM MURETA!') }), m.brass]);
-    const sp = cat.point(4, 0); sg.position.set(sp.x, cat.py[4] + 6, sp.z); sg.rotation.y = cat.heading(4) + Math.PI;
-    for (const s of [1, -1]) { const pp = cat.point(4, s * 4); add(tr.group, new THREE.BoxGeometry(0.3, 6, 0.3), m.iron, pp.x, cat.py[4] + 3, pp.z); }
+    signGate(tr, m, cat, 4, 'SEM MURETA!');
   }
 
   // ---------------------------------------------------- monte de escória com a rampa, e o canal de lava embaixo do salto
@@ -73,9 +74,7 @@ export function fundicao(tr, rnd, H) {
     const end = ramp.point(ramp.N - 1, 0), land = tr.point(ramp.ib, 0);
     const ch = add(tr.group, new THREE.PlaneGeometry(14, 60), molten, (end.x + land.x) / 2, -0.4, (end.z + land.z) / 2);
     ch.rotation.x = -Math.PI / 2; ch.rotation.z = Math.atan2(land.x - end.x, land.z - end.z) + Math.PI / 2;
-    const sg = add(tr.group, new THREE.BoxGeometry(7, 1.4, 0.3), [m.brass, m.brass, m.brass, m.brass, lam({ map: signTex('ESCORIA') }), m.brass]);
-    const sp = ramp.point(10, 0); sg.position.set(sp.x, ramp.py[10] + 6, sp.z); sg.rotation.y = ramp.heading(10) + Math.PI;
-    for (const s of [1, -1]) { const pp = ramp.point(10, s * 3.4); add(tr.group, new THREE.BoxGeometry(0.3, 6, 0.3), m.iron, pp.x, ramp.py[10] + 3, pp.z); }
+    signGate(tr, m, ramp, 10, 'ESCORIA');
     tr.landmarks = { ...(tr.landmarks || {}), show: end.clone() };
   }
 
@@ -108,8 +107,15 @@ export function fundicao(tr, rnd, H) {
     const i = tr.dist(p.x, p.z).i;
     p.y = tr.py[i] - 0.1;
     const b = tinBot(rnd, { mode: k % 2 ? 'work' : 'carry', color: 0x4a4440 });
-    b.group.position.copy(p); tr.group.add(b.group);
-    anims.push((t, dt) => b.update(t, dt));
+    tr.group.add(b.group);
+    // quem carrega vai e volta (paralelo à pista, sem entrar nela)
+    const q = p.clone().addScaledVector(new THREE.Vector3(tr.tx[i], 0, tr.tz[i]), 8);
+    if (k % 2 === 0 && tr.dist(q.x, q.z).d > EDGE + 2 && tr.dist((p.x + q.x) / 2, (p.z + q.z) / 2).d > EDGE + 2) anims.push(patrol(b, p, q, rnd, { speed: 0.8 }));
+    else {
+      b.group.position.copy(p); b.group.lookAt(tr.px[i], p.y, tr.pz[i]);
+      if (k % 2 === 0) b.moving = false;
+      anims.push((t, dt) => b.update(t, dt));
+    }
   }
 
   anims.push(puffs(tr, H.SPR, smoke, { color: 0x4a4040, rate: 0.2, size: 7, rise: 14, opacity: 0.7 }));

@@ -110,6 +110,7 @@ js/data.js     regras, números, pilotos, itens e pistas
 js/track.js    pistas com relevo, pontes, quedas, água/lava
 js/branch.js   atalhos e caminhos alternativos (saem da pista, voltam ou terminam numa rampa de salto)
 js/kit.js      peças comuns de cenário (galpões sobre a pista, texturas, fumaça, instâncias)
+js/solids.js   colisão com o cenário: tudo que encosta na pista na altura do kart vira parede
 js/granja.js   cenário da Granja Bolota (cooperativa de bolotas a vapor)
 js/porto.js    cenário do Porto do Coqueiro (escafandristas, submarinos, ponte levadiça)
 js/geleira.js  cenário da Serra Gelada (Companhia de Gelo: depósito, teleférico, gretas, lago)
@@ -120,7 +121,7 @@ js/pantano.js  cenário do Brejo das Caldeiras (pântano com máquinas)
 js/sucata.js   cenário do Ferro-Velho do Sol (deserto de sucata)
 js/ilhas.js    cenário das Ilhas das Correntes (ilhas flutuantes)
 js/bolota.js   máquinas e autômatos comuns da Copa Bolota (lampiões, canos de vapor, robôs)
-js/robots.js   autômatos steampunk (robozinhos de lata e robô gigante)
+js/robots.js   autômatos steampunk (robozinhos de lata e robô gigante; patrol() faz um robô andar e virar)
 js/podium.js   pódio: praça de oficina com pedestais de cobre, arco de engrenagem e robôs
 js/scenery.js  cenário: morros, marcos de cada pista, placas, arquibancadas, túneis e animações
 js/kart.js     física: pulo, derrapagem, mini-turbo, muros, queda e resgate

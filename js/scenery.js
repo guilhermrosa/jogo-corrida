@@ -280,6 +280,23 @@ function grandstand(tr, idx, side, len = 50) {
     }
   }, true);
   crowdTex.repeat.set(len / 12, 1);
+  // a arquibancada (13 m de fundo) não pode invadir atalhos nem outro trecho da pista:
+  // se o lugar pedido não serve, procura outro perto da largada
+  const clean = (i, sd) => {
+    for (let k = -len / 2; k <= len / 2; k += 3) {
+      const j = tr.wrap(Math.round(i + k));
+      if (tr.isFall(j, sd) || tr.bridge[j]) return false;
+      for (const l of [EDGE + 4.5, EDGE + 11, EDGE + 18]) { const q = tr.point(j, sd * l); if (tr.dist(q.x, q.z).d < EDGE + 3.5) return false; }
+    }
+    return true;
+  };
+  if (!clean(idx, side)) {
+    let found = null;
+    for (const o of [0, 10, -10, 20, -20, 30, -30, 45, -45, 60, -60]) { for (const sd of [side, -side]) if (!found && clean(idx + o, sd)) found = [idx + o, sd]; }
+    if (!found) return;
+    [idx, side] = found;
+  }
+  idx = tr.wrap(idx);
   const g = new THREE.Group();
   tr.point(idx, side * (EDGE + 6), g.position);
   g.position.y = tr.py[idx];
@@ -726,13 +743,13 @@ export function buildScenery(tr, rnd) {
   if (!tr.def.void) placeChevrons(tr);
   // bandeirolas atravessando a reta de largada
   for (const k of [-14, 14]) {
-    const a = tr.point(k, EDGE + 0.8), b = tr.point(k, -(EDGE + 0.8));
+    const a = tr.point(k, tr.outerLat(k, 1, EDGE + 0.8)), b = tr.point(k, -tr.outerLat(k, -1, EDGE + 0.8));
     a.y = b.y = tr.py[((k % tr.N) + tr.N) % tr.N] + 6.2;
     bunting(tr, a, b, 0.8);
   }
   // postes nas pontas das bandeirolas
   for (const k of [-14, 14]) for (const s of [1, -1]) {
-    const p = tr.point(k, s * (EDGE + 0.8));
+    const p = tr.point(k, s * tr.outerLat(k, s, EDGE + 0.8));
     const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, 6.4, 0.3), lam({ color: 0xb8673a }));
     post.position.set(p.x, tr.py[((k % tr.N) + tr.N) % tr.N] + 3.2, p.z);
     tr.group.add(post);

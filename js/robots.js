@@ -74,17 +74,22 @@ export function tinBot(rnd, opts = {}) {
   }
   const ph = rnd() * 10, clumsy = 0.6 + rnd() * 0.8;
   const mode = opts.mode || 'walk';
-  let blink = 0;
+  let blink = 0, rest = 0;
+  g.userData.noSolid = true;   // anda por aí: não vira obstáculo
+  const self = { group: g, update: null, moving: true };
   const update = (t, dt) => {
     const w = t * (mode === 'cheer' ? 6 : 4) + ph;
+    // parado (fim do caminho): pernas voltam ao lugar, só balança um pouco
+    rest += ((self.moving ? 0 : 1) - rest) * Math.min(1, dt * 6);
     if (mode === 'walk' || mode === 'carry') {
-      L[0].rotation.x = Math.sin(w) * 0.5; L[1].rotation.x = -Math.sin(w) * 0.5;
-      body.rotation.z = Math.sin(w) * 0.09 * clumsy; body.position.y = Math.abs(Math.sin(w)) * 0.08;
+      const k = 1 - rest;
+      L[0].rotation.x = Math.sin(w) * 0.5 * k; L[1].rotation.x = -Math.sin(w) * 0.5 * k;
+      body.rotation.z = Math.sin(w) * 0.09 * clumsy * k + Math.sin(t * 1.2 + ph) * 0.04 * rest; body.position.y = Math.abs(Math.sin(w)) * 0.08 * k;
       if (mode === 'carry') { A[0].sh.rotation.x = A[1].sh.rotation.x = -1.3; }
-      else { A[0].sh.rotation.x = -Math.sin(w) * 0.6; A[1].sh.rotation.x = Math.sin(w) * 0.6; }
+      else { A[0].sh.rotation.x = -Math.sin(w) * 0.6 * k; A[1].sh.rotation.x = Math.sin(w) * 0.6 * k; }
       // tropeça de vez em quando
       const trip = Math.max(0, Math.sin(t * 0.37 + ph) - 0.93) * 8;
-      body.rotation.x = trip * 0.5;
+      body.rotation.x = trip * 0.5 * k;
     } else if (mode === 'cheer') {
       body.position.y = Math.max(0, Math.sin(w)) * 0.35;
       A[0].sh.rotation.z = 2.4 + Math.sin(w * 1.3) * 0.4; A[1].sh.rotation.z = -2.4 - Math.sin(w * 1.1) * 0.4;
@@ -100,7 +105,37 @@ export function tinBot(rnd, opts = {}) {
     eyes.scale.y = blink > 0 ? 0.1 : 1;
     bulb.visible = Math.sin(t * 3 + ph) > 0;
   };
-  return { group: g, update };
+  self.update = update;
+  return self;
+}
+
+// Faz um robô andar de verdade: vai de a até b, para um pouco, vira e volta.
+// a e b no espaço do pai do robô; groundY(x, z) dá a altura do chão (opcional).
+export function patrol(bot, a, b, rnd, { speed = 1.1, groundY = null } = {}) {
+  const L = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+  const yaw = Math.atan2(b.x - a.x, b.z - a.z);
+  let u = rnd(), dir = rnd() < 0.5 ? 1 : -1, wait = 0, face = dir > 0 ? yaw : yaw + Math.PI;
+  const place = () => {
+    const x = a.x + (b.x - a.x) * u, z = a.z + (b.z - a.z) * u;
+    bot.group.position.set(x, groundY ? groundY(x, z) : a.y + (b.y - a.y) * u, z);
+  };
+  place(); bot.group.rotation.y = face;
+  return (t, dt) => {
+    if (wait > 0) {
+      wait -= dt; bot.moving = false;
+      // vira devagar para o novo sentido
+      const want = dir > 0 ? yaw : yaw + Math.PI;
+      let d = want - face; d = Math.atan2(Math.sin(d), Math.cos(d));
+      face += d * Math.min(1, dt * 3);
+    } else {
+      bot.moving = true;
+      u += (dir * speed * dt) / L;
+      if (u >= 1 || u <= 0) { u = Math.min(1, Math.max(0, u)); dir = -dir; wait = 1 + rnd() * 2; }
+      place();
+    }
+    bot.group.rotation.y = face;
+    bot.update(t, dt);
+  };
 }
 
 // robô gigante de caldeira: cabeça-chaminé, braços de pistão levantando algo devagar

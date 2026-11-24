@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TRACKS, THEMES, ROAD_HALF, SHOULDER, EDGE } from './data.js';
 import { buildTerrain, buildScenery } from './scenery.js';
+import { buildSolids } from './solids.js';
 import { Branch } from './branch.js';
 import { roadTexture, groundTexture, terrainDetail, skirtTexture, wallTexture, waterTexture, lavaTexture } from './textures.js';
 
@@ -177,6 +178,22 @@ export class Track {
     return best;
   }
 
+  // distância lateral para pôr algo na beira da pista (postes, pilares) sem cair em cima
+  // de um atalho que corre colado ao lado: passa para depois dele
+  outerLat(i, side, base) {
+    i = this.wrap(i);
+    let best = base;
+    for (const b of this.branches || []) for (let k = 0; k < b.N; k++) {
+      // só amostras do atalho que estão mesmo do lado deste ponto (até uma pista de distância)
+      const along = (b.px[k] - this.px[i]) * this.tx[i] + (b.pz[k] - this.pz[i]) * this.tz[i];
+      if (Math.abs(along) > 2.5) continue;
+      const l = this.lateral(b.px[k], b.pz[k], i) * side;
+      if (l < 1 || l > EDGE * 2 + 2 || Math.abs(b.py[k] - this.py[i]) > 2) continue;
+      best = Math.max(best, l + base);
+    }
+    return best;
+  }
+
   lateral(x, z, i) { return (x - this.px[i]) * -this.tz[i] + (z - this.pz[i]) * this.tx[i]; }
 
   // altura do chão na pista, interpolada ao longo do trecho
@@ -211,7 +228,7 @@ export class Track {
     return g;
   }
 
-  mesh(geo, mat) { const m = new THREE.Mesh(geo, mat); this.group.add(m); return m; }
+  mesh(geo, mat) { const m = new THREE.Mesh(geo, mat); m.userData.road = true; this.group.add(m); return m; }
 
   buildRoad(P, M) {
     const N = P.N;
@@ -377,14 +394,18 @@ export class Track {
       return g;
     };
     const gears = [];
+    // pilares do pórtico: se um atalho corre ao lado da largada, o pilar daquele lado vai para depois dele
+    const postAt = { 1: this.outerLat(0, 1, EDGE + 0.9), '-1': -this.outerLat(0, -1, EDGE + 0.9) };
     for (const s of [1, -1]) {
+      const x = -postAt[s];   // x local do pórtico aponta para o lado "-" da pista
       const post = new THREE.Mesh(new THREE.BoxGeometry(1.2, 8, 1.2), copper);
-      post.position.set(s * (EDGE + 0.9), 4, 0);
+      post.position.set(x, 4, 0);
       start.add(post);
-      for (const y of [0.6, 4, 7.6]) { const band = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.3, 1.4), brass); band.position.set(s * (EDGE + 0.9), y, 0); start.add(band); }
-      const g = new THREE.Mesh(gearGeo(1.6, 12), brass); g.position.set(s * (EDGE + 0.9), 8.6, 0.8); start.add(g); gears.push([g, s]);
-      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffd98a })); lamp.position.set(s * (EDGE + 0.9), 10.6, 0); start.add(lamp);
+      for (const y of [0.6, 4, 7.6]) { const band = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.3, 1.4), brass); band.position.set(x, y, 0); start.add(band); }
+      const g = new THREE.Mesh(gearGeo(1.6, 12), brass); g.position.set(x, 8.6, 0.8); start.add(g); gears.push([g, s]);
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffd98a })); lamp.position.set(x, 10.6, 0); start.add(lamp);
     }
+    const gateW = postAt[1] - postAt[-1], gateC = -(postAt[1] + postAt[-1]) / 2;
     this.animated.push((dt) => { for (const [g, s] of gears) g.rotation.z += dt * 0.8 * s; });
     const banner = retroTex(128, 16, (c, w, h) => {
       c.fillStyle = '#2a2624'; c.fillRect(0, 0, w, h);
@@ -394,11 +415,11 @@ export class Track {
       c.fillText(this.def.name.toUpperCase(), w / 2, h / 2 + 1);
     }, { repeat: false });
     const bmat = lam({ map: banner });
-    const beam = new THREE.Mesh(new THREE.BoxGeometry((EDGE + 0.9) * 2 + 1.2, 1.8, 0.5), [brass, brass, brass, brass, bmat, bmat]);
-    beam.position.y = 7;
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(gateW + 1.2, 1.8, 0.5), [brass, brass, brass, brass, bmat, bmat]);
+    beam.position.set(gateC, 7, 0);
     start.add(beam);
     // cano de vapor por cima da faixa
-    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, (EDGE + 0.9) * 2, 10), copper); pipe.rotation.z = Math.PI / 2; pipe.position.set(0, 8.3, -0.4); start.add(pipe);
+    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, gateW, 10), copper); pipe.rotation.z = Math.PI / 2; pipe.position.set(gateC, 8.3, -0.4); start.add(pipe);
 
     // ---------- céu: painel pintado ao redor (como os fundos do N64)
     this.buildBackdrop(rnd);
@@ -406,6 +427,7 @@ export class Track {
     // ---------- decoração: árvores em "X" (dois planos cruzados)
     this.buildDecor(rnd);
     buildScenery(this, rnd);
+    this.solids = buildSolids(this);
   }
 
   buildBackdrop(rnd) {

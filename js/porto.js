@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { EDGE } from './data.js';
-import { tinBot } from './robots.js';
+import { tinBot, patrol } from './robots.js';
 import { M, add, cyl, gearMesh } from './bolota.js';
 import { lam, basic, phong, brickTex, plateTex, boardsTex, puffs, instances, TRS, freeNear, MX } from './kit.js';
-import { signTex } from './granja.js';
+import { signTex, signGate } from './granja.js';
 
 // =====================================================================
 //  PORTO DO COQUEIRO — o porto dos escafandristas: canal da doca com a ponte
@@ -44,23 +44,23 @@ export function porto(tr, rnd, H) {
     const end = br.point(br.N - 1, 0); end.y = br.py[br.N - 1];
     const bz = end.z;
     for (const s of [-1, 1]) for (const side of [-1, 1]) {
-      const g = new THREE.Group(); g.position.set(cx + s * (cw / 2 + 4), 0, bz + side * (EDGE + 2.5)); tr.group.add(g);
-      add(g, new THREE.BoxGeometry(3.4, 14, 3.4), stone, 0, 7, 0);
-      add(g, new THREE.ConeGeometry(2.8, 3, 4), m.verd, 0, 15.5, 0).rotation.y = Math.PI / 4;
+      // torres plantadas dentro do canal, rente ao cais (a pista principal passa colada na outra margem)
+      const g = new THREE.Group(); g.position.set(cx + s * (cw / 2 - 0.9), -0.8, bz + side * (EDGE + 2.3)); tr.group.add(g);
+      add(g, new THREE.BoxGeometry(2.8, 14, 2.8), stone, 0, 7, 0);
+      add(g, new THREE.ConeGeometry(2.4, 3, 4), m.verd, 0, 15.5, 0).rotation.y = Math.PI / 4;
       const gear = gearMesh(2.2, 14, m.brass, 0.5); gear.position.set(0, 10, -side * 1.8); g.add(gear);
       anims.push((t) => { gear.rotation.z = Math.sin(t * 0.5) * 0.4 * s; });
-      add(g, new THREE.BoxGeometry(2.4, 3, 2.4), m.iron, 0, 4 + Math.sin(rnd() * 6), -side * 2.2);   // contrapeso
+      add(g, new THREE.BoxGeometry(2.4, 3, 2.4), m.iron, 0, 4 + Math.sin(rnd() * 6), side * 2.6);    // contrapeso, do lado de fora
     }
-    // folha da outra margem, também erguida (a rampa é a folha deste lado)
-    const leaf = new THREE.Group(); leaf.position.set(cx + (tr.mirror ? -1 : 1) * (cw / 2 + 1), 0.4, bz); tr.group.add(leaf);
-    const lf = add(leaf, new THREE.BoxGeometry(EDGE * 2, 0.6, 9), lam({ map: boardsTex('#7a5a3a', '#c9a24a') }), 0, 0, 0);
-    lf.rotation.y = Math.PI / 2; lf.position.x = (tr.mirror ? -1 : 1) * 0;
-    leaf.rotation.z = (tr.mirror ? -1 : 1) * 1.15;
+    // folha da outra margem: emperrou abaixada, rente ao cais (só a deste lado subiu e virou rampa).
+    // fica baixa e curta para não parecer rampa nem ficar no caminho do salto
+    const fx = tr.mirror ? -1 : 1;
+    const leaf = add(tr.group, new THREE.BoxGeometry(3.2, 0.35, EDGE * 2), lam({ map: boardsTex('#7a5a3a', '#c9a24a') }), cx + fx * (cw / 2 + 1.6), 0.05, bz);
+    leaf.userData.noSolid = true;
+    for (const side of [-1, 1]) add(tr.group, new THREE.BoxGeometry(0.5, 0.5, 0.5), m.iron, cx + fx * (cw / 2 + 0.4), 0.3, bz + side * (EDGE - 0.4));
     for (const side of [-1, 1]) add(tr.group, cyl(0.08, 0.08, 14, 4), m.iron, cx, 9, bz + side * EDGE).rotation.z = 0.9;
     // placa de perigo
-    const sign = add(tr.group, new THREE.BoxGeometry(7, 1.4, 0.3), [m.brass, m.brass, m.brass, m.brass, lam({ map: signTex('PONTE ERGUIDA!') }), m.brass]);
-    const sp = br.point(br.N - 30, 0); sign.position.set(sp.x, br.py[br.N - 30] + 7, sp.z); sign.rotation.y = br.heading(br.N - 30) + Math.PI;
-    for (const s of [1, -1]) { const pp = br.point(br.N - 30, s * 3.4); add(tr.group, new THREE.BoxGeometry(0.3, 7, 0.3), m.iron, pp.x, br.py[br.N - 30] + 3.5, pp.z); }
+    signGate(tr, m, br, br.N - 22, 'PONTE ERGUIDA!');
     tr.landmarks = { ...(tr.landmarks || {}), show: end.clone() };
   }
   // um submarino pequeno subindo e descendo no canal
@@ -145,8 +145,8 @@ export function porto(tr, rnd, H) {
     anims.push((t) => { const u = (t * 0.6) % 1; ram.position.y = u < 0.2 ? 6 - (u / 0.2) * 4.6 : 1.4 + ((u - 0.2) / 0.8) * 4.6; });
     const sg = add(g, new THREE.BoxGeometry(10, 1.6, 0.3), [m.brass, m.brass, m.brass, m.brass, lam({ map: signTex('OLEO DE COCO') }), m.brass], 0, 6.5, 4.7);
     void sg;
-    const bot = tinBot(rnd, { mode: 'carry', color: 0xc9a24a }); bot.group.position.set(-4, 0, 8); g.add(bot.group);
-    anims.push((t, dt) => bot.update(t, dt));
+    const bot = tinBot(rnd, { mode: 'carry', color: 0xc9a24a }); g.add(bot.group);
+    anims.push(patrol(bot, new THREE.Vector3(-6, 0, 8.5), new THREE.Vector3(3, 0, 8.5), rnd, { speed: 0.8 }));
   }
 
   // ---------------------------------------------------- farol do promontório, com lente giratória

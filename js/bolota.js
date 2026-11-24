@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { EDGE } from './data.js';
-import { tinBot, giantBot } from './robots.js';
+import { tinBot, giantBot, patrol } from './robots.js';
 
 // =====================================================================
 //  Copa Bolota no mundo steampunk: cada pista mantém o tema (campo, praia,
@@ -56,19 +56,34 @@ export function robotCrew(tr, rnd, H, { workers = 8, color } = {}) {
     const b = tinBot(rnd, { mode: 'cheer', color });
     b.group.position.copy(p); b.group.rotation.y = Math.atan2(side * tr.tz[i], -side * tr.tx[i]); tr.group.add(b.group); bots.push(b);
   }
+  const wet = (p) => tr.water && tr.water.some(([x, z, w, d]) => p.x > x - 2 && p.x < x + w + 2 && p.z > z - 2 && p.z < z + d + 2);
+  const okAt = (i, s, p) => !(tr.bridge[tr.wrap(i)] || tr.isFall(tr.wrap(i), s) || tr.inTunnel?.(tr.wrap(i))) && tr.dist(p.x, p.z).d >= EDGE + 1.8 && !wet(p);
+  const walkers = [];
   for (let t = 0, made = 0; t < 300 && made < workers; t++) {
     const i = (rnd() * N) | 0, s = rnd() < 0.5 ? 1 : -1;
-    if (tr.bridge[i] || tr.isFall(i, s) || tr.inTunnel?.(i)) continue;
-    const p = tr.point(i, s * (EDGE + 2.5 + rnd() * 5));
-    if (tr.dist(p.x, p.z).d < EDGE + 1.8) continue;
-    if (tr.water && tr.water.some(([x, z, w, d]) => p.x > x - 2 && p.x < x + w + 2 && p.z > z - 2 && p.z < z + d + 2)) continue;
-    p.y = tr.terrainY(p.x, p.z);
-    if (tr.def.lava) p.y = tr.py[i] - 0.1;
+    const lat = s * (EDGE + 2.5 + rnd() * 5);
+    const p = tr.point(i, lat);
+    if (!okAt(i, s, p)) continue;
+    const mode = ['work', 'walk', 'cheer', 'carry'][(made + 1) % 4];
+    const groundY = tr.def.lava ? () => tr.py[i] - 0.1 : (x, z) => tr.terrainY(x, z);
+    if (mode === 'walk' || mode === 'carry') {
+      // anda pela beira da pista, paralelo a ela, e vira no fim do caminho
+      const j = i + 6 + ((rnd() * 6) | 0), q = tr.point(j, lat);
+      let ok = okAt(j, s, q);
+      for (let k = i + 2; ok && k < j; k += 2) ok = okAt(k, s, tr.point(k, lat));
+      if (!ok) continue;
+      made++;
+      const b = tinBot(rnd, { mode, color });
+      tr.group.add(b.group);
+      walkers.push(patrol(b, p, q, rnd, { speed: 0.9 + rnd() * 0.5, groundY }));
+      continue;
+    }
     made++;
-    const b = tinBot(rnd, { mode: ['work', 'walk', 'cheer', 'carry'][made % 4], color });
+    p.y = groundY(p.x, p.z);
+    const b = tinBot(rnd, { mode, color });
     b.group.position.copy(p); b.group.rotation.y = Math.atan2(s * tr.tz[i], -s * tr.tx[i]); tr.group.add(b.group); bots.push(b);
   }
-  return (t, dt) => { for (const b of bots) b.update(t, dt); };
+  return (t, dt) => { for (const b of bots) b.update(t, dt); for (const w of walkers) w(t, dt); };
 }
 
 // ---------------------------------------------------------------- CAMPOS BOLOTA
@@ -133,7 +148,9 @@ export function praiaSteam(tr, rnd, H) {
     }
     // boias-sino de cobre
     for (let k = 0; k < 6; k++) {
-      const g = new THREE.Group(); g.position.set(tr.center.x + (rnd() - 0.5) * 300, 0.1, sea[1] + 15 + rnd() * 60); tr.group.add(g);
+      const bx = tr.center.x + (rnd() - 0.5) * 300, bz = sea[1] + 15 + rnd() * 60;
+      if (tr.dist(bx, bz).d < EDGE + 4) continue;   // não boiar embaixo do píer
+      const g = new THREE.Group(); g.position.set(bx, 0.1, bz); tr.group.add(g);
       add(g, cyl(0.9, 1.2, 1.4, 10), m.copper, 0, 0.5, 0);
       add(g, cyl(0.1, 0.1, 2.6, 6), m.iron, 0, 2.2, 0);
       add(g, new THREE.ConeGeometry(0.5, 0.7, 10, 1, true), m.brass, 0, 3.4, 0);
@@ -165,11 +182,20 @@ export function serraSteam(tr, rnd, H) {
   for (let k = 0; k < 6; k++) {
     const at = H.findPlace(tr, rnd, EDGE + 4, 30);
     if (!at) continue;
-    const b = tinBot(rnd, { mode: k % 2 ? 'work' : 'walk', color: 0x9aa0a4 });
+    const walk = !(k % 2);
+    const b = tinBot(rnd, { mode: walk ? 'walk' : 'work', color: 0x9aa0a4 });
     const scarf = add(b.group, new THREE.TorusGeometry(0.66, 0.16, 6, 14), lam({ color: cols[k % 3] }), 0, 2.05, 0); scarf.rotation.x = Math.PI / 2;
     const cap = add(b.group, new THREE.SphereGeometry(0.58, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), lam({ color: 0xffffff }), 0, 2.7, 0); cap.scale.y = 0.4;
-    b.group.position.copy(at); b.group.rotation.y = rnd() * 6; tr.group.add(b.group);
-    anims.push((t, dt) => b.update(t, dt));
+    tr.group.add(b.group);
+    // os que andam vão e voltam num trecho livre (sem entrar na pista)
+    const a = rnd() * 6, q = new THREE.Vector3(at.x + Math.sin(a) * 7, 0, at.z + Math.cos(a) * 7);
+    if (walk && tr.dist(q.x, q.z).d > EDGE + 3 && tr.dist((at.x + q.x) / 2, (at.z + q.z) / 2).d > EDGE + 3) {
+      anims.push(patrol(b, at, q, rnd, { speed: 0.8, groundY: (x, z) => tr.terrainY(x, z) }));
+    } else {
+      b.group.position.copy(at); b.group.rotation.y = rnd() * 6;
+      if (walk) b.moving = false;
+      anims.push((t, dt) => b.update(t, dt));
+    }
   }
   // estação do teleférico: roda de polia gigante e casa de máquinas
   const at = H.findPlace(tr, rnd, 25, 60);
@@ -190,6 +216,7 @@ export function serraSteam(tr, rnd, H) {
     const s = (i / 140) % 2 < 1 ? 1 : -1;
     if (tr.isFall(i, s) || tr.inTunnel?.(i)) continue;
     const p = tr.point(i, s * (EDGE + 2)); p.y = tr.terrainY(p.x, p.z);
+    if (tr.dist(p.x, p.z).d < EDGE + 1.2) continue;   // não pode cair em outro trecho da pista
     const g = new THREE.Group(); g.position.copy(p); tr.group.add(g);
     add(g, cyl(0.45, 0.45, 3.2, 10), m.copper, 0, 1.6, 0);
     add(g, cyl(0.6, 0.6, 0.3, 10), m.brass, 0, 3.2, 0);
@@ -265,7 +292,12 @@ export function steamKit(tr, rnd, H) {
   const vents = [];
   for (const f of [0.33, 0.72]) {
     let i = Math.round(f * N);
-    for (let t = 0; t < 50 && (tr.curv[i] > 0.35 || tr.bridge[i] || tr.inTunnel?.(i) || tr.isFall(i, 1) || tr.isFall(i, -1)); t++) i = (i + 3) % N;
+    // outro trecho (ou atalho) passando por perto em outra altura bateria no pórtico
+    const crossed = (i) => [tr, ...(tr.branches || [])].some((P) => {
+      for (let j = 0; j < P.N; j += 2) if (Math.abs(P.py[j] - tr.py[i]) > 1.5 && Math.hypot(P.px[j] - tr.px[i], P.pz[j] - tr.pz[i]) < EDGE * 2 + 6) return true;
+      return false;
+    }) || [1, -1].some((s) => { const q = tr.point(i, s * (EDGE + 2)); return tr.dist(q.x, q.z).d < EDGE + 0.8; });   // pilar em cima de um atalho
+    for (let t = 0; t < 80 && (tr.curv[i] > 0.35 || tr.bridge[i] || tr.inTunnel?.(i) || tr.isFall(i, 1) || tr.isFall(i, -1) || crossed(i)); t++) i = (i + 3) % N;
     const g = new THREE.Group(); tr.point(i, 0, g.position); g.position.y = tr.py[i]; g.rotation.y = tr.heading(i); tr.group.add(g);
     const span = (EDGE + 2) * 2;
     for (const s of [1, -1]) { add(g, new THREE.BoxGeometry(1, 9.5, 1), m.copper, s * (EDGE + 2), 4.75, 0); add(g, new THREE.BoxGeometry(1.3, 0.3, 1.3), m.brass, s * (EDGE + 2), 9.4, 0); }

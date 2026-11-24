@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { EDGE } from './data.js';
 import { pixelTex, groundTexture } from './textures.js';
-import { tinBot } from './robots.js';
+import { tinBot, patrol } from './robots.js';
 
 // =====================================================================
 //  ILHAS DAS CORRENTES — ilhas flutuantes presas por correntes (Copa Engrenagem)
@@ -467,7 +467,18 @@ export function ilhas(tr, rnd, H) {
         const b = tinBot(rnd, { mode: made % 3 === 0 ? 'cheer' : made % 3 === 1 ? 'work' : 'walk' });
         b.group.position.set(x, s.top, z);
         const ti = tr.dist(x, z).i; b.group.lookAt(tr.px[ti], s.top, tr.pz[ti]);
-        tr.group.add(b.group); bots.push(b);
+        tr.group.add(b.group);
+        if (made % 3 === 2) {
+          // anda pela ilha, sem chegar perto da pista nem da beirada
+          const a2 = rnd() * Math.PI * 2, x2 = x + Math.cos(a2) * 5, z2 = z + Math.sin(a2) * 5;
+          if (clear(x2, z2, EDGE + 2.5) && clear((x + x2) / 2, (z + z2) / 2, EDGE + 2.5) && Math.hypot(x2 - s.c.x, z2 - s.c.z) < s.r * 0.85) {
+            const w = patrol(b, new THREE.Vector3(x, s.top, z), new THREE.Vector3(x2, s.top, z2), rnd, { speed: 0.8 });
+            bots.push({ update: w });
+            continue;
+          }
+          b.moving = false;
+        }
+        bots.push(b);
       }
     });
     anims.push((t) => { for (const b of bots) b.update(t, 1 / 60); });

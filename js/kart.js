@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TOP_SPEED, CLASS_STATS, UNIT, DRIVE, ITEM_FX } from './data.js';
 import { ROAD_HALF, EDGE } from './track.js';
+import { collideSolids } from './solids.js';
 import { follow } from './branch.js';
 import { FRAMES, POSES, SPRITE_WORLD, SPRITE_GROUND, ATLAS_COLS, ATLAS_ROWS, spriteTexture } from './sprites.js';
 
@@ -304,6 +305,9 @@ export class Kart {
         }
       }
     }
+
+    // ----- objetos do cenário (pilares, postes, torres...): sólidos
+    if (!this.falling && collideSolids(track, this)) this.events.push('wall');
 
     // ----- altura: chão / ar
     const ground = S.groundY(this.pos.x, this.pos.z, newIdx);
