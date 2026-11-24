@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { TOP_SPEED, CLASS_STATS, UNIT, DRIVE, ITEM_FX } from './data.js';
 import { ROAD_HALF, EDGE } from './track.js';
 import { follow } from './branch.js';
-import { FRAMES, POSES, SPRITE_WORLD, SPRITE_GROUND, spriteTexture } from './sprites.js';
+import { FRAMES, POSES, SPRITE_WORLD, SPRITE_GROUND, ATLAS_COLS, ATLAS_ROWS, spriteTexture } from './sprites.js';
 
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export const wrapAngle = (a) => {
@@ -30,9 +30,10 @@ export class Kart {
     // sprite com o atlas pré-renderizado
     const tex = new THREE.CanvasTexture(bake.atlas);
     tex.colorSpace = THREE.SRGBColorSpace;
-    tex.repeat.set(1 / FRAMES, 1 / POSES);
+    tex.repeat.set(1 / ATLAS_COLS, 1 / ATLAS_ROWS);
+    tex.anisotropy = 4;
     this.tex = tex;
-    this.sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, alphaTest: 0.5, transparent: false }));
+    this.sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, alphaTest: 0.5, transparent: false, alphaToCoverage: true }));
     this.sprite.center.set(0.5, SPRITE_GROUND);
     this.baseScale = SPRITE_WORLD * this.sizeK;
     this.sprite.scale.set(this.baseScale, this.baseScale, 1);
@@ -440,7 +441,8 @@ export class Kart {
     this.celebrateT = Math.max(0, (this.celebrateT || 0) - dt);
     const pose = hurt ? 4 : this.celebrateT > 0 ? 3
       : this.drift ? (this.drift > 0 ? 1 : 2) : this.steer > 0.4 ? 1 : this.steer < -0.4 ? 2 : 0;
-    this.tex.offset.set(f / FRAMES, 1 - (pose + 1) / POSES);
+    const idx = pose * FRAMES + f;
+    this.tex.offset.set((idx % ATLAS_COLS) / ATLAS_COLS, 1 - (Math.floor(idx / ATLAS_COLS) + 1) / ATLAS_ROWS);
 
     const hop = this.hopT > 0 ? Math.sin((1 - this.hopT / DRIVE.hopTime) * Math.PI) * DRIVE.hopHeight : 0;
     this.sprite.position.set(this.pos.x, this.pos.y + hop + 0.02, this.pos.z);

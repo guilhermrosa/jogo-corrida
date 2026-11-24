@@ -6,7 +6,9 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 //  32 ângulos x 5 poses
 // =====================================================================
 export const FRAMES = 32;
-export const CELL = 96;
+export const CELL = 192;
+export const ATLAS_COLS = 8;                     // atlas em grade (8 ângulos por linha) para caber em texturas grandes
+export const ATLAS_ROWS = (32 / 8) * 5;
 export const POSES = 5; // 0 reto, 1 virando p/ esquerda, 2 virando p/ direita, 3 comemorando, 4 atordoado
 const HALF = 1.5;        // metade da área fotografada (metros)
 const CY = 1.15;         // centro vertical da foto
@@ -48,10 +50,77 @@ function getRenderer() {
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const UP = V(0, 1, 0);
 
+// textura de pelo: fios curtos e suaves em tons de cinza (multiplica a cor do material)
+let FUR_TEX = null;
+function furTex() {
+  if (FUR_TEX) return FUR_TEX;
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#f2f2f2'; g.fillRect(0, 0, 128, 128);
+  let a = 7; const r = () => ((a = (a * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 2600; i++) {
+    const x = r() * 128, y = r() * 128, l = 2 + r() * 4, ang = 1.3 + (r() - 0.5) * 0.7, v = r();
+    g.strokeStyle = v < 0.5 ? `rgba(0,0,0,${0.05 + r() * 0.07})` : `rgba(255,255,255,${0.12 + r() * 0.12})`;
+    g.lineWidth = 0.8;
+    for (const ox of [0, -128, 128]) for (const oy of [0, -128, 128]) { g.beginPath(); g.moveTo(x + ox, y + oy); g.lineTo(x + ox + Math.cos(ang) * l, y + oy + Math.sin(ang) * l); g.stroke(); }
+  }
+  FUR_TEX = new THREE.CanvasTexture(c);
+  FUR_TEX.wrapS = FUR_TEX.wrapT = THREE.RepeatWrapping;
+  FUR_TEX.repeat.set(3, 2);
+  FUR_TEX.anisotropy = 8;
+  return FUR_TEX;
+}
+const smooth01 = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+// orelha de coelho numa peça só (ver Pipoca). fold = quanto a ponta dobra (0 = reta)
+function earGeo(fold) {
+  const g = new THREE.SphereGeometry(1, 28, 40);
+  const p = g.attributes.position, n = p.count, col = new Float32Array(n * 3);
+  const W = new THREE.Color(0xf7f3f2), P = new THREE.Color(0xffa9c4), c = new THREE.Color();
+  const H = 0.27, pivot = 0.33;
+  for (let i = 0; i < n; i++) {
+    let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const t = (y + 1) / 2;                                        // 0 na base, 1 na ponta
+    const wid = 0.5 + 0.5 * smooth01(0, 0.35, t) - 0.25 * smooth01(0.7, 1, t);
+    const front = z > 0 ? 1 : 0;
+    // rosa por dentro: centro da face da frente, sumindo perto das bordas
+    const inner = front * smooth01(0.85, 0.35, Math.abs(x)) * smooth01(0.05, 0.25, t) * smooth01(0.98, 0.8, t);
+    let X = x * 0.11 * wid, Y = t * 2 * H, Z = z * 0.05 - inner * 0.03;     // côncava na frente
+    if (fold && Y > pivot) {                                     // dobra a ponta para fora e para a frente
+      const a = ((Y - pivot) / (2 * H - pivot)) * fold, dy = Y - pivot;
+      const ax = Math.sin(a) * dy, ay = Math.cos(a) * dy;
+      X += ax; Y = pivot + ay; Z += Math.sin(a * 0.5) * dy * 0.4;
+    }
+    p.setXYZ(i, X, Y, Z);
+    c.copy(W).lerp(P, inner * 0.9); c.toArray(col, i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  return g;
+}
+
+// esfera deformada com calombos suaves (bochechas, focinho...) e cor por vértice: formas que se fundem,
+// sem as emendas de várias bolas encaixadas
+function blob(R, scale, bumps, colorFn, seg = 48) {
+  const g = new THREE.SphereGeometry(1, seg, Math.round(seg * 0.7));
+  const p = g.attributes.position, n = p.count, col = new Float32Array(n * 3), d = new THREE.Vector3(), c = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    d.fromBufferAttribute(p, i).normalize();
+    let k = 1;
+    for (const [dir, amp, w] of bumps) { const a = d.angleTo(dir); k += amp * Math.exp(-(a * a) / (w * w)); }
+    p.setXYZ(i, d.x * R * k * scale[0], d.y * R * k * scale[1], d.z * R * k * scale[2]);
+    colorFn(d, c); c.toArray(col, i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  return g;
+}
+
 class B {
   constructor() { this.cache = new Map(); }
   plastic(c, shin = 60) { return this.mat('p' + c + shin, () => new THREE.MeshPhongMaterial({ color: c, shininess: shin, specular: 0x555555 })); }
-  fur(c) { return this.mat('f' + c, () => new THREE.MeshPhongMaterial({ color: c, shininess: 8, specular: 0x111111 })); }
+  fur(c) { return this.mat('f' + c, () => new THREE.MeshPhongMaterial({ color: c, map: furTex(), shininess: 10, specular: 0x1a1a1a })); }
+  furV() { return this.mat('fv', () => new THREE.MeshPhongMaterial({ vertexColors: true, map: furTex(), shininess: 10, specular: 0x1a1a1a })); }
   metal(c = 0xd8dde3) { return this.mat('m' + c, () => new THREE.MeshPhongMaterial({ color: c, shininess: 120, specular: 0xffffff })); }
   mat(key, fn) { if (!this.cache.has(key)) this.cache.set(key, fn()); return this.cache.get(key); }
   add(parent, geo, mat, p = [0, 0, 0], r = [0, 0, 0], s = null) {
@@ -61,7 +130,7 @@ class B {
     parent.add(m);
     return m;
   }
-  sphere(parent, r, mat, p, s = null) { return this.add(parent, new THREE.SphereGeometry(r, 24, 16), mat, p, [0, 0, 0], s); }
+  sphere(parent, r, mat, p, s = null) { return this.add(parent, new THREE.SphereGeometry(r, 32, 22), mat, p, [0, 0, 0], s); }
   // cápsula ligando dois pontos (braços, pernas)
   limb(parent, a, b, r, mat) {
     const dir = b.clone().sub(a);
@@ -134,38 +203,33 @@ function buildHead(b, d, expr) {
     case 'pipoca': { // coelha
       R = 0.38;
       const pink = b.fur(0xffb3cf);
-      // cabeça levemente em forma de pera: mais larga nas bochechas
-      b.sphere(h, R, fur, [0, 0.02, 0], [1, 0.95, 0.94]);
-      for (const s of [1, -1]) b.sphere(h, 0.2, fur, [s * 0.14, -0.13, 0.12], [1, 0.82, 0.9]);
-      // focinho fofo: duas almofadinhas, narizinho rosa e dentinhos
-      for (const s of [1, -1]) b.sphere(h, 0.085, fur, [s * 0.065, -0.12, 0.33], [1, 0.85, 0.75]);
-      b.sphere(h, 0.04, b.plastic(0xff6f9a, 60), [0, -0.06, 0.39], [1.3, 0.9, 0.8]);
-      if (expr !== 'dizzy') for (const s of [1, -1]) b.rbox(h, 0.04, 0.06, 0.02, 0.01, b.plastic(0xffffff, 40), [s * 0.022, -0.21, 0.34]);
-      // tufinho de pelo na testa
-      for (const [x, y, z, r] of [[0.02, 0.33, 0.17, 0.06], [-0.05, 0.31, 0.19, 0.045]]) b.sphere(h, r, fur, [x, y, z]);
-      // orelhas compridas em forma de folha, a da direita com a ponta dobrada
+      // cabeça numa peça só: bochechas fofas e focinho saem da própria cabeça (sem bolas encaixadas)
+      const W1 = new THREE.Color(0xf7f3f2), PINKC = new THREE.Color(0xffc4d6);
+      const dirs = { cl: V(0.62, -0.38, 0.68).normalize(), cr: V(-0.62, -0.38, 0.68).normalize(), mz: V(0, -0.3, 0.95).normalize(), tf: V(0.05, 0.85, 0.5).normalize() };
+      const head = blob(R, [1, 0.95, 0.94], [[dirs.cl, 0.16, 0.5], [dirs.cr, 0.16, 0.5], [dirs.mz, 0.12, 0.3], [dirs.tf, 0.05, 0.22]], (d, c) => {
+        // bochechas levemente rosadas, em degradê
+        const k = Math.max(Math.exp(-(d.angleTo(dirs.cl) ** 2) / 0.05), Math.exp(-(d.angleTo(dirs.cr) ** 2) / 0.05));
+        c.copy(W1).lerp(PINKC, k * 0.55);
+      });
+      b.add(h, head, b.furV(), [0, 0.02, 0]);
+      // narizinho e dentinhos
+      b.sphere(h, 0.038, b.plastic(0xff6f9a, 60), [0, -0.05, 0.405], [1.35, 0.9, 0.8]);
+      if (expr !== 'dizzy') for (const s of [1, -1]) b.rbox(h, 0.04, 0.055, 0.02, 0.012, b.plastic(0xffffff, 40), [s * 0.022, -0.205, 0.37]);
+      // orelhas compridas: uma peça só, afinando na base, côncava na frente, com o rosa por dentro
+      // em degradê; a direita dobra a ponta para o lado
       for (const s of [1, -1]) {
         const ear = new THREE.Group();
-        ear.position.set(s * 0.13, 0.3, -0.06);
+        ear.position.set(s * 0.13, 0.27, -0.05);
         ear.rotation.set(-0.22, s * 0.12, -s * (expr === 'dizzy' ? 0.8 : expr === 'happy' ? 0.28 : 0.14));
         h.add(ear);
-        b.sphere(ear, 0.06, fur, [0, 0.02, 0]); // base mais fina
-        b.add(ear, new THREE.SphereGeometry(1, 20, 14), fur, [0, 0.24, 0], [0, 0, 0], [0.105, 0.26, 0.05]);
-        b.add(ear, new THREE.SphereGeometry(1, 16, 12), pink, [0, 0.24, 0.025], [0, 0, 0], [0.06, 0.2, 0.035]);
-        const tip = new THREE.Group();
-        tip.position.set(0, 0.45, 0);
-        if (s > 0) tip.rotation.set(0.3, 0, -0.95); else tip.rotation.x = 0.12; // ponta caída para fora numa orelha só
-        ear.add(tip);
-        b.add(tip, new THREE.SphereGeometry(1, 20, 14), fur, [0, 0.1, 0], [0, 0, 0], [0.095, 0.15, 0.045]);
-        b.add(tip, new THREE.SphereGeometry(1, 16, 12), pink, [0, 0.09, 0.022], [0, 0, 0], [0.052, 0.1, 0.03]);
+        b.add(ear, earGeo(s > 0 ? 0.95 : 0), b.furV());
       }
       // laço na base da orelha esquerda
       const bow = new THREE.Group(); bow.position.set(-0.17, 0.33, 0.04); bow.rotation.z = 0.35; h.add(bow);
       for (const s of [1, -1]) b.sphere(bow, 0.075, b.plastic(0xff3f8e), [s * 0.075, 0, 0], [1, 0.62, 0.5]);
       b.sphere(bow, 0.04, b.plastic(0xff3f8e), [0, 0, 0.02]);
-      eyes(b, h, R, ex({ yaw: 0.3, pitch: 0.08, size: 0.068 }));
-      if (expr !== 'normal') mouth(b, h, R, ex({ pitch: -0.42, w: 0.07 }));
-      cheeks(b, h, R);
+      eyes(b, h, R, ex({ yaw: 0.3, pitch: 0.1, size: 0.07 }));
+      if (expr !== 'normal') mouth(b, h, R, ex({ pitch: -0.45, w: 0.07 }));
       // óculos de aviadora na testa
       {
         const gg = new THREE.Group(); gg.position.set(0, 0.17, 0.01); gg.rotation.x = -0.45; h.add(gg);
@@ -748,8 +812,8 @@ export function bakeDriver(d) {
   cam.lookAt(0, CY, 0);
 
   const atlas = document.createElement('canvas');
-  atlas.width = CELL * FRAMES;
-  atlas.height = CELL * POSES;
+  atlas.width = CELL * ATLAS_COLS;
+  atlas.height = CELL * ATLAS_ROWS;
   const g = atlas.getContext('2d');
   let portrait = null;
 
@@ -759,7 +823,8 @@ export function bakeDriver(d) {
     for (let f = 0; f < FRAMES; f++) {
       model.rotation.y = (f / FRAMES) * Math.PI * 2;
       r.render(scene, cam);
-      g.drawImage(r.domElement, f * CELL, pose * CELL);
+      const idx = pose * FRAMES + f;
+      g.drawImage(r.domElement, (idx % ATLAS_COLS) * CELL, Math.floor(idx / ATLAS_COLS) * CELL);
     }
     if (pose === 0) {
       // retrato de frente

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-export { FRAMES, CELL, POSES, SPRITE_WORLD, SPRITE_GROUND, bakeDriver } from './drivers3d.js';
+export { FRAMES, CELL, POSES, SPRITE_WORLD, SPRITE_GROUND, ATLAS_COLS, ATLAS_ROWS, bakeDriver } from './drivers3d.js';
 
 // Pequenos sprites 2D desenhados à mão (itens, coruja, fumaça)
 export function drawSprite(kind, size = 32) {
@@ -76,7 +76,7 @@ export function drawSprite(kind, size = 32) {
 const spriteTexCache = {};
 export function spriteTexture(kind) {
   if (!spriteTexCache[kind]) {
-    const t = new THREE.CanvasTexture(drawSprite(kind, 32));
+    const t = new THREE.CanvasTexture(drawSprite(kind, 128));
     t.colorSpace = THREE.SRGBColorSpace;
     spriteTexCache[kind] = t;
   }

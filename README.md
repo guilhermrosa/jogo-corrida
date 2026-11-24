@@ -17,7 +17,7 @@ Feito com [Three.js](https://threejs.org/), sem etapa de build.
 | `Z` ou `E` | LB / LT | Usar item (segure para manter atrás de você) |
 | `W` / `S` | Analógico ↑ / ↓ | Mirar o item para frente / para trás |
 | `Esc` / `P` | Start | Pausa |
-| `V` | | Alterna visual retrô (240 linhas) e nítido |
+| `V` | | Alterna visual nítido (padrão: resolução cheia, antisserrilhado e sombras) e retrô (240 linhas) |
 | `M` | | Liga/desliga o som |
 
 No celular aparecem os botões A, B, R e Z na tela.

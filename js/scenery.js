@@ -11,6 +11,7 @@ import { fundicao } from './fundicao.js';
 import { camposSteam, praiaSteam, serraSteam, vulcaoSteam, robotCrew, steamKit } from './bolota.js';
 import { EDGE, ROAD_HALF } from './data.js';
 import { drawSprite } from './sprites.js';
+import { crisp } from './track.js';
 
 // =====================================================================
 //  Cenário: relevo, marcos temáticos, placas, arquibancadas, túneis
@@ -36,7 +37,8 @@ function tex(w, h, draw, repeat = false) {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   draw(c.getContext('2d'), w, h, c);
-  const t = new THREE.CanvasTexture(c);
+  const t = new THREE.CanvasTexture(crisp(c));
+  t.anisotropy = 16;
   t.colorSpace = THREE.SRGBColorSpace;
   if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
   return t;
@@ -157,15 +159,16 @@ const ADS = [
 
 function adTexture(ad) {
   const c = document.createElement('canvas');
-  c.width = 128; c.height = 64;
+  c.width = 512; c.height = 256;
   const g = c.getContext('2d');
+  g.scale(4, 4);
   g.fillStyle = ad.bg; g.fillRect(0, 0, 128, 64);
   g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(0, 56, 128, 8);
   g.strokeStyle = ad.fg; g.lineWidth = 3; g.strokeRect(3, 3, 122, 58);
   g.fillStyle = ad.fg; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.font = 'bold 19px sans-serif'; g.fillText(ad.title, 84, 24);
   g.font = 'bold 13px sans-serif'; g.fillText(ad.sub, 84, 44);
-  if (ad.icon) g.drawImage(drawSprite(ad.icon, 40), 8, 12);
+  if (ad.icon) g.drawImage(drawSprite(ad.icon, 160), 8, 12, 40, 40);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   if (ad.who && ART.portraits[ad.who]) {

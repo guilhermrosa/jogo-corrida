@@ -16,12 +16,41 @@ function rng(seed) {
   };
 }
 
+// Alta definição: a arte é desenhada na grade original e ampliada 4x; por cima entra um granulado
+// fino (textura de material) e um leve relevo nas bordas de cada mancha de cor. Assim a textura fica
+// nítida de perto, sem o borrão do filtro e sem parecer massinha lisa.
+export const TEX_SCALE = 4;
+function detail(c, seed) {
+  const W = c.width, H = c.height, g = c.getContext('2d');
+  const img = g.getImageData(0, 0, W, H), d = img.data, r = rng(seed * 7 + 11);
+  const src = new Uint8ClampedArray(d);
+  const L = (i) => src[i] * 0.3 + src[i + 1] * 0.59 + src[i + 2] * 0.11;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4;
+    if (src[i + 3] < 8) continue;
+    // relevo: compara com o vizinho de cima-esquerda e de baixo-direita (luz vindo de cima)
+    const up = ((Math.max(0, y - 1) * W + Math.max(0, x - 1)) * 4), dn = ((Math.min(H - 1, y + 1) * W + Math.min(W - 1, x + 1)) * 4);
+    const bevel = (L(i) - L(up)) * 0.18 + (L(i) - L(dn)) * -0.18;
+    const grain = (r() - 0.5) * 16 + (((x * 13 + y * 7) % 5) - 2) * 0.8;
+    for (let k = 0; k < 3; k++) d[i + k] = src[i + k] + grain + bevel;
+  }
+  g.putImageData(img, 0, 0);
+}
 export function pixelTex(w, h, draw, { repeat = true, seed = 1, transpose = false } = {}) {
   let c = document.createElement('canvas');
   c.width = w; c.height = h;
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
   draw(g, w, h, rng(seed));
+  {
+    const big = document.createElement('canvas');
+    big.width = w * TEX_SCALE; big.height = h * TEX_SCALE;
+    const bg = big.getContext('2d');
+    bg.imageSmoothingEnabled = false;
+    bg.drawImage(c, 0, 0, big.width, big.height);
+    detail(big, seed);
+    c = big; w = big.width; h = big.height;
+  }
   if (transpose) {
     // desenhado "em pé" (x ao longo da pista, y para baixo); a faixa usa u = altura, v = comprimento
     const t2 = document.createElement('canvas');
@@ -34,9 +63,9 @@ export function pixelTex(w, h, draw, { repeat = true, seed = 1, transpose = fals
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.magFilter = THREE.NearestFilter;
+  t.magFilter = THREE.LinearFilter;
   t.minFilter = THREE.LinearMipmapLinearFilter;
-  t.anisotropy = 8;
+  t.anisotropy = 16;
   return t;
 }
 

@@ -20,15 +20,21 @@ const store = {
   set(k, v) { try { localStorage.setItem('kart3d:' + k, JSON.stringify(v)); } catch { /* sem armazenamento */ } },
 };
 
-// ------------------------------------------------------------------ renderização em baixa resolução (240 linhas, como no N64)
+// ------------------------------------------------------------------ renderização
+// Padrão: visual nítido (resolução cheia, antisserrilhado e sombras). Tecla V: visual retrô de 240 linhas, como no N64.
 const RES_H = 240;
-let retro = store.get('retro', true);
-const renderer = new THREE.WebGLRenderer({ antialias: false });
+let retro = store.get('visual', 'hd') === 'retro';
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById('game').appendChild(renderer.domElement);
+let sunRef = null;
 function applyRes() {
   renderer.setPixelRatio(retro ? Math.min(1, RES_H / window.innerHeight) : Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.domElement.classList.toggle('retro', retro);
+  renderer.shadowMap.enabled = !retro;
+  if (sunRef) sunRef.castShadow = !retro;
 }
 applyRes();
 
@@ -38,7 +44,30 @@ const hemi = new THREE.HemisphereLight(0xffffff, 0x707070, 2.1);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1.6);
 sun.position.set(0.5, 1, 0.3);
-scene.add(sun);
+scene.add(sun, sun.target);
+sunRef = sun;
+// sombra do sol: uma caixa de ~140 m que acompanha a câmera
+const SUN_DIR = new THREE.Vector3(0.5, 1, 0.3).normalize();
+sun.castShadow = !retro;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -75, right: 75, top: 75, bottom: -75, near: 1, far: 400 });
+sun.shadow.bias = -0.0006;
+sun.shadow.normalBias = 0.6;
+function followSun(target) {
+  sun.target.position.copy(target);
+  sun.position.copy(target).addScaledVector(SUN_DIR, 180);
+}
+// liga sombras nos objetos da pista (o chão, a água e o céu só recebem)
+function enableShadows(group) {
+  group.traverse((o) => {
+    if (!o.isMesh) return;
+    const m = Array.isArray(o.material) ? o.material[0] : o.material;
+    if (m.isMeshBasicMaterial || m.transparent || o.renderOrder < 0) return;
+    const big = o.geometry.boundingSphere || (o.geometry.computeBoundingSphere(), o.geometry.boundingSphere);
+    o.receiveShadow = true;
+    o.castShadow = !(big && big.radius > 600);
+  });
+}
 
 const input = new Input();
 const audio = new GameAudio();
@@ -148,7 +177,7 @@ input.on('PadB', () => back());
 input.on('Escape', () => { if (G.screen === 'race' || G.screen === 'pause') setPaused(!paused); else back(); });
 input.on('KeyP', () => { if (G.screen === 'race' || G.screen === 'pause') setPaused(!paused); });
 input.on('KeyM', () => { const m = audio.toggleMute(); if (R) hud.banner(m ? 'SOM DESLIGADO' : 'SOM LIGADO', 1); });
-input.on('KeyV', () => { retro = !retro; store.set('retro', retro); applyRes(); if (R) hud.banner(retro ? 'VISUAL RETRÔ' : 'VISUAL NÍTIDO', 1); });
+input.on('KeyV', () => { retro = !retro; store.set('visual', retro ? 'retro' : 'hd'); applyRes(); if (R) hud.banner(retro ? 'VISUAL RETRÔ' : 'VISUAL NÍTIDO', 1); });
 function back() {
   const prev = { cc: 'title', char: 'cc', cup: 'char' }[G.screen];
   if (prev) goTo(prev);
@@ -198,6 +227,9 @@ function startRace() {
   scene.fog = new THREE.Fog(theme.fog, theme.fogNear ?? 140, theme.fogFar ?? 900);
   hemi.color.set(theme.light ?? 0xffffff); hemi.intensity = theme.lightI ?? 2.1;
   sun.color.set(theme.sun ?? 0xffffff); sun.intensity = theme.sunI ?? 1.6;
+  // no visual nítido o sol fica mais forte e a luz do céu mais fraca, para as sombras e volumes aparecerem
+  if (!retro) { hemi.intensity *= 0.78; sun.intensity *= 1.45; }
+  enableShadows(track.group);
 
   const karts = G.grid.map((id, slot) => {
     const d = DRIVERS.find((x) => x.id === id);
@@ -458,6 +490,7 @@ function startPodium() {
   scene.fog = new THREE.Fog(0xe8cfa0, 40, 160);
   hemi.color.set(0xfff0d8); sun.color.set(0xffdca8);
   podium.update = buildPodiumScene(podium.group, spriteTexture('fumaca'));
+  enableShadows(podium.group);
   const heights = [3, 2, 1.2], xs = [0, -3.4, 3.4];
   for (let i = 0; i < 3; i++) {
     const d = DRIVERS.find((x) => x.id === standings[i]);
@@ -556,6 +589,7 @@ function showcaseCamera(dt) {
 
 // ------------------------------------------------------------------ loop
 const clock = new THREE.Clock();
+const tmpSun = new THREE.Vector3();
 function frame() {
   requestAnimationFrame(frame);
   const dt = Math.min(clock.getDelta(), 1 / 30);
@@ -592,6 +626,9 @@ function frame() {
     camera.lookAt(window.__photo.t);
     if (R) R.track.backdrop.position.set(camera.position.x, 140, camera.position.z);
   }
+  // a caixa de sombra fica um pouco à frente da câmera
+  tmpSun.set(0, 0, -50).applyQuaternion(camera.quaternion).add(camera.position); tmpSun.y = R ? R.player.pos.y : camera.position.y - 3;
+  followSun(tmpSun);
   renderer.render(scene, camera);
 }
 

@@ -8,6 +8,15 @@ export { ROAD_HALF, SHOULDER, EDGE };
 
 const GROUND_Y = -0.15;
 
+// amplia um desenho pequeno 4x sem borrar (pixel nítido), para o modo de alta definição
+export function crisp(c, k = 4) {
+  const big = document.createElement('canvas');
+  big.width = c.width * k; big.height = c.height * k;
+  const g = big.getContext('2d'); g.imageSmoothingEnabled = false;
+  g.drawImage(c, 0, 0, big.width, big.height);
+  return big;
+}
+
 export function mulberry32(a) {
   return function () {
     a |= 0; a = (a + 0x6d2b79f5) | 0;
@@ -19,13 +28,15 @@ export function mulberry32(a) {
 
 // Texturas pequenas e filtradas (o "borrado" típico do N64)
 export function retroTex(w, h, draw, { repeat = true, nearest = false } = {}) {
-  const c = document.createElement('canvas');
+  let c = document.createElement('canvas');
   c.width = w; c.height = h;
   draw(c.getContext('2d'), w, h);
+  c = crisp(c);
   const t = new THREE.CanvasTexture(c);
+  t.anisotropy = 16;
   t.colorSpace = THREE.SRGBColorSpace;
   if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  if (nearest) { t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; }
+  if (nearest) { t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter; }
   return t;
 }
 
@@ -473,7 +484,7 @@ export class Track {
         c.fillStyle = '#ff7a1a'; c.fillRect(12, 50, 3, 3); c.fillRect(20, 42, 2, 2);
       }
     }, { repeat: false });
-    const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide });
+    const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide });
     const geo = new THREE.PlaneGeometry(6, 12);
     geo.translate(0, 6, 0);
     const geo2 = geo.clone().rotateY(Math.PI / 2);

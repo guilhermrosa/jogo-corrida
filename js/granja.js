@@ -192,10 +192,10 @@ export function granja(tr, rnd, H) {
 }
 
 function signTex(text) {
-  const c = document.createElement('canvas'); c.width = 128; c.height = 24;
-  const g = c.getContext('2d');
+  const c = document.createElement('canvas'); c.width = 512; c.height = 96;
+  const g = c.getContext('2d'); g.scale(4, 4);
   g.fillStyle = '#5a1e14'; g.fillRect(0, 0, 128, 24); g.strokeStyle = '#c9a24a'; g.lineWidth = 2; g.strokeRect(1, 1, 126, 22);
   g.fillStyle = '#ffd98a'; g.font = 'bold 14px monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 64, 13);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 16; return t;
 }
 export { signTex };
