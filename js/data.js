@@ -233,7 +233,7 @@ export const TRACKS = {
   },
 };
 TRACKS.oficina = {
-  name: 'Vila Engrenagem',
+  name: 'Burgo do Vapor',
   theme: 'oficina',
   // circuito de rua: avenida da largada, ponte sobre o canal, praça da torre do relógio, outra ponte e volta
   points: [[0, 0, 0], [60, 0, 0], [100, -6, 0], [118, -34, 1.2], [118, -66, 3.6], [110, -94, 1], [84, -106, 0], [46, -104, 0],

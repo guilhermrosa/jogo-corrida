@@ -33,7 +33,7 @@ No celular aparecem os botões A, B, R e Z na tela.
 ## Regras do Grand Prix (iguais ao 64)
 - 8 pilotos, 3 voltas por corrida, copas com 4 pistas.
 - **Copa Pistão** (Fazenda dos Silos, Porto dos Escafandros, Serra Gelada, Fundição do Vulcão) e **Copa Engrenagem**
-  (Vila Engrenagem, Brejo das Caldeiras, Deserto da Sucata e Ilhas das Correntes), no mundo steampunk das artes conceituais.
+  (Burgo do Vapor, Brejo das Caldeiras, Deserto da Sucata e Ilhas das Correntes), no mundo steampunk das artes conceituais.
 - Cada pista tem a sua estrutura: viadutos cruzando a própria pista, espirais, saltos obrigatórios por cima de
   vãos e gretas, **caminhos alternativos** (por dentro do celeiro, pelo lago congelado, pela passarela sem mureta,
   pelos dois lados da torre do relógio) e **atalhos de salto arriscados** (a ponte levadiça erguida do porto e a
@@ -116,7 +116,7 @@ js/porto.js    cenário do Porto dos Escafandros (escafandristas, submarinos, po
 js/geleira.js  cenário da Serra Gelada (Companhia de Gelo: depósito, teleférico, gretas, lago)
 js/fundicao.js cenário da Fundição do Vulcão (galpão de fundição, poço de metal, escória)
 js/textures.js texturas em pixel art pintadas à mão (pista, chão, barrancos, muros, água, lava)
-js/oficina.js  cenário da Vila Engrenagem (cidade-oficina)
+js/oficina.js  cenário do Burgo do Vapor (cidade-oficina)
 js/pantano.js  cenário do Brejo das Caldeiras (pântano com máquinas)
 js/sucata.js   cenário do Deserto da Sucata (ferro-velho no deserto)
 js/ilhas.js    cenário das Ilhas das Correntes (ilhas flutuantes)

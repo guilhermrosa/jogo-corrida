@@ -4,7 +4,7 @@ import { EDGE } from './data.js';
 import { pixelTex } from './textures.js';
 
 // =====================================================================
-//  VILA ENGRENAGEM — cidade-oficina (Copa Engrenagem)
+//  BURGO DO VAPOR — cidade-oficina (Copa Engrenagem)
 //  Casas tortinhas de enxaimel, torre do relógio, canal com roda d'água,
 //  lampiões, canos de vapor sobre a rua, chaminés de fábrica e dirigível.
 // =====================================================================
@@ -651,10 +651,10 @@ export function oficina(tr, rnd, H) {
       drivers.push(dg);
       const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.6, 10, 8), basic({ color: 0xffd98a })); lamp.position.set(px0, py0 + 7, 0); g.add(lamp);
     }
-    // placa com o nome da vila no alto
+    // placa com o nome do burgo no alto
     const nameTex = pixelTex(128, 24, (c, W, Hh) => {
       P(c, 0, 0, W, Hh, '#3b3632'); P(c, 2, 2, W - 4, Hh - 4, '#5a2e1c');
-      c.fillStyle = '#e8c070'; c.font = 'bold 13px monospace'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('VILA ENGRENAGEM', W / 2, Hh / 2 + 1);
+      c.fillStyle = '#e8c070'; c.font = 'bold 13px monospace'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('BURGO DO VAPOR', W / 2, Hh / 2 + 1);
     }, { repeat: false });
     const board = new THREE.Mesh(new THREE.BoxGeometry(12, 2.2, 0.3), [mats.iron, mats.iron, mats.iron, mats.iron, lam({ map: nameTex }), lam({ map: nameTex })]);
     board.position.set(0, Ro + 1.6, 1.2); g.add(board);
