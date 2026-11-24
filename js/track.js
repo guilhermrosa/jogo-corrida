@@ -321,21 +321,44 @@ export class Track {
     const line = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_HALF * 2, 2), lam({ map: checker }));
     line.rotation.x = -Math.PI / 2; line.position.y = 0.09;
     start.add(line);
-    const postMat = lam({ color: 0x455a64 });
+    // pórtico de largada do mundo steampunk: pilares de cobre rebitado, engrenagens girando e lampiões
+    const brass = new THREE.MeshPhongMaterial({ color: 0xc9a24a, shininess: 70, specular: 0x887755 });
+    const copper = new THREE.MeshPhongMaterial({ color: 0xb8673a, shininess: 50, specular: 0x553322 });
+    const postMat = lam({ color: 0x3b3632 });
+    const gearGeo = (R, T) => {
+      const sh = new THREE.Shape();
+      for (let k = 0; k < T; k++) {
+        const a = (k / T) * Math.PI * 2, st = (Math.PI * 2) / T, P = (aa, rr) => [Math.cos(aa) * rr, Math.sin(aa) * rr];
+        if (!k) sh.moveTo(...P(a, R * 0.82)); else sh.lineTo(...P(a, R * 0.82));
+        sh.lineTo(...P(a + st * 0.2, R)); sh.lineTo(...P(a + st * 0.5, R)); sh.lineTo(...P(a + st * 0.7, R * 0.82));
+      }
+      const h = new THREE.Path(); h.absarc(0, 0, R * 0.3, 0, Math.PI * 2, true); sh.holes.push(h);
+      const g = new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }); g.translate(0, 0, -0.15);
+      return g;
+    };
+    const gears = [];
     for (const s of [1, -1]) {
-      const post = new THREE.Mesh(new THREE.BoxGeometry(0.8, 7, 0.8), postMat);
-      post.position.set(s * (EDGE + 0.8), 3.5, 0);
+      const post = new THREE.Mesh(new THREE.BoxGeometry(1.2, 8, 1.2), copper);
+      post.position.set(s * (EDGE + 0.9), 4, 0);
       start.add(post);
+      for (const y of [0.6, 4, 7.6]) { const band = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.3, 1.4), brass); band.position.set(s * (EDGE + 0.9), y, 0); start.add(band); }
+      const g = new THREE.Mesh(gearGeo(1.6, 12), brass); g.position.set(s * (EDGE + 0.9), 8.6, 0.8); start.add(g); gears.push([g, s]);
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffd98a })); lamp.position.set(s * (EDGE + 0.9), 10.6, 0); start.add(lamp);
     }
+    this.animated.push((dt) => { for (const [g, s] of gears) g.rotation.z += dt * 0.8 * s; });
     const banner = retroTex(128, 16, (c, w, h) => {
-      c.fillStyle = '#d32f2f'; c.fillRect(0, 0, w, h);
-      c.fillStyle = '#fff'; c.font = 'bold 12px monospace'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillStyle = '#2a2624'; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#c9a24a'; c.fillRect(1, 1, w - 2, h - 2);
+      c.fillStyle = '#5a1e14'; c.fillRect(3, 3, w - 6, h - 6);
+      c.fillStyle = '#ffd98a'; c.font = 'bold 11px monospace'; c.textAlign = 'center'; c.textBaseline = 'middle';
       c.fillText(this.def.name.toUpperCase(), w / 2, h / 2 + 1);
     }, { repeat: false });
     const bmat = lam({ map: banner });
-    const beam = new THREE.Mesh(new THREE.BoxGeometry((EDGE + 0.8) * 2 + 0.8, 1.6, 0.4), [postMat, postMat, postMat, postMat, bmat, bmat]);
-    beam.position.y = 6.6;
+    const beam = new THREE.Mesh(new THREE.BoxGeometry((EDGE + 0.9) * 2 + 1.2, 1.8, 0.5), [brass, brass, brass, brass, bmat, bmat]);
+    beam.position.y = 7;
     start.add(beam);
+    // cano de vapor por cima da faixa
+    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, (EDGE + 0.9) * 2, 10), copper); pipe.rotation.z = Math.PI / 2; pipe.position.set(0, 8.3, -0.4); start.add(pipe);
 
     // ---------- céu: painel pintado ao redor (como os fundos do N64)
     this.buildBackdrop(rnd);

@@ -108,6 +108,9 @@ js/oficina.js  cenário da Vila Engrenagem (cidade-oficina)
 js/pantano.js  cenário do Brejo das Caldeiras (pântano com máquinas)
 js/sucata.js   cenário do Ferro-Velho do Sol (deserto de sucata)
 js/ilhas.js    cenário das Ilhas das Correntes (ilhas flutuantes)
+js/bolota.js   Copa Bolota no mundo steampunk (máquinas, autômatos, lampiões, canos)
+js/robots.js   autômatos steampunk (robozinhos de lata e robô gigante)
+js/podium.js   pódio: praça de oficina com pedestais de cobre, arco de engrenagem e robôs
 js/scenery.js  cenário: morros, marcos de cada pista, placas, arquibancadas, túneis e animações
 js/kart.js     física: pulo, derrapagem, mini-turbo, muros, queda e resgate
 js/items.js    caixas, roleta e todos os itens

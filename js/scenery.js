@@ -4,6 +4,7 @@ import { oficina } from './oficina.js';
 import { pantano } from './pantano.js';
 import { sucata } from './sucata.js';
 import { ilhas } from './ilhas.js';
+import { camposSteam, praiaSteam, serraSteam, vulcaoSteam, robotCrew, steamKit } from './bolota.js';
 import { EDGE, ROAD_HALF } from './data.js';
 import { drawSprite } from './sprites.js';
 
@@ -173,12 +174,13 @@ function billboard(tr, pos, rotY, ad, scale = 1) {
   const g = new THREE.Group();
   g.position.copy(pos); g.rotation.y = rotY; g.scale.setScalar(scale);
   const t = adTexture(ad);
+  const frame = new THREE.MeshPhongMaterial({ color: 0xc9a24a, shininess: 70, specular: 0x887755 });
   const board = new THREE.Mesh(new THREE.BoxGeometry(9, 4.5, 0.3),
-    [lam({ color: 0x555555 }), lam({ color: 0x555555 }), lam({ color: 0x555555 }), lam({ color: 0x555555 }), lam({ map: t }), lam({ color: 0x777777 })]);
+    [frame, frame, frame, frame, lam({ map: t }), lam({ color: 0x5a3a2a })]);
   board.position.y = 5;
   g.add(board);
   for (const s of [-3, 3]) {
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.2, 0.35), lam({ color: 0x8d8d8d }));
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.2, 0.35), lam({ color: 0x3b3632 }));
     post.position.set(s, 1.6, 0);
     g.add(post);
   }
@@ -274,7 +276,7 @@ function grandstand(tr, idx, side, len = 50) {
   g.position.y = tr.py[idx];
   g.rotation.y = tr.heading(idx);
   tr.group.add(g);
-  const stand = lam({ color: 0x90a4ae }), crowd = lam({ map: crowdTex });
+  const stand = lam({ color: 0x5a524a }), crowd = lam({ map: crowdTex });
   // eixo x local aponta para o lado "-" da pista: afastar da pista = -side
   const out = -side;
   const faceIdx = side > 0 ? 0 : 1;               // face voltada para a pista
@@ -286,11 +288,14 @@ function grandstand(tr, idx, side, len = 50) {
     step.position.set(out * (k * 2.6 + 1.3), hgt / 2, 0);
     g.add(step);
   }
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(15, 0.5, len + 2), lam({ color: 0xc62828 }));
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(15, 0.5, len + 2), lam({ color: 0x6fb09c }));
   roof.position.set(out * 7, 10, 0);
   roof.rotation.z = -out * 0.12;
   g.add(roof);
-  for (const z of [-len / 2, len / 2]) {
+  const brassM = new THREE.MeshPhongMaterial({ color: 0xc9a24a, shininess: 70, specular: 0x887755 });
+  const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, len, 6), brassM); rail.rotation.x = Math.PI / 2; rail.position.set(out * 0.2, 1.6, 0); g.add(rail);
+  const eave = new THREE.Mesh(new THREE.BoxGeometry(15.2, 0.25, len + 2.2), brassM); eave.position.set(out * 7, 9.7, 0); eave.rotation.z = -out * 0.12; g.add(eave);
+  for (const z of [-len / 2, 0, len / 2]) {
     const col = new THREE.Mesh(new THREE.BoxGeometry(0.5, 10, 0.5), stand);
     col.position.set(out * 13.5, 5, z);
     g.add(col);
@@ -433,46 +438,19 @@ const SPR = {
 // ================================================================= CAMPOS BOLOTA
 function campos(tr, rnd) {
   const c = tr.center;
-  // balão de ar quente com o emblema da bolota
-  const env = tex(64, 32, (g, w, h) => {
-    const cols = ['#e53935', '#ffeb3b', '#1e88e5', '#ffffff', '#43a047', '#ff9800'];
-    for (let k = 0; k < 12; k++) { g.fillStyle = cols[k % cols.length]; g.fillRect((k * w) / 12, 0, w / 12 + 1, h); }
-    g.fillStyle = '#6d4c41'; g.beginPath(); g.arc(16, 17, 6, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#a1887f'; g.fillRect(10, 9, 12, 5);
-  });
-  const balloon = new THREE.Group();
-  const pts = [];
-  for (let k = 0; k <= 16; k++) { const t = k / 16; pts.push(new THREE.Vector2(Math.sin(t * Math.PI) * 9 * (t < 0.5 ? 1 : 0.85 + 0.15 * Math.cos((t - 0.5) * 2)) + (t > 0.85 ? -1 : 0), t * 20)); }
-  pts.reverse();
-  const envelope = new THREE.Mesh(new THREE.LatheGeometry(pts.map((p) => new THREE.Vector2(Math.max(0.6, p.x), 20 - p.y)), 24), new THREE.MeshPhongMaterial({ map: env, shininess: 30 }));
-  balloon.add(envelope);
-  const basket = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2, 2.6), lam({ color: 0x8d6e63 }));
-  basket.position.y = -4;
-  balloon.add(basket);
-  for (const [x, z] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
-    const r = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 5), lam({ color: 0x444444 }));
-    r.position.set(x * 1.6, -1, z * 1.6); r.rotation.z = -x * 0.25; r.rotation.x = z * 0.25;
-    balloon.add(r);
-  }
-  tr.group.add(balloon);
-  let bt = 0;
-  tr.animated.push((dt) => {
-    bt += dt;
-    balloon.position.set(c.x + Math.cos(bt * 0.05) * 60, 48 + Math.sin(bt * 0.6) * 2, c.z + Math.sin(bt * 0.05) * 40);
-    balloon.rotation.y = bt * 0.1;
-  });
+  // (o balão de ar quente virou dirigível: ver bolota.js)
 
   // moinho de vento
   const mill = findPlace(tr, rnd, 40, 90);
   if (mill) {
     const g = new THREE.Group(); g.position.copy(mill); tr.group.add(g);
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 4.2, 16, 8), lam({ color: 0xf5f5f5 }));
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 4.2, 16, 8), lam({ color: 0xb5654a }));
     tower.position.y = 8; g.add(tower);
-    const cap = new THREE.Mesh(new THREE.ConeGeometry(3.6, 4, 8), lam({ color: 0xc62828 }));
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(3.6, 4, 8), lam({ color: 0x6fb09c }));
     cap.position.y = 18; g.add(cap);
     const hub = new THREE.Group(); hub.position.set(0, 15, 3.2); g.add(hub);
     for (let k = 0; k < 4; k++) {
-      const blade = new THREE.Mesh(new THREE.BoxGeometry(1.6, 9, 0.2), lam({ color: 0x8d6e63 }));
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(1.6, 9, 0.2), new THREE.MeshPhongMaterial({ color: 0xc9a24a, shininess: 60 }));
       blade.position.y = 4.5; const arm = new THREE.Group(); arm.rotation.z = (k * Math.PI) / 2; arm.add(blade); hub.add(arm);
     }
     g.lookAt(c.x, mill.y, c.z);
@@ -485,7 +463,7 @@ function campos(tr, rnd) {
     const g = new THREE.Group(); g.position.copy(barn); g.rotation.y = rnd() * 6; tr.group.add(g);
     const body = new THREE.Mesh(new THREE.BoxGeometry(14, 8, 10), lam({ color: 0xc62828 }));
     body.position.y = 4; g.add(body);
-    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 8.4, 5, 4, 1), lam({ color: 0x5d4037 }));
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 8.4, 5, 4, 1), lam({ color: 0x6fb09c }));
     roof.scale.set(1.25, 1, 0.9); roof.position.y = 10.5; roof.rotation.y = Math.PI / 4; g.add(roof);
     const door = new THREE.Mesh(new THREE.PlaneGeometry(5, 6), lam({ color: 0xffffff }));
     door.position.set(0, 3, 5.01); g.add(door);
@@ -529,7 +507,7 @@ function campos(tr, rnd) {
     cap.position.y = 9.5; g.add(cap);
     const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 2), lam({ color: 0x4e342e }));
     stem.position.y = 14.5; g.add(stem);
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(4, 5, 2, 12), lam({ color: 0x9e9e9e }));
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(4, 5, 2, 12), new THREE.MeshPhongMaterial({ color: 0xc9a24a, shininess: 70 }));
     base.position.y = 1; g.add(base);
     let t = 0;
     tr.animated.push((dt) => { t += dt; g.rotation.y = Math.sin(t * 0.5) * 0.3; });
@@ -550,13 +528,13 @@ function praia(tr, rnd) {
   tr.group.add(lh);
   const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(12, 0), lam({ color: 0x795548, flatShading: true }));
   rock.scale.set(1.2, 0.5, 1.2); rock.position.y = 1; lh.add(rock);
-  const stripes = tex(16, 64, (g, w, h) => { for (let k = 0; k < 8; k++) { g.fillStyle = k % 2 ? '#fff' : '#d32f2f'; g.fillRect(0, (k * h) / 8, w, h / 8); } });
+  const stripes = tex(16, 64, (g, w, h) => { for (let k = 0; k < 8; k++) { g.fillStyle = k % 2 ? '#e8c070' : '#b8673a'; g.fillRect(0, (k * h) / 8, w, h / 8); g.fillStyle = '#5a3a24'; for (let x = 1; x < w; x += 4) g.fillRect(x, (k * h) / 8 + 1, 1, 1); } });
   const tower = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 3.6, 24, 16), lam({ map: stripes }));
   tower.position.y = 16; lh.add(tower);
   const room = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 3, 12), basic({ color: 0xfff59d }));
   room.position.y = 29.5; lh.add(room);
   const roof = new THREE.Mesh(new THREE.ConeGeometry(3.2, 3, 12), lam({ color: 0x212121 }));
-  roof.position.y = 32.5; lh.add(roof);
+  roof.position.y = 32.5; lh.add(roof); roof.material.color.set(0x6fb09c);
   const beam = new THREE.Mesh(new THREE.ConeGeometry(4, 40, 12, 1, true), basic({ color: 0xfffde7, transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide }));
   beam.geometry.translate(0, -20, 0); beam.geometry.rotateZ(Math.PI / 2);
   const beamPivot = new THREE.Group(); beamPivot.position.y = 29.5; beamPivot.add(beam); lh.add(beamPivot);
@@ -619,9 +597,11 @@ function praia(tr, rnd) {
   // veleiro e gaivotas
   const boat = new THREE.Group(); tr.group.add(boat);
   const hull = new THREE.Mesh(new THREE.BoxGeometry(3, 1.6, 9), lam({ color: 0xffffff })); hull.position.y = 0.6; boat.add(hull);
-  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 10), lam({ color: 0x795548 })); mast.position.y = 6; boat.add(mast);
-  const sail = new THREE.Mesh(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(0, 10.5, 0), new THREE.Vector3(0, 1.5, -5)]), basic({ color: 0xff7043, side: THREE.DoubleSide }));
-  boat.add(sail);
+  // barco a vapor de roda de pás no lugar do veleiro
+  hull.material.color.set(0x8a2e22);
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.8, 4), lam({ color: 0xefe2c2 })); cabin.position.y = 2.3; boat.add(cabin);
+  const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.45, 3.4, 10), lam({ color: 0x3b3632 })); stack.position.set(0, 4.6, -0.6); boat.add(stack);
+  for (const sx of [1, -1]) { const pw = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.6, 12, 1, false, 0, Math.PI), new THREE.MeshPhongMaterial({ color: 0xc9a24a })); pw.rotation.z = Math.PI / 2; pw.rotation.y = Math.PI / 2; pw.position.set(sx * 1.8, 0.8, -1); boat.add(pw); }
   const gull = SPR.gaivota();
   const gulls = [];
   for (let k = 0; k < 7; k++) { const s = sprite(gull, [2.2, 2.2], new THREE.Vector3()); tr.group.add(s); gulls.push({ s, r: 20 + rnd() * 40, h: 18 + rnd() * 14, ph: rnd() * 6, sp: 0.2 + rnd() * 0.3, cx: c.x + (rnd() - 0.5) * 200, cz: c.z + 40 + rnd() * 80 }); }
@@ -720,9 +700,9 @@ function serra(tr, rnd) {
   for (let k = 0; k <= towers; k++) {
     const p = new THREE.Vector3().lerpVectors(start, end, k / towers);
     p.y = tr.terrainY(p.x, p.z);
-    const tw = new THREE.Mesh(new THREE.BoxGeometry(0.8, 14, 0.8), lam({ color: 0x546e7a }));
+    const tw = new THREE.Mesh(new THREE.BoxGeometry(0.8, 14, 0.8), lam({ color: 0x3b3632 }));
     tw.position.set(p.x, p.y + 7, p.z); tr.group.add(tw);
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(5, 0.4, 0.4), lam({ color: 0x546e7a }));
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(5, 0.4, 0.4), new THREE.MeshPhongMaterial({ color: 0xc9a24a }));
     arm.position.set(p.x, p.y + 14, p.z); arm.lookAt(p.x + dir.z, p.y + 14, p.z - dir.x); tr.group.add(arm);
     pts.push(new THREE.Vector3(p.x, p.y + 13.6, p.z));
   }
@@ -730,8 +710,8 @@ function serra(tr, rnd) {
   tr.group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(cableCurve.getPoints(60)), new THREE.LineBasicMaterial({ color: 0x263238 })));
   const cabins = Array.from({ length: 5 }, (_, k) => {
     const g = new THREE.Group();
-    const box = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.2, 2.4), lam({ color: [0xe53935, 0xffeb3b, 0x1e88e5, 0x43a047, 0xff9800][k] })); box.position.y = -2.4; g.add(box);
-    const win = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.8, 2.5), basic({ color: 0xb3e5fc })); win.position.y = -2.1; g.add(win);
+    const box = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.2, 2.4), lam({ color: [0xb8673a, 0x6fb09c, 0xc9a24a, 0x8e3b2a, 0xb8673a][k] })); box.position.y = -2.4; g.add(box);
+    const win = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.8, 2.5), basic({ color: 0xffd98a })); win.position.y = -2.1; g.add(win);
     const rod = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.4, 0.1), lam({ color: 0x333333 })); rod.position.y = -0.7; g.add(rod);
     tr.group.add(g); return { g, t: k / 5 };
   });
@@ -782,14 +762,14 @@ function vulcao(tr, rnd) {
       if (tr.dist(p.x, p.z).d < EDGE + 1) continue;
       const g = new THREE.Group(); g.position.set(p.x, tr.py[i], p.z); tr.group.add(g);
       const ph = tr.py[i] + 3.8;   // pilar sai de dentro da lava
-      const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, ph, 6), lam({ color: 0x424242 })); pillar.position.y = 3 - ph / 2; g.add(pillar);
-      const bowl = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.6, 0.8, 8), lam({ color: 0x212121 })); bowl.position.y = 3.3; g.add(bowl);
+      const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, ph, 6), lam({ color: 0x3b3632 })); pillar.position.y = 3 - ph / 2; g.add(pillar);
+      const bowl = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.6, 0.8, 8), new THREE.MeshPhongMaterial({ color: 0xb8673a, shininess: 50 })); bowl.position.y = 3.3; g.add(bowl);
       const f = sprite(fireTex, [2.4, 3], new THREE.Vector3(0, 3.4, 0)); f.material.transparent = true; f.material.alphaTest = 0.05; g.add(f);
       fires.push({ f, ph: rnd() * 6 });
     }
   }
   // pilares com runas brilhantes e pedras flutuando
-  const rune = tex(16, 64, (g, w, h) => { g.fillStyle = '#2b1d1a'; g.fillRect(0, 0, w, h); g.fillStyle = '#ff6d00'; for (let y = 6; y < h; y += 14) { g.fillRect(5, y, 6, 2); g.fillRect(7, y - 3, 2, 8); } });
+  const rune = tex(16, 64, (g, w, h) => { g.fillStyle = '#3b3632'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 10) { g.fillStyle = '#5a524a'; g.fillRect(0, y, w, 1); g.fillStyle = '#c9a24a'; g.fillRect(2, y + 3, 1, 1); g.fillRect(12, y + 3, 1, 1); g.fillStyle = '#ff6d00'; g.fillRect(6, y + 6, 4, 1); } });
   for (let k = 0; k < 10; k++) {
     const at = findPlace(tr, rnd, EDGE + 10, 70, null, true);
     if (!at) continue;
@@ -870,6 +850,20 @@ export function buildScenery(tr, rnd) {
   if (theme === 'praia') praia(tr, rnd);
   if (theme === 'serra') serra(tr, rnd);
   if (theme === 'vulcao') vulcao(tr, rnd);
+  // Copa Bolota no mundo steampunk: máquinas e autômatos por cima do tema de cada pista
+  const STEAM = { campos: camposSteam, praia: praiaSteam, serra: serraSteam, vulcao: vulcaoSteam };
+  if (STEAM[theme]) {
+    const Hh = { SPR, findPlace, sideWithRoom, spot };
+    const anims = [...STEAM[theme](tr, rnd, Hh), ...steamKit(tr, rnd, Hh)];
+    const crew = robotCrew(tr, rnd, Hh, { workers: 8, color: theme === 'vulcao' ? 0x4a4440 : undefined });
+    let t = 0;
+    tr.animated.push((dt) => { t += dt; for (const f of anims) f(t, dt); crew(t, dt); });
+  }
+  if (theme === 'oficina' || theme === 'pantano') {
+    const crew = robotCrew(tr, rnd, { SPR, findPlace, sideWithRoom, spot }, { workers: 6 });
+    let t = 0;
+    tr.animated.push((dt) => { t += dt; crew(t, dt); });
+  }
   if (theme === 'ilhas') ilhas(tr, rnd, { SPR, ADS, adTexture, grandstand, sideWithRoom, findPlace, spot, sprite });
   if (theme === 'sucata') sucata(tr, rnd, { SPR, ADS, adTexture, grandstand, sideWithRoom, findPlace, spot, sprite, billboard, facing });
   if (theme === 'pantano') pantano(tr, rnd, { SPR, ADS, adTexture, grandstand, sideWithRoom, findPlace, spot, sprite });
@@ -885,7 +879,7 @@ export function buildScenery(tr, rnd) {
   // postes nas pontas das bandeirolas
   for (const k of [-14, 14]) for (const s of [1, -1]) {
     const p = tr.point(k, s * (EDGE + 0.8));
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, 6.4, 0.3), lam({ color: 0x9e9e9e }));
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, 6.4, 0.3), lam({ color: 0xb8673a }));
     post.position.set(p.x, tr.py[((k % tr.N) + tr.N) % tr.N] + 3.2, p.z);
     tr.group.add(post);
   }
