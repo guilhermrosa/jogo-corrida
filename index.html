@@ -38,7 +38,11 @@
   <div id="screen-title" class="screen">
     <div class="logo">KART<span>3D</span></div>
     <div class="logo-sub">GRAND PRIX</div>
-    <button class="btn big" data-go="cc">JOGAR</button>
+    <div class="col">
+      <button class="btn big" data-mode="gp">GRAND PRIX</button>
+      <button class="btn" data-mode="livre">CORRIDA LIVRE</button>
+      <button class="btn" data-go="viewer">PILOTOS</button>
+    </div>
     <div class="hint">ENTER / START</div>
     <div class="controls">
       <div><b>↑ X</b> acelerar &nbsp; <b>↓ C</b> frear/ré &nbsp; <b>← →</b> virar</div>
@@ -51,7 +55,7 @@
   </div>
 
   <div id="screen-cc" class="screen hidden">
-    <h2>GRAND PRIX</h2>
+    <h2 id="cc-title">GRAND PRIX</h2>
     <div class="sub">ESCOLHA A CILINDRADA</div>
     <div class="col">
       <button class="btn" data-cc="50">50cc</button>
@@ -73,6 +77,27 @@
     <h2>ESCOLHA A COPA</h2>
     <div id="cup-list"></div>
     <button class="btn back" data-go="char">VOLTAR</button>
+  </div>
+
+  <div id="screen-track" class="screen hidden">
+    <h2>ESCOLHA A PISTA</h2>
+    <div id="track-list"></div>
+    <button class="btn back" data-go="char">VOLTAR</button>
+  </div>
+
+  <div id="screen-viewer" class="screen hidden clear">
+    <h2 id="viewer-name"></h2>
+    <div id="viewer-role"></div>
+    <div id="viewer-bottom">
+      <div id="viewer-info"></div>
+      <div class="row">
+        <button class="btn" id="viewer-prev">◀</button>
+        <button class="btn" id="viewer-pose">POSE: NORMAL</button>
+        <button class="btn" id="viewer-next">▶</button>
+      </div>
+      <div class="sub viewer-hint">ARRASTE PARA GIRAR · RODINHA PARA APROXIMAR · ← → GIRAM · ↑ ↓ TROCAM DE PILOTO</div>
+      <button class="btn back" data-go="title">VOLTAR</button>
+    </div>
   </div>
 
   <div id="screen-results" class="screen hidden">

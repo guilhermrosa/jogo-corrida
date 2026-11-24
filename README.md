@@ -30,6 +30,14 @@ No celular aparecem os botões A, B, R e Z na tela.
 - **Vácuo**: fique logo atrás de outro kart por alguns segundos para ganhar um empurrãozinho.
 - **Toque triplo**: tocar rápido no acelerador, depois de uma batida, recupera a velocidade mais rápido.
 
+## Modos
+- **Grand Prix**: copa de 4 corridas com pontos e pódio (regras abaixo).
+- **Corrida Livre**: escolha qualquer uma das 8 pistas e corra uma vez só. Guarda o seu recorde de tempo
+  em cada pista e cilindrada.
+- **Pilotos**: vitrine com o modelo 3D de cada piloto num pedestal. Arraste (mouse ou dedo) para girar 360°,
+  role para aproximar, troque a pose (normal, virando, comemorando, atordoado). No teclado, ← → giram e
+  ↑ ↓ trocam de piloto.
+
 ## Regras do Grand Prix (iguais ao 64)
 - 8 pilotos, 3 voltas por corrida, copas com 4 pistas.
 - **Copa Pistão** (Fazenda dos Silos, Porto dos Escafandros, Serra Gelada, Fundição do Vulcão) e **Copa Engrenagem**
@@ -121,6 +129,7 @@ js/pantano.js  cenário do Brejo das Caldeiras (pântano com máquinas)
 js/sucata.js   cenário do Deserto da Sucata (ferro-velho no deserto)
 js/ilhas.js    cenário das Ilhas das Correntes (ilhas flutuantes)
 js/bolota.js   máquinas e autômatos comuns da Copa Pistão (lampiões, canos de vapor, robôs)
+js/viewer.js   vitrine dos pilotos em 3D (tela Pilotos)
 js/robots.js   autômatos steampunk (robozinhos de lata e robô gigante; patrol() faz um robô andar e virar)
 js/podium.js   pódio: praça de oficina com pedestais de cobre, arco de engrenagem e robôs
 js/scenery.js  cenário: morros, marcos de cada pista, placas, arquibancadas, túneis e animações

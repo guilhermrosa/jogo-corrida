@@ -37,6 +37,18 @@ export const DRIVERS = [
   { id: 'juca',   name: 'Juca',   animal: 'jacaré',  cls: 'pesado', weight: 2.3, tap: 3,   size: 6, kart: 0x26a69a, fur: 0x4f8a3a },
 ];
 
+// papel de cada piloto no mundo steampunk (tela de pilotos)
+export const ROLES = {
+  pipoca: { role: 'Mensageira do correio a vapor', kart: 'Velocípede do correio, com roda dianteira gigante e cesto de cartas' },
+  tico:   { role: 'Botânico do Brejo, cultiva cogumelos que brilham', kart: 'Vitória-régia sobre rodas, com estufa de vidro e regador de cobre' },
+  mel:    { role: 'Relojoeira', kart: 'Relógio de bolso gigante, com engrenagens e chave de corda' },
+  faisca: { role: 'Piloto de dirigível', kart: 'Mini-dirigível de casco de charuto, lemes e hélice de madeira' },
+  bento:  { role: 'Foguista da ferrovia', kart: 'Locomotiva com chaminé de funil, farol, sino e limpa-trilhos' },
+  tonho:  { role: 'Cortador de gelo da serra', kart: 'Trenó de gelo com esquis, lâmina de neve e caixote de blocos' },
+  rino:   { role: 'Dono da fundição', kart: 'Fornalha blindada, chapas rebitadas, grade em brasa e duas chaminés' },
+  juca:   { role: 'Capitão do navio-caldeira', kart: 'Barco a vapor com rodas de pás, vigias e boia' },
+};
+
 // Tamanho no MK64: 5.5 para todos, exceto os dois maiores pesados (6)
 for (const d of DRIVERS) d.size = d.size || 5.5;
 

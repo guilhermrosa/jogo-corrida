@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { DRIVERS, CUPS, TRACKS, THEMES, LAPS, POINTS, DRIVE, CLASS_STATS } from './data.js';
+import { DRIVERS, CUPS, TRACKS, THEMES, LAPS, POINTS, DRIVE, CLASS_STATS, ROLES } from './data.js';
+import { DriverViewer } from './viewer.js';
 import { Track } from './track.js';
 import { Kart, collideKarts, wrapAngle, clamp } from './kart.js';
 import { ItemSystem } from './items.js';
@@ -98,6 +99,7 @@ scene.add(owl);
 // ------------------------------------------------------------------ estado
 const G = {
   screen: 'title', cc: 100, driverId: DRIVERS[0].id, cupIdx: 0,
+  mode: 'gp', freeTrack: null,     // 'gp' = Grand Prix (copa de 4); 'livre' = uma corrida só, em qualquer pista
   raceNo: 0, points: {}, grid: [], rivals: [],
 };
 let R = null;          // corrida atual
@@ -105,20 +107,26 @@ let paused = false;
 let podium = null;
 
 // ------------------------------------------------------------------ telas / menus
-const screens = ['title', 'cc', 'char', 'cup', 'results', 'podium', 'pause'];
+const screens = ['title', 'cc', 'char', 'cup', 'track', 'viewer', 'results', 'podium', 'pause'];
 function show(name) {
   G.screen = name;
   for (const s of screens) document.getElementById('screen-' + s).classList.toggle('hidden', s !== name);
   const first = document.querySelector(`#screen-${name} button:not(:disabled)`);
   if (first) setTimeout(() => first.focus(), 0);
-  if (name === 'cc') document.getElementById('btn-mirror').disabled = !store.get('mirror', false);
+  if (name === 'cc') {
+    document.getElementById('btn-mirror').disabled = !store.get('mirror', false);
+    document.getElementById('cc-title').textContent = G.mode === 'livre' ? 'CORRIDA LIVRE' : 'GRAND PRIX';
+  }
+  if (name === 'viewer') openViewer(); else if (viewer) viewer.open = false;
 }
 
 document.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => { audio.init(); audio.sfx('confirm'); goTo(b.dataset.go); }));
 function goTo(name) {
-  if (name === 'title') { endPodium(); clearRace(); hud.show(false); audio.stopMusic(); showcase(); }
+  if (name === 'title' || name === 'track') { endPodium(); clearRace(); hud.show(false); input.showTouch(false); audio.stopMusic(); showcase(); }
+  if (name === 'track') buildTracks();
   show(name);
 }
+document.querySelectorAll('[data-mode]').forEach((b) => (b.onclick = () => { audio.init(); audio.sfx('confirm'); G.mode = b.dataset.mode; goTo('cc'); }));
 document.querySelectorAll('[data-cc]').forEach((b) => (b.onclick = () => {
   audio.sfx('confirm');
   G.cc = b.dataset.cc === 'espelho' ? 'espelho' : Number(b.dataset.cc);
@@ -139,7 +147,7 @@ for (const d of DRIVERS) {
     info.innerHTML = `${d.name} — ${d.animal.toUpperCase()}<br>${tips[d.cls]}`;
   };
   b.onmouseenter = describe; b.onfocus = describe;
-  b.onclick = () => { audio.sfx('confirm'); G.driverId = d.id; buildCups(); show('cup'); };
+  b.onclick = () => { audio.sfx('confirm'); G.driverId = d.id; if (G.mode === 'livre') goTo('track'); else { buildCups(); show('cup'); } };
   grid.appendChild(b);
 }
 }
@@ -159,19 +167,78 @@ function buildCups() {
   });
 }
 
+// corrida livre: qualquer pista, uma corrida só
+function bestKey(id) { return `best-${G.cc}-${id}`; }
+function buildTracks() {
+  const list = document.getElementById('track-list');
+  list.innerHTML = '';
+  CUPS.forEach((cup) => {
+    const col = document.createElement('div');
+    col.className = 'track-cup';
+    col.innerHTML = `<div class="cup-name">${cup.name}</div>`;
+    for (const id of cup.tracks) {
+      const b = document.createElement('button');
+      b.className = 'track-btn';
+      const best = store.get(bestKey(id), 0);
+      b.innerHTML = `${TRACKS[id].name}<small>${best ? 'RECORDE ' + fmtTime(best) : 'SEM RECORDE'}</small>`;
+      b.onclick = () => { audio.sfx('confirm'); startFree(id); };
+      col.appendChild(b);
+    }
+    list.appendChild(col);
+  });
+}
+function startFree(id) {
+  audio.init();
+  G.freeTrack = id;
+  G.raceNo = 0;
+  G.points = {};
+  for (const d of DRIVERS) G.points[d.id] = 0;
+  const cpus = DRIVERS.filter((d) => d.id !== G.driverId).map((d) => d.id).sort(() => Math.random() - 0.5);
+  G.grid = [...cpus, G.driverId];
+  G.rivals = cpus.slice(0, 2);
+  startRace();
+}
+
+// tela de pilotos: modelo 3D girando
+let viewer = null, viewIdx = 0;
+const POSE_NAMES = ['NORMAL', 'VIRANDO', 'COMEMORANDO', 'ATORDOADO'], POSE_IDS = [0, 1, 3, 4];
+let poseN = 0;
+function openViewer() {
+  if (!viewer) { viewer = new DriverViewer(); viewer.bind(document.getElementById('screen-viewer')); }
+  viewer.open = true;
+  viewIdx = Math.max(0, DRIVERS.findIndex((d) => d.id === G.driverId));
+  showDriver();
+}
+function showDriver() {
+  const d = DRIVERS[viewIdx], r = ROLES[d.id] || {};
+  viewer.show(d, POSE_IDS[poseN]);
+  document.getElementById('viewer-name').textContent = d.name.toUpperCase();
+  document.getElementById('viewer-role').textContent = `${d.animal.toUpperCase()} · ${r.role || ''}`;
+  const tips = { leve: 'acelera rápido e perde pouco fora da pista, mas é empurrado fácil', medio: 'equilibrado nas curvas, com aceleração mais lenta', pesado: 'demora a embalar, mas empurra todo mundo' };
+  document.getElementById('viewer-info').innerHTML = `<b>KART:</b> ${r.kart || ''}<br><b>${CLASS_STATS[d.cls].label}:</b> ${tips[d.cls]}`;
+  document.getElementById('viewer-pose').textContent = 'POSE: ' + POSE_NAMES[poseN];
+}
+function stepDriver(dir) { viewIdx = (viewIdx + dir + DRIVERS.length) % DRIVERS.length; audio.sfx('select'); showDriver(); }
+document.getElementById('viewer-prev').onclick = () => stepDriver(-1);
+document.getElementById('viewer-next').onclick = () => stepDriver(1);
+document.getElementById('viewer-pose').onclick = () => { poseN = (poseN + 1) % POSE_IDS.length; audio.sfx('select'); showDriver(); };
+
 // navegação dos menus por teclado/controle
-function moveFocus(dir) {
+function moveFocus(dir, vertical) {
   if (G.screen === 'race' || !document.querySelector(`#screen-${G.screen}`)) return;
+  if (G.screen === 'viewer') { if (vertical) stepDriver(dir); else viewer.spin(dir); return; }
   const btns = [...document.querySelectorAll(`#screen-${G.screen} button:not(:disabled)`)];
   if (!btns.length) return;
   const i = btns.indexOf(document.activeElement);
   btns[(i + dir + btns.length) % btns.length].focus();
 }
-['ArrowRight', 'ArrowDown', 'PadRight', 'PadDown'].forEach((c) => input.on(c, () => moveFocus(1)));
-['ArrowLeft', 'ArrowUp', 'PadLeft', 'PadUp'].forEach((c) => input.on(c, () => moveFocus(-1)));
+['ArrowRight', 'PadRight'].forEach((c) => input.on(c, () => moveFocus(1, false)));
+['ArrowDown', 'PadDown'].forEach((c) => input.on(c, () => moveFocus(1, true)));
+['ArrowLeft', 'PadLeft'].forEach((c) => input.on(c, () => moveFocus(-1, false)));
+['ArrowUp', 'PadUp'].forEach((c) => input.on(c, () => moveFocus(-1, true)));
 input.on('PadA', () => { if (G.screen !== 'race' && document.activeElement?.tagName === 'BUTTON') document.activeElement.click(); });
 input.on('Enter', (e) => {
-  if (G.screen === 'title') { e?.preventDefault?.(); audio.init(); goTo('cc'); }
+  if (G.screen === 'title' && document.activeElement?.tagName !== 'BUTTON') { e?.preventDefault?.(); audio.init(); G.mode = 'gp'; goTo('cc'); }
 });
 input.on('PadB', () => back());
 input.on('Escape', () => { if (G.screen === 'race' || G.screen === 'pause') setPaused(!paused); else back(); });
@@ -179,7 +246,7 @@ input.on('KeyP', () => { if (G.screen === 'race' || G.screen === 'pause') setPau
 input.on('KeyM', () => { const m = audio.toggleMute(); if (R) hud.banner(m ? 'SOM DESLIGADO' : 'SOM LIGADO', 1); });
 input.on('KeyV', () => { retro = !retro; store.set('visual', retro ? 'retro' : 'hd'); applyRes(); if (R) hud.banner(retro ? 'VISUAL RETRÔ' : 'VISUAL NÍTIDO', 1); });
 function back() {
-  const prev = { cc: 'title', char: 'cc', cup: 'char' }[G.screen];
+  const prev = { cc: 'title', char: 'cc', cup: 'char', track: 'char', viewer: 'title' }[G.screen];
   if (prev) goTo(prev);
 }
 
@@ -220,7 +287,7 @@ function clearRace() {
 function startRace() {
   clearRace();
   endPodium();
-  const trackId = CUPS[G.cupIdx].tracks[G.raceNo];
+  const trackId = G.mode === 'livre' ? G.freeTrack : CUPS[G.cupIdx].tracks[G.raceNo];
   const track = new Track(scene, trackId, G.cc === 'espelho');
   const theme = THEMES[track.def.theme];
   scene.background = new THREE.Color(theme.sky);
@@ -448,6 +515,7 @@ function endRace() {
   hud.warn(null);
   hud.show(false);
 
+  if (G.mode === 'livre') return endFree(order, place);
   const rows = order.map((k, i) => {
     const pts = POINTS[i];
     const total = G.points[k.driver.id] + (qualified ? pts : 0);
@@ -473,6 +541,27 @@ function endRace() {
     add('TENTAR DE NOVO', () => startRace());
     add('DESISTIR', () => goTo('title'));
   }
+  show('results');
+}
+
+function endFree(order, place) {
+  const rows = order.map((k, i) => `<tr class="${k.isPlayer ? 'me' : ''}"><td>${i + 1}º</td><td><img src="${portraits[k.driver.id]}"> ${k.name}</td><td>${k.finished ? fmtTime(k.finishTime) : '--'}</td></tr>`);
+  document.getElementById('results-table').innerHTML = `<tr><th>POS</th><th>PILOTO</th><th>TEMPO</th></tr>` + rows.join('');
+  document.getElementById('results-title').textContent = `${TRACKS[R.track.id].name.toUpperCase()} — ${place}º LUGAR`;
+  const msg = document.getElementById('results-msg');
+  msg.textContent = '';
+  const p = R.player;
+  if (p.finished) {
+    const best = store.get(bestKey(R.track.id), 0);
+    if (!best || p.finishTime < best) { store.set(bestKey(R.track.id), p.finishTime); msg.textContent = best ? 'NOVO RECORDE!' : 'PRIMEIRO RECORDE NESTA PISTA!'; }
+    else msg.textContent = `RECORDE: ${fmtTime(best)}`;
+  }
+  const btns = document.getElementById('results-buttons');
+  btns.innerHTML = '';
+  const add = (label, fn) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = label; b.onclick = () => { audio.sfx('confirm'); fn(); }; btns.appendChild(b); };
+  add('CORRER DE NOVO', () => startFree(G.freeTrack));
+  add('OUTRA PISTA', () => goTo('track'));
+  add('MENU', () => goTo('title'));
   show('results');
 }
 
@@ -595,6 +684,11 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 1 / 30);
   input.pollPad();
 
+  if (viewer?.open && G.screen === 'viewer') {
+    viewer.update(dt, window.innerWidth / window.innerHeight);
+    viewer.render(renderer);
+    return;
+  }
   if (R && !paused) {
     if (showTrack) hideShowcase();
     if (R.phase !== 'results') stepRace(dt);
@@ -659,7 +753,7 @@ show('title');
 
 // acesso para testes automatizados: ?auto&start=1&track=praia&cc=150
 window.__game = {
-  get R() { return R; }, G, startGP, startRace, startPodium, input, camera, THREE, renderer,
+  get R() { return R; }, get viewer() { return viewer; }, goTo, G, startGP, startRace, startPodium, input, camera, THREE, renderer,
   simulate(seconds, step = 1 / 60) {
     for (let t = 0; t < seconds && R && R.phase !== 'results'; t += step) { stepRace(step); }
     return R && R.phase;
@@ -669,6 +763,9 @@ if (params.has('start')) {
   if (params.get('cc')) G.cc = params.get('cc') === 'espelho' ? 'espelho' : Number(params.get('cc'));
   if (params.get('driver')) G.driverId = params.get('driver');
   if (params.get('cup')) G.cupIdx = Number(params.get('cup'));
-  startGP();
-  if (params.get('race')) { G.raceNo = Number(params.get('race')); startRace(); }
+  if (params.get('track')) { G.mode = 'livre'; startFree(params.get('track')); }
+  else {
+    startGP();
+    if (params.get('race')) { G.raceNo = Number(params.get('race')); startRace(); }
+  }
 }
