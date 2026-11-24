@@ -84,11 +84,13 @@ export class Track {
     // Tipo de cada borda: 0 = muro, 1 = queda.  [i*2] = lado +, [i*2+1] = lado -
     this.edgeFall = new Uint8Array(N * 2);
     this.bridge = new Uint8Array(N);
+    this.gap = new Uint8Array(N);
     const q = { x: 0, y: 0, z: 0 };
     for (let i = 0; i < N; i++) {
       const mx = mirror ? -1 : 1;
       const p = { x: this.px[i] * mx, y: this.py[i], z: this.pz[i], f: i / N };
       if (this.def.bridge && this.def.bridge(p)) this.bridge[i] = 1;
+      if (this.def.gap && this.def.gap(p)) this.gap[i] = 1;
       [1, -1].forEach((s, k) => {
         q.x = this.px[i] - this.tz[i] * s * (EDGE + 4);
         q.z = this.pz[i] + this.tx[i] * s * (EDGE + 4);
@@ -98,6 +100,13 @@ export class Track {
         const type = this.bridge[i] ? (this.def.bridgeEdge ? this.def.bridgeEdge(p, q, outer) : 'wall') : this.def.edge(p, q, outer);
         this.edgeFall[i * 2 + k] = type === 'fall' ? 1 : 0;
       });
+    }
+
+    // Rampa de salto logo antes do vão (a pista sobe reto até a borda)
+    if (this.def.kick && this.gap.some((g) => g)) {
+      let g0 = 0; while (!this.gap[g0] || this.gap[(g0 - 1 + N) % N]) g0 = (g0 + 1) % N;
+      const { len, rise } = this.def.kick;
+      for (let k = 1; k <= len; k++) this.py[(g0 - k + N) % N] += rise * (1 - (k - 1) / len);
     }
 
     // Caixas de itens: fileiras atravessando a pista
@@ -240,10 +249,11 @@ export class Track {
 
     // ---------- pista
     const P = (lat, dy = 0) => (k, out) => this.point(k, lat, out).setY(this.py[k] + dy);
-    this.mesh(this.ribbon(P(ROAD_HALF, 0.06), P(-ROAD_HALF, 0.06), 16), lam({ map: asphalt }));
+    const G = (k) => this.gap[k] || this.gap[(k + 1) % N]; // vão da ponte quebrada: sem nada
+    this.mesh(this.ribbon(P(ROAD_HALF, 0.06), P(-ROAD_HALF, 0.06), 16, G), lam({ map: asphalt }));
     const shoulderMat = lam({ map: shoulderTex });
-    this.mesh(this.ribbon(P(EDGE, 0.03), P(ROAD_HALF, 0.03), 6), shoulderMat);
-    this.mesh(this.ribbon(P(-ROAD_HALF, 0.03), P(-EDGE, 0.03), 6), shoulderMat);
+    this.mesh(this.ribbon(P(EDGE, 0.03), P(ROAD_HALF, 0.03), 6, G), shoulderMat);
+    this.mesh(this.ribbon(P(-ROAD_HALF, 0.03), P(-EDGE, 0.03), 6, G), shoulderMat);
 
     // Encostas (barrancos) da pista até o chão, exceto nas pontes
     const base = this.def.lava ? -0.8 : GROUND_Y;
@@ -259,7 +269,7 @@ export class Track {
     for (const [s, kk] of [[1, 0], [-1, 1]]) {
       const lo = (k, out) => this.point(k, s * EDGE, out);
       const hi = (k, out) => this.point(k, s * EDGE, out).setY(this.py[k] + 1.0);
-      this.mesh(this.ribbon(lo, hi, 4, (k) => this.edgeFall[k * 2 + kk] || this.edgeFall[((k + 1) % N) * 2 + kk]), wallMat);
+      this.mesh(this.ribbon(lo, hi, 4, (k) => G(k) || this.edgeFall[k * 2 + kk] || this.edgeFall[((k + 1) % N) * 2 + kk]), wallMat);
     }
 
     // Pontes: parte de baixo do tabuleiro e pilares
@@ -267,18 +277,18 @@ export class Track {
       const under = lam({ color: this.theme.deck ?? 0x6d4c41, side: THREE.DoubleSide });
       const bl = (k, out) => this.point(k, EDGE, out).setY(this.py[k] - 0.8);
       const br = (k, out) => this.point(k, -EDGE, out).setY(this.py[k] - 0.8);
-      this.mesh(this.ribbon(bl, br, 8, (k) => !this.bridge[k]), under);
+      this.mesh(this.ribbon(bl, br, 8, (k) => !this.bridge[k] || G(k)), under);
       for (const s of [1, -1]) {
         const a = (k, out) => this.point(k, s * EDGE, out);
         const b = (k, out) => this.point(k, s * EDGE, out).setY(this.py[k] - 0.8);
-        this.mesh(this.ribbon(a, b, 8, (k) => !this.bridge[k]), under);
+        this.mesh(this.ribbon(a, b, 8, (k) => !this.bridge[k] || G(k)), under);
       }
       const pillarMat = lam({ color: this.theme.pillar ?? 0x8d8d8d });
       const v = new THREE.Vector3();
       const mats = [];
       const pw = this.theme.pillarW ?? 1.4;
       for (let i = 0; i < N; i += this.theme.pillarStep ?? 10) {
-        if (!this.bridge[i]) continue;
+        if (!this.bridge[i] || this.gap[i] || this.gap[(i + 3) % N] || this.gap[(i - 3 + N) % N]) continue;
         for (const s of [1, -1]) {
           this.point(i, s * (EDGE - 1), v);
           // não colocar pilar em cima de outro trecho da pista
@@ -359,7 +369,8 @@ export class Track {
         : this.def.theme === 'vulcao' ? [['#2a1414', 0.4], ['#1a0c0c', 0.6]]
           : this.def.theme === 'praia' ? [['#6aa7c9', 0.72]]
             : this.def.theme === 'oficina' ? [['#8a9fb0', 0.48], ['#6f9a5a', 0.66]]
-              : this.def.theme === 'pantano' ? [['#3c6466', 0.5], ['#2a4a44', 0.64], ['#1e3632', 0.76]] : [['#5f8f6a', 0.5], ['#3f7a4a', 0.68]];
+              : this.def.theme === 'pantano' ? [['#3c6466', 0.5], ['#2a4a44', 0.64], ['#1e3632', 0.76]]
+                : this.def.theme === 'sucata' ? [['#d89a6a', 0.46], ['#b86a42', 0.62]] : [['#5f8f6a', 0.5], ['#3f7a4a', 0.68]];
       for (const [col, base] of layers) {
         c.fillStyle = col;
         c.beginPath(); c.moveTo(0, h);

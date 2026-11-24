@@ -33,7 +33,7 @@ No celular aparecem os botões A, B, R e Z na tela.
 ## Regras do Grand Prix (iguais ao 64)
 - 8 pilotos, 3 voltas por corrida, copas com 4 pistas.
 - **Copa Bolota** (Campos, Praia, Serra, Vulcão) e **Copa Engrenagem**, no mundo steampunk das artes conceituais
-  (em construção: Vila Engrenagem e Brejo das Caldeiras prontas).
+  (em construção: Vila Engrenagem, Brejo das Caldeiras e Ferro-Velho do Sol prontas).
 - Pontos: **9, 6, 3 e 1** para os 4 primeiros.
 - Terminou em 5º ou pior? Não pontua e precisa **repetir a corrida**.
 - Na primeira corrida você larga em 8º; nas seguintes, na ordem de chegada da anterior.
@@ -106,6 +106,7 @@ js/track.js    pistas com relevo, pontes, quedas, água/lava
 js/textures.js texturas em pixel art pintadas à mão (pista, chão, barrancos, muros, água, lava)
 js/oficina.js  cenário da Vila Engrenagem (cidade-oficina)
 js/pantano.js  cenário do Brejo das Caldeiras (pântano com máquinas)
+js/sucata.js   cenário do Ferro-Velho do Sol (deserto de sucata)
 js/scenery.js  cenário: morros, marcos de cada pista, placas, arquibancadas, túneis e animações
 js/kart.js     física: pulo, derrapagem, mini-turbo, muros, queda e resgate
 js/items.js    caixas, roleta e todos os itens

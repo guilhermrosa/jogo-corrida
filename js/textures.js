@@ -101,6 +101,13 @@ export const STYLE = {
     skirt: 'boards', skirtA: '#5e4630', skirtB: '#2e2012',
     wall: ['#7a5c3c', '#5e4630'], wallTrim: '#6a625a',
   },
+  sucata: {
+    road: 'dirt', paveA: '#c89a5e', mortar: '#8a6236', line: '#f4e2b0',
+    curb: ['#b0482a', '#efe2c2'], trim: '#8a4a2a',
+    sand: ['#e2b872', '#d4a862', '#f0cc8a', '#b8884a'],
+    skirt: 'corrugated', skirtA: '#9a5a32', skirtB: '#5e3420',
+    wall: ['#2a2624', '#2a2624'], wallTrim: '#8a4a2a', tires: true,
+  },
   vulcao: {
     road: 'plates', paveA: '#4b4447', mortar: '#1e1a1b', line: '#ffb84a',
     curb: ['#e8a221', '#2a2526'], trim: '#a0622e',
@@ -149,6 +156,13 @@ export function roadTexture(theme) {
         for (let i = 0; i < cuts.length - 1; i++) stone(g, cuts[i], y, cuts[i + 1] - cuts[i], 16, S.paveA, r);
       }
       for (let i = 0; i < 90; i++) px(g, x0 + r() * (x1 - x0), r() * H, 1, 1, 'rgba(235,245,255,.7)');
+    } else if (S.road === 'dirt') {
+      // terra batida com sulcos de pneu, pedrinhas e parafusos perdidos
+      px(g, x0, 0, x1 - x0, H, S.paveA);
+      for (let i = 0; i < 900; i++) px(g, x0 + r() * (x1 - x0), r() * H, 1, 1, r() < 0.5 ? shade(S.paveA, 0.9) : shade(S.paveA, 1.08));
+      for (const tx of [34, 44, 80, 90]) for (let y = 0; y < H; y++) { px(g, tx + Math.round(Math.sin(y / 9) * 1.5), y, 4, 1, shade(S.paveA, 0.84)); if (y % 4 === 0) px(g, tx + 1 + Math.round(Math.sin(y / 9) * 1.5), y, 2, 1, shade(S.paveA, 0.72)); }
+      for (let i = 0; i < 30; i++) { const x = x0 + r() * (x1 - x0 - 3), y = r() * H; px(g, x, y, 2, 2, shade(S.paveA, 0.7)); px(g, x, y, 1, 1, shade(S.paveA, 1.2)); }
+      for (let i = 0; i < 6; i++) { const x = x0 + r() * (x1 - x0 - 3), y = r() * H; px(g, x, y, 3, 3, '#7a7068'); px(g, x + 1, y + 1, 1, 1, '#c8c0b0'); }
     } else if (S.road === 'plates') {
       // chapas de ferro rebitadas com brilho de brasa nas emendas
       for (let y = 0; y < H; y += 32) {
@@ -242,6 +256,11 @@ export function groundTexture(theme, kind = 'shoulder') {
         dot(g, W, H, x, yy, 1, 1, S.sand[3]); dot(g, W, H, x, yy - 1, 1, 1, S.sand[2]);
       }
       if (!big) for (let i = 0; i < 3; i++) { const x = r() * W, y = r() * H; dot(g, W, H, x, y, 3, 2, '#fff4e6'); dot(g, W, H, x + 1, y + 1, 1, 1, '#f4a88a'); }
+    } else if (theme === 'sucata') {
+      px(g, 0, 0, W, H, S.sand[0]);
+      for (let i = 0; i < W * H * 0.2; i++) dot(g, W, H, r() * W, r() * H, 1, 1, S.sand[1]);
+      for (let y = 5; y < H; y += 11) for (let x = 0; x < W; x++) { const yy = y + Math.round(Math.sin((x / W) * Math.PI * 2 + y) * 2); dot(g, W, H, x, yy, 1, 1, S.sand[3]); dot(g, W, H, x, yy - 1, 1, 1, S.sand[2]); }
+      if (!big) for (let i = 0; i < 4; i++) { const x = r() * W, y = r() * H; dot(g, W, H, x, y, 2, 2, '#7a7068'); dot(g, W, H, x + 2, y + 1, 2, 1, '#9a5a32'); }
     } else if (theme === 'serra') {
       px(g, 0, 0, W, H, S.snow[0]);
       for (let i = 0; i < 26; i++) { const x = r() * W, y = r() * H; dot(g, W, H, x, y, 5 + r() * 6, 2, S.snow[1]); dot(g, W, H, x + 1, y + 2, 3 + r() * 4, 1, S.snow[3]); }
@@ -291,6 +310,11 @@ export function skirtTexture(theme) {
         while (x < W) { stone(g, x, y, 10, 6, S.skirtA, r); x += 10; }
       }
       for (let i = 0; i < 6; i++) { const x = r() * W, y = r() * H; dot(g, W, H, x, y, 4, 2, 'rgba(60,40,30,.35)'); }
+    } else if (S.skirt === 'corrugated') {
+      // chapa ondulada enferrujada, remendada
+      for (let x = 0; x < W; x++) { const k = 0.8 + 0.3 * Math.abs(Math.sin(x * 0.8)); px(g, x, 0, 1, H, shade(S.skirtA, k)); }
+      for (let i = 0; i < 14; i++) dot(g, W, H, r() * W, r() * H, 3 + r() * 5, 2 + r() * 3, 'rgba(70,30,10,.45)');
+      const px0 = 10 + r() * 30; px(g, px0, 20, 20, 16, '#6a625a'); for (const [rx, ry] of [[1, 1], [17, 1], [1, 13], [17, 13]]) px(g, px0 + rx, 20 + ry, 2, 2, '#c8c0b0');
     } else if (S.skirt === 'boards') {
       for (let x = 0; x < W; x += 8) {
         const k = 0.85 + r() * 0.25;
@@ -308,6 +332,14 @@ export function skirtTexture(theme) {
 // ---------------------------------------------------------------- muro (64 x 16 = 4 m x 1 m)
 export function wallTexture(theme) {
   const S = STYLE[theme];
+  if (S.tires) return pixelTex(64, 16, (g, W, H) => {
+    // muro de pneus velhos empilhados, alguns pintados
+    px(g, 0, 0, W, H, '#1a1716');
+    for (const [y, off] of [[0, 0], [8, 4]]) for (let x = -off; x < W; x += 8) {
+      const col = ((x + y) / 8) % 5 === 0 ? '#c8352e' : ((x + y) / 8) % 7 === 0 ? '#efe2c2' : '#2e2a28';
+      px(g, x + 1, y + 1, 7, 6, col); px(g, x + 1, y + 1, 7, 1, '#5a5450'); px(g, x + 3, y + 3, 3, 2, '#0e0c0b');
+    }
+  }, { seed: 9, transpose: true });
   return pixelTex(64, 16, (g, W, H) => {
     for (let k = 0; k < 2; k++) {
       const x = k * 32, col = S.wall[k];

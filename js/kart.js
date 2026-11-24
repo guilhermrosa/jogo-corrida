@@ -308,6 +308,9 @@ export class Kart {
         this.events.push(track.def.lava ? 'lava' : track.def.water || track.def.swampWater ? 'splash' : 'fall');
         this.startRescue(track);
       }
+    } else if (!this.airborne && track.gap[newIdx]) {
+      // chegou ao vão da ponte quebrada sem estar no ar: cai
+      this.falling = true; this.fallT = 0; this.airborne = true; this.drift = 0;
     } else if (!this.airborne) {
       if (ground >= predicted - 0.02 || this.tumbleT > 0) {
         this.vy = (ground - this.pos.y) / Math.max(dt, 1e-4);
@@ -320,7 +323,9 @@ export class Kart {
     } else {
       this.vy -= GRAVITY * dt;
       this.pos.y += this.vy * dt;
-      if (this.pos.y <= ground) {
+      if (this.pos.y <= ground && track.gap[newIdx] && this.vy < 0) {
+        this.falling = true; this.fallT = 0; // caiu dentro do vão
+      } else if (this.pos.y <= ground) {
         if (this.vy < -6) this.events.push('land');
         this.pos.y = ground; this.vy = 0; this.airborne = false;
       }
@@ -339,8 +344,16 @@ export class Kart {
     this.rescueT = 2.6;
     this.speed = 0; this.drift = 0; this.driftStage = 0; this.boostT = 0; this.mtT = 0;
     this.rescueFrom = this.pos.clone();
-    const idx = track.wrap(this.safeIdx - 4);
+    let idx = track.wrap(this.safeIdx - 4);
+    // caiu no vão da ponte quebrada: a coruja leva para o outro lado (parado não dá para pular)
+    for (let k = 0; k < 40; k++) if (track.gap[track.wrap(this.safeIdx + k)]) {
+      let e = track.wrap(this.safeIdx + k);
+      while (track.gap[e]) e = track.wrap(e + 1);
+      idx = track.wrap(e + 3);
+      break;
+    }
     this.rescueTo = track.point(idx, 0);
+    this.rescueTo.y = track.py[idx];
     this.rescueIdx = idx;
     this.rescueHeading = track.heading(idx);
     this.events.push('rescue');

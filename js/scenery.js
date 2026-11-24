@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { terrainDetail } from './textures.js';
 import { oficina } from './oficina.js';
 import { pantano } from './pantano.js';
+import { sucata } from './sucata.js';
 import { EDGE, ROAD_HALF } from './data.js';
 import { drawSprite } from './sprites.js';
 
@@ -67,6 +68,7 @@ const RELIEF = {
     },
     colors: (h, n) => (h < 0.01 ? mix(0x2a2a1c, 0x34321e, n) : h < 0.06 ? mix(0x6a8a34, 0x587a2e, n) : mix(0x2f4a36, 0x24382c, h + n * 0.3)),
   },
+  sucata: { amp: 34, colors: (h, n) => (h > 0.55 ? mix(0xc87a4a, 0xa85a3a, n) : mix(0xe8c07a, 0xd8a862, h * 1.4 + n * 0.4)) },
   oficina: { amp: 40, colors: (h, n) => (h < 0.06 ? mix(0xa89878, 0x8f8a62, n) : mix(0x8fbf5a, 0x5f9440, h + n * 0.3)) },
   serra:  { amp: 115, colors: (h, n) => (n > 0.62 && h > 0.15 ? mix(0x8d97a3, 0x6b7480, n) : mix(0xf2f6fb, 0xd9e4ef, h * 0.6 + n * 0.3)) },
 };
@@ -867,6 +869,7 @@ export function buildScenery(tr, rnd) {
   if (theme === 'praia') praia(tr, rnd);
   if (theme === 'serra') serra(tr, rnd);
   if (theme === 'vulcao') vulcao(tr, rnd);
+  if (theme === 'sucata') sucata(tr, rnd, { SPR, ADS, adTexture, grandstand, sideWithRoom, findPlace, spot, sprite, billboard, facing });
   if (theme === 'pantano') pantano(tr, rnd, { SPR, ADS, adTexture, grandstand, sideWithRoom, findPlace, spot, sprite });
   if (theme === 'oficina') oficina(tr, rnd, { SPR, ADS, adTexture, grandstand, sideWithRoom, findPlace, spot, sprite });
   if (theme !== 'oficina') placeBillboards(tr, rnd); // na cidade, os anúncios são placas penduradas nas lojas

@@ -151,7 +151,7 @@ export const CUPS = [
   },
   {
     name: 'Copa Engrenagem',
-    tracks: ['oficina', 'pantano'], // em construção: uma pista nova por vez
+    tracks: ['oficina', 'pantano', 'sucata'],
   },
 ];
 
@@ -227,11 +227,38 @@ TRACKS.pantano = {
   ship: { x0: -158, x1: -84, zMax: -112 },               // navio-caldeira: a pista atravessa a casa de máquinas
 };
 
+// espiral de 1,5 volta em volta da torre de ferro-velho (centro 96,-150, raio 28), subindo de 0,6 a 18 m
+const SUCATA_C = [96, -150];
+const helix = Array.from({ length: 15 }, (_, k) => {
+  const a = -(k / 14) * 3 * Math.PI;
+  return [SUCATA_C[0] + 28 * Math.cos(a), SUCATA_C[1] + 28 * Math.sin(a), 0.6 + 17.4 * (k / 14)];
+});
+const nearTower = (p) => Math.hypot(p.x - SUCATA_C[0], p.z - SUCATA_C[1]);
+TRACKS.sucata = {
+  name: 'Ferro-Velho do Sol',
+  theme: 'sucata',
+  // largada, lombadas de duna, espiral subindo a torre, viaduto por cima da largada e ponte quebrada com salto
+  points: [[0, 0, 0], [40, 0, 0], [62, -1, 0.2], [80, -4, 2.6], [99, -10, 0.2], [118, -20, 2.8], [136, -34, 0.2],
+    [150, -60, 0.3], [148, -96, 0.4], [134, -124, 0.5], ...helix,
+    [64, -118, 17.6], [61, -80, 16.4], [58, -30, 14.8], [56, 10, 13.6], [48, 40, 12.8], [30, 56, 12.2],
+    [12, 62, 12], [-4, 64, 12.6], [-20, 64, 11.4], [-38, 60, 10.2], [-64, 46, 6], [-88, 26, 2],
+    [-98, 6, 0.3], [-70, -1, 0], [-40, 0, 0]],
+  itemRows: [0.05, 0.4, 0.62, 0.8],
+  tower: SUCATA_C,
+  bridge: (p) => p.y > 3.2,
+  // na espiral, o lado de fora não tem muro
+  bridgeEdge: (p, q) => (nearTower(p) < 36 && nearTower(q) > nearTower(p) ? 'fall' : 'wall'),
+  edge: () => 'wall',
+  gap: (p) => p.z > 50 && p.x < -6 && p.x > -13 && p.y > 8, // ponte quebrada: tem que pular
+  kick: { len: 14, rise: 3 },
+};
+
 export const THEMES = {
   campos: { sky: 0x7ec8ff, fog: 0xb8e2ff, ground: '#5aa63a', ground2: '#4c9430', shoulder: '#6fb84a', shoulder2: '#5ea53c', skirt: '#8a6a43', wall: ['#ffffff', '#e53935'], decor: 'arvore', music: 0 },
   praia:  { sky: 0x6fd0ff, fog: 0xc9f0ff, ground: '#f2d99a', ground2: '#e8cc85', shoulder: '#f5e2aa', shoulder2: '#ead291', skirt: '#d9b870', wall: ['#ffffff', '#1e88e5'], decor: 'coqueiro', music: 1 },
   serra:  { sky: 0xa9c8e8, fog: 0xdfe8f2, ground: '#eef4fa', ground2: '#dde8f2', shoulder: '#f4f8fc', shoulder2: '#e3ecf5', skirt: '#7d8794', wall: ['#ffffff', '#3949ab'], decor: 'pinheiro', music: 2 },
   oficina: { sky: 0x8fbfe0, fog: 0xe9cf9a, light: 0xfff0d8, sun: 0xffdca8, ground: '#8fae5a', ground2: '#7f9e4c', shoulder: '#b7aa94', shoulder2: '#a89a82', skirt: '#a0563a', wall: ['#efe2c2', '#8e3b2a'], decor: 'arvore', decorMin: 50, decorCount: 120, music: 0 },
   pantano: { sky: 0x426e80, fog: 0x4f7a7c, fogNear: 70, fogFar: 560, light: 0xb8d8d8, sun: 0xc8e4dc, lightI: 1.35, sunI: 0.8, ground: '#3e4a2a', ground2: '#34402a', shoulder: '#6e5236', shoulder2: '#5e4630', skirt: '#5e4630', wall: ['#7a5c3c', '#5e4630'], decor: 'arvore', decorCount: 0, deck: 0x4a3622, pillar: 0x5a4030, pillarW: 0.7, pillarStep: 6, pillarDeep: 2, waterColors: ['#2c6266', '#347070', '#94d4c4', '#22504e'], music: 2 },
+  sucata: { sky: 0x6cc0dc, fog: 0xf2d8a4, light: 0xfff0d8, sun: 0xffe2b0, ground: '#e2b872', ground2: '#d4a862', shoulder: '#d8ae6a', shoulder2: '#c89c5a', skirt: '#9a6a3a', wall: ['#2a2624', '#2a2624'], decor: 'arvore', decorCount: 0, deck: 0x5a3a2a, pillar: 0x6a3a22, pillarW: 1.2, music: 1 },
   vulcao: { sky: 0x3a1a24, fog: 0x5a2420, ground: '#3b2a26', ground2: '#2f211e', shoulder: '#5a4038', shoulder2: '#4b352f', skirt: '#2a1e1c', wall: ['#ffb300', '#212121'], decor: 'rocha', music: 3 },
 };

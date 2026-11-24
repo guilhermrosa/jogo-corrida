@@ -6,7 +6,7 @@ Pistas novas no estilo das artes conceituais aprovadas (`docs/conceito/`), feita
 |---|---|---|
 | Vila Engrenagem | cidade-oficina (`r2-chao-1-cidade-oficina.png`) | `vila-engrenagem-v1.jpg`, `vila-engrenagem-v1-mapa.png`, `vila-engrenagem-v2.jpg`, `comparativo-v1-v2.jpg` |
 | Brejo das Caldeiras | pântano com máquinas (`r2-chao-3-pantano-maquinas.png`) | `brejo-das-caldeiras-v1.jpg`, `brejo-das-caldeiras-v2.jpg`, `brejo-das-caldeiras-v3.jpg` |
-| _a fazer_ | deserto de sucata | |
+| Ferro-Velho do Sol | deserto de sucata (`r2-chao-2-deserto-sucata.png`) | `ferro-velho-do-sol-v1.jpg` |
 | _a fazer_ | ilhas com correntes | |
 
 ## Vila Engrenagem v1
@@ -65,3 +65,18 @@ Feedback da v2: a entrada pela proa com o visor levantado ficou estranha ("como 
   faixa de atenção na ponta e correntes até as roldanas; nome CALDEIRÃO e lanternas no espelho de popa, logo acima.
 - **Saída pela proa**: as duas metades do bico abrem para os lados como portas, presas em dobradiças de latão.
 - O navio agora aponta no sentido da corrida: ponte de comando e mastro na proa, chaminés e engrenagem mais para trás.
+
+## Ferro-Velho do Sol v1
+Feedback antes desta pista: "as pistas estão muito iguais, muito simples; trabalhe com estruturas diferentes, subidas, voltas".
+Por isso o traçado (~1 km) tem estrutura de verdade:
+- **Lombadas de duna** logo depois da largada.
+- **Espiral** de 1,5 volta subindo 17 m em volta da torre de ferro-velho; no lado de fora não há muro (dá para cair).
+- **Viaduto** de vigas enferrujadas que passa por cima da reta de largada (a pista cruza sobre ela mesma).
+- **Ponte quebrada com salto**: rampa íngreme antes de um vão de 7 m. Quem mantém o acelerador passa;
+  quem solta cai, e a coruja deixa do outro lado.
+
+Cenário: torre de ferro-velho de 50 m (caixas, carcaças e tambores empilhados, relógio torto, engrenagens girando,
+cata-vento e chaminé no topo, lâmpadas), esteira levando sucata até o alto da torre, montes de sucata e pneus,
+cata-ventos de bombear água, guindastes com eletroímã segurando um carro, placas tortas, carcaças meio enterradas,
+barris e pilhas de pneus, cactos e mesas de pedra ao longe. Muro de pneus empilhados, pista de terra batida com
+sulcos de pneu e barrancos de chapa ondulada enferrujada.
