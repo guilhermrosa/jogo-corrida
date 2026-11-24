@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { follow } from './branch.js';
-import { ITEM_ODDS, ITEM_FX, CPU_ITEM_ODDS, CPU_ITEMS_PER_LAP } from './data.js';
+import { ITEM_ODDS, ITEM_FX, CPU_ITEM_ODDS } from './data.js';
 import { EDGE } from './track.js';
 import { spriteTexture, drawSprite } from './sprites.js';
 import { wrapAngle } from './kart.js';
@@ -78,7 +78,14 @@ export class ItemSystem {
     if (e.dead) return;
     e.dead = true;
     this.group.remove(e.obj);
+    if (e.shadow) { this.group.remove(e.shadow); e.shadow.geometry.dispose(); e.shadow.material.dispose(); }
     if (e.obj.isSprite) e.obj.material.dispose();
+  }
+
+  // pousa o item no chão da pista (ou do atalho) embaixo dele, para não afundar nem flutuar
+  snapGround(e) {
+    const { S, si } = follow(this.track, e);
+    e.pos.y = S.groundY(e.pos.x, e.pos.z, si);
   }
 
   heldOf(k) { return this.entities.filter((e) => !e.dead && e.owner === k && (e.mode === 'held' || e.mode === 'orbit' || e.mode === 'trail')); }
@@ -86,7 +93,7 @@ export class ItemSystem {
   dropHeld(k) {
     for (const e of this.heldOf(k)) {
       if (e.mode === 'orbit') this.kill(e);
-      else { e.mode = 'ground'; e.owner = null; }
+      else { e.mode = 'ground'; e.owner = null; this.snapGround(e); }
     }
     if (k.item && (k.item === 'casca5' || k.item === 'coco3' || k.item === 'abelha3')) { k.item = null; k.itemCount = 0; }
   }
@@ -110,30 +117,16 @@ export class ItemSystem {
           b.respawn = ITEM_FX.boxRespawn;
           m.visible = false;
           this.events.push({ type: 'box', kart: k });
-          if ((k.isPlayer) && !k.item && k.rouletteT <= 0 && !this.heldOf(k).length) {
+          // todos (jogador e rivais) só ganham item passando por uma caixa, um por vez;
+          // os rivais sorteiam da tabela própria deles (só os 6 itens que usam)
+          if (!k.item && k.rouletteT <= 0 && !this.heldOf(k).length) {
             k.rouletteT = ITEM_FX.roulette;
-            k.pendingItem = pickItem(this.getPlace(k));
+            k.pendingItem = k.isPlayer ? pickItem(this.getPlace(k)) : pickItem(this.getPlace(k), CPU_ITEM_ODDS);
             if (k.isPlayer) this.events.push({ type: 'roulette', kart: k });
           }
           break;
         }
       }
-    }
-  }
-
-  // Rivais: recebem itens direto, em até 3 pontos sorteados de cada volta
-  cpuGrants(k) {
-    if (k.isPlayer) return;
-    const N = this.track.N;
-    const lap = Math.floor(k.progress / N);
-    if (k.grantLap !== lap) {
-      k.grantLap = lap;
-      k.grantSpots = Array.from({ length: CPU_ITEMS_PER_LAP }, () => Math.floor((0.1 + Math.random() * 0.85) * N)).sort((a, b) => a - b);
-    }
-    const pos = ((k.progress % N) + N) % N;
-    while (k.grantSpots.length && pos >= k.grantSpots[0]) {
-      k.grantSpots.shift();
-      if (!k.item && !this.heldOf(k).length) { k.item = pickItem(this.getPlace(k), CPU_ITEM_ODDS); k.itemCount = 1; }
     }
   }
 
@@ -265,6 +258,7 @@ export class ItemSystem {
         e.mode = 'ground';
         e.pos.set(k.pos.x - fx * 2.4, k.pos.y, k.pos.z - fz * 2.4);
         e.idx = k.idx; e.path = k.path; e.bidx = k.bidx;
+        this.snapGround(e);
       }
     }
   }
@@ -308,7 +302,6 @@ export class ItemSystem {
 
     // roletas e itens com tempo
     for (const k of this.karts) {
-      this.cpuGrants(k);
       if (k.rouletteT > 0) {
         k.rouletteT -= dt;
         if (k.rouletteT <= 0) {
@@ -346,6 +339,11 @@ export class ItemSystem {
           break;
         }
         case 'ground':
+          if (!e.shadow) {
+            e.shadow = new THREE.Mesh(new THREE.CircleGeometry(0.75, 14).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false }));
+            this.group.add(e.shadow);
+          }
+          e.shadow.position.set(e.pos.x, e.pos.y + 0.12, e.pos.z);
           break;
         case 'shell': this.moveShell(e, dt); break;
         case 'homing': this.moveHoming(e, dt); break;
@@ -353,6 +351,12 @@ export class ItemSystem {
       }
       if (e.dead) continue;
       if (e.obj.isMesh) { e.obj.rotation.y += dt * 2; e.obj.position.y = e.pos.y + (e.mode === 'ground' ? 0.65 : 0); }
+      else if (e.mode === 'ground') {
+        // no chão: o desenho fica em pé a partir do chão (antes metade ficava enterrada), um pouco maior e balançando
+        e.obj.center.y = 0.02;
+        e.obj.scale.setScalar(1.7 + Math.sin(this.time * 4 + e.pos.x) * 0.08);
+        e.obj.renderOrder = 2;
+      }
       if (e.type === 'abelha' || e.type === 'vespao') e.obj.material.rotation = Math.sin(this.time * 30) * 0.12;
       this.collide(e);
     }
@@ -413,24 +417,29 @@ export class ItemSystem {
     const t = this.leader();
     if (!t) { this.kill(e); return; }
     const gap = t.progress - e.prog;
-    if (gap < 6 && Math.hypot(t.pos.x - e.pos.x, t.pos.z - e.pos.z) < 8) {
-      // mergulha no líder
-      const want = new THREE.Vector3(t.pos.x, t.pos.y + 0.5, t.pos.z);
-      e.pos.lerp(want, Math.min(1, 6 * dt));
-      if (e.pos.distanceTo(want) < 1) {
+    const dist = Math.hypot(t.pos.x - e.pos.x, t.pos.z - e.pos.z);
+    if (e.diving || (gap < 14 && dist < 16)) {
+      // mergulha no líder: vai direto e rápido, e explode ao encostar (não fica pairando na frente do kart)
+      e.diving = true;
+      const want = new THREE.Vector3(t.pos.x, t.pos.y + 0.6, t.pos.z);
+      const d = want.clone().sub(e.pos), len = d.length();
+      const step = (ITEM_FX.spinySpeed * 1.6 + Math.max(0, t.speed)) * dt;
+      if (len <= Math.max(step, 2.2) || e.age > 45) {
         for (const o of this.karts) if (o.pos.distanceTo(t.pos) < 5) { this.dropHeld(o); o.hit('blast', 'vespao', e.owner); }
-        this.events.push({ type: 'blast', pos: e.pos.clone() });
+        this.events.push({ type: 'blast', pos: t.pos.clone() });
         this.kill(e);
+        return;
       }
+      e.pos.addScaledVector(d, step / len);
       return;
     }
-    // voa pela pista atropelando quem estiver no caminho
+    // voa pela pista bem alto (acima da câmera de quem está na frente), atropelando quem estiver no caminho
     const step = ITEM_FX.spinySpeed * dt / tr.step;
     e.prog += step;
     e.idx = tr.wrap(Math.floor(e.prog));
     e.lat += ((Math.abs(gap) < 40 ? t.lat : 0) - e.lat) * Math.min(1, 3 * dt);
     tr.point(e.idx, e.lat, e.pos);
-    e.pos.y += 2.2;
+    e.pos.y += 6;
     if (e.age > 40) this.kill(e);
   }
 
@@ -443,7 +452,7 @@ export class ItemSystem {
       if (k === e.owner && (e.mode === 'held' || e.mode === 'orbit' || e.mode === 'trail' || e.mode === 'spiny' || e.age < SELF_IMMUNE)) continue;
       if (e.mode === 'spiny' && k === this.leader()) continue;
       const dy = Math.abs(k.pos.y + 0.5 - e.pos.y);
-      if (dy > (e.mode === 'spiny' ? 3 : 1.6)) continue;
+      if (dy > (e.mode === 'spiny' ? 6.5 : 1.6)) continue;
       if (Math.hypot(k.pos.x - e.pos.x, k.pos.z - e.pos.z) > reach) continue;
       const effect = e.type === 'casca' ? 'spin' : 'tumble';
       if (k.hit(effect, e.type, e.owner) || k.invincible) {

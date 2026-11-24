@@ -75,9 +75,10 @@ Leves aceleram mais rápido e perdem menos na grama. Médios têm a pior acelera
 
 A chance de cada item por posição segue a tabela do 64 medida pela comunidade TASVideos.
 
-### Itens dos rivais (como no 64)
-Os pilotos do computador **não pegam itens nas caixas**: o jogo dá itens a eles até **3 vezes por volta**,
-de uma tabela própria. Eles só usam **casca simples, presente falso, pimenta simples, aura, máscara sombra e trovão**,
+### Itens dos rivais
+Os pilotos do computador seguem a mesma regra do jogador: **só ganham um item ao passar por uma caixa**
+(nada na largada) e só pegam outro depois de usar o anterior e passar por outra caixa. O sorteio vem de uma
+tabela própria deles, e eles só usam **casca simples, presente falso, pimenta simples, aura, máscara sombra e trovão**,
 nunca cocos, abelhas, vespão, itens triplos, penca ou pimenta dourada. No 150cc e no espelho, os 2 rivais da copa
 se recuperam mais rápido quando são atingidos.
 

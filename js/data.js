@@ -95,12 +95,11 @@ export const ITEM_ODDS = {
   pimentaOuro: [0, 5, 10, 10, 10, 10, 10, 10],
 };
 
-// Rivais do computador (como no MK64): não pegam itens nas caixas. O jogo dá itens a eles
-// até 3 vezes por volta, de uma tabela própria, e eles só usam estes 6 itens:
+// Rivais do computador: ganham item só ao passar por uma caixa (um por vez, como o jogador),
+// sorteado de uma tabela própria; eles só usam estes 6 itens:
 // casca simples, aura (estrela), sombra (Boo), presente falso, pimenta simples e trovão.
 // Nunca usam cocos, abelhas, vespão, itens triplos, penca ou pimenta dourada.
 // Fatos do original: casca 60% em 1º e raio só 1% em 8º. O resto da tabela é estimado.
-export const CPU_ITEMS_PER_LAP = 3;
 export const CPU_ITEM_ODDS = {
   casca:    [60, 40, 40, 25, 25, 15, 15, 10],
   presente: [15, 15, 15, 10, 10, 10, 10, 10],
