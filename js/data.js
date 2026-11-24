@@ -250,7 +250,7 @@ TRACKS.oficina = {
 };
 
 TRACKS.pantano = {
-  name: 'Brejo das Caldeiras',
+  name: 'Brejo dos Alambiques',
   theme: 'pantano',
   // calçadão de tábuas sobre palafitas, serpenteando pelo pântano; sobe por cima do cano-mestre
   points: [[0, 0, 1.2], [50, 0, 1.2], [92, -12, 1.3], [114, -46, 1.6], [106, -84, 2.6], [70, -104, 4.4], [34, -96, 3],
