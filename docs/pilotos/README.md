@@ -16,5 +16,19 @@ Linhas: Pipoca, Tico, Mel, Faísca, Bento, Tonho, Rino e Juca.
 | `v4-coelha-sapo.png` | Quarta versão: Pipoca com orelhas em folha (uma com a ponta dobrada), bochechas fofas, focinho e dentinhos; Tico com cabeça larga e achatada, olhos em calombos, boca de sapo de bochecha a bochecha, papo claro, mãos verdes e chapeuzinho de cogumelo inclinado |
 | `v4-close-coelha-sapo.png` | Close da v4: frente, 3/4, lado, costas, comemorando e atordoado |
 | `comparativo-v3-v4.png` | Pipoca e Tico na v3 (em cima) e na v4 (embaixo) |
+| `v5-identidades.png` | Quinta versão: cada piloto com um papel no mundo steampunk e um kart combinando (ver abaixo) |
+| `comparativo-v4-v5.png` | v4 à esquerda, v5 à direita |
+
+## Identidades (v5)
+| Piloto | Papel | Roupa e acessórios | Kart |
+|---|---|---|---|
+| Pipoca | Mensageira do correio a vapor | Jaqueta azul do correio com botões de latão, bolsa de cartas a tiracolo, óculos de aviadora | Carrinho do correio: cesto de vime com cartas e pacote, campainha, buzina de latão |
+| Tico | Botânico do Brejo, cultiva os cogumelos que brilham | Chapéu de cogumelo com lamelas, anel e dois cogumelinhos brotando; avental verde com lupa e muda no bolso | Estufa sobre rodas: redoma de vidro com cogumelos, cogumelos luminosos nos para-lamas, regador de cobre |
+| Mel | Relojoeira | Tiara de couro com lupa de joalheiro sobre o olho, avental de couro com ferramentas | Kart de corda: mostrador de relógio no bico, engrenagens à mostra, chave de dar corda |
+| Faísca | Piloto de dirigível | Jaqueta de couro com gola de lã, cachecol voando, óculos | Mini-dirigível: casco de charuto com cintas de latão, lemes e hélice de madeira |
+| Bento | Foguista da ferrovia | Quepe com distintivo, macacão azul com fuligem, lenço vermelho | Locomotiva: caldeira deitada, chaminé de funil, farol, sino e limpa-trilhos |
+| Tonho | Cortador de gelo da serra | Gorro de tricô com pompom, camisa xadrez, suspensórios, serrote nas costas | Trenó de gelo: esquis na frente, lâmina de neve, caixote com blocos de gelo, pneus com cravos |
+| Rino | Dono da fundição | Rosto igual ao de antes; colete, gravata-borboleta e corrente de relógio de bolso | Fornalha blindada: chapas rebitadas, grade em brasa e duas chaminés |
+| Juca | Capitão do navio-caldeira | Casaca azul com botões de latão e dragonas, quepe, cachimbo de vapor | Barco a vapor: proa, vigias, rodas de pás no lugar das rodas de trás, chaminé e boia |
 
 Na v1 não existiam as poses de comemorar e atordoado; os ângulos da v1 são os mais próximos disponíveis.

@@ -15,14 +15,22 @@ export const SPRITE_GROUND = (HALF - CY) / (HALF * 2);
 
 // visual de cada piloto (roupa, acessórios)
 const LOOK = {
-  pipoca: { shirt: 0xff9cc8, shoe: 0xffffff, glove: 0xffffff },
-  tico:   { shirt: 0xffe082, shoe: 0x8d6e63, glove: 0x7cc642, cap: 0xe8541e, spots: 0xfff3c4 },
-  mel:    { shirt: 0xfff176, shoe: 0xff8a65, glove: 0xffffff },
-  faisca: { shirt: 0x37474f, shoe: 0x212121, glove: 0x212121, scarf: 0xe53935 },
-  bento:  { shirt: 0xffffff, shoe: 0x5d4037, glove: 0xffffff, scarf: 0x1565c0 },
-  tonho:  { shirt: 0xffa726, shoe: 0x3e2723, glove: 0xffffff, cap: 0x2e7d32 },
-  rino:   { shirt: 0x263238, shoe: 0x111111, glove: 0x111111 },
-  juca:   { shirt: 0xffffff, shoe: 0x3e2723, glove: 0xffffff, cap: 0x1a237e },
+  // Pipoca: mensageira de bicicleta a vapor (jaqueta do correio, bolsa de cartas, óculos de aviadora)
+  pipoca: { shirt: 0x3f6fa8, shoe: 0x6b4426, glove: 0xf5efe0 },
+  // Tico: botânico do Brejo, cultiva os cogumelos que brilham (avental, lupa, mudas)
+  tico:   { shirt: 0xd8c28a, shoe: 0x6b4426, glove: 0x7cc642, cap: 0xe8541e, spots: 0xfff3c4 },
+  // Mel: relojoeira (avental de couro, lupa de joalheiro)
+  mel:    { shirt: 0xf3e6c8, shoe: 0x6b4426, glove: 0xffffff },
+  // Faísca: piloto de dirigível (jaqueta de couro com gola de lã, cachecol, óculos)
+  faisca: { shirt: 0x7a4a2a, shoe: 0x2a1a10, glove: 0x3a2414, scarf: 0xe53935 },
+  // Bento: foguista da ferrovia (macacão azul, lenço, quepe)
+  bento:  { shirt: 0x3a5a8a, shoe: 0x3a2414, glove: 0xd8c8a8, scarf: 0xc0392b },
+  // Tonho: cortador de gelo da serra (camisa xadrez, suspensórios, gorro, serrote)
+  tonho:  { shirt: 0xb03a2e, shoe: 0x3e2723, glove: 0x6b4426, cap: 0x2f6a5a },
+  // Rino: dono da fundição (colete, gravata-borboleta, corrente de relógio)
+  rino:   { shirt: 0xe8e0d0, shoe: 0x111111, glove: 0x111111, vest: 0x4a2a5a },
+  // Juca: capitão do navio-caldeira (casaca azul com botões de latão, cachimbo de vapor)
+  juca:   { shirt: 0x1f2f5a, shoe: 0x3e2723, glove: 0xffffff, cap: 0x1a237e },
 };
 
 let renderer = null;
@@ -158,6 +166,15 @@ function buildHead(b, d, expr) {
       eyes(b, h, R, ex({ yaw: 0.3, pitch: 0.08, size: 0.068 }));
       if (expr !== 'normal') mouth(b, h, R, ex({ pitch: -0.42, w: 0.07 }));
       cheeks(b, h, R);
+      // óculos de aviadora na testa
+      {
+        const gg = new THREE.Group(); gg.position.set(0, 0.17, 0.01); gg.rotation.x = -0.45; h.add(gg);
+        b.add(gg, new THREE.TorusGeometry(0.345, 0.024, 6, 28), b.plastic(0x5a3a22), [0, 0, 0], [Math.PI / 2, 0, 0], [1.04, 1, 0.95]);
+        for (const sd of [1, -1]) {
+          b.add(gg, new THREE.CylinderGeometry(0.07, 0.08, 0.07, 16), b.metal(0xc9a24a), [sd * 0.11, 0, 0.32], [Math.PI / 2, 0, 0]);
+          b.add(gg, new THREE.CircleGeometry(0.058, 16), b.plastic(0x9fd8e8, 140), [sd * 0.11, 0, 0.356]);
+        }
+      }
       break;
     }
     case 'tico': { // sapo + cogumelo
@@ -203,6 +220,14 @@ function buildHead(b, d, expr) {
       b.add(cap, new THREE.CylinderGeometry(0.1, 0.12, 0.12, 16), b.fur(0xf3e5c0), [0, -0.02, 0]); // talo
       b.add(cap, new THREE.SphereGeometry(0.34, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), b.plastic(L.cap, 40), [0, 0.03, 0], [0, 0, 0], [1, 0.8, 1]);
       b.add(cap, new THREE.CylinderGeometry(0.34, 0.3, 0.04, 32), b.fur(0xf3e5c0), [0, 0.02, 0]);
+      // lamelas embaixo do chapéu e o anelzinho do talo
+      for (let k = 0; k < 24; k++) { const a = (k / 24) * Math.PI * 2; b.add(cap, new THREE.BoxGeometry(0.012, 0.03, 0.2), b.fur(0xe8d2a8), [Math.sin(a) * 0.2, 0.0, Math.cos(a) * 0.2], [0, a, 0]); }
+      b.add(cap, new THREE.TorusGeometry(0.105, 0.02, 6, 18), b.fur(0xf8ecd0), [0, -0.05, 0], [Math.PI / 2, 0, 0]);
+      // dois cogumelinhos brotando do chapéu
+      for (const [x, z, r, c] of [[0.2, -0.1, 0.07, 0xffc84a], [-0.16, -0.16, 0.055, 0xe8541e]]) {
+        b.add(cap, new THREE.CylinderGeometry(0.02, 0.025, 0.08, 8), b.fur(0xf3e5c0), [x, 0.27, z]);
+        b.add(cap, new THREE.SphereGeometry(r, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), b.plastic(c, 40), [x, 0.3, z]);
+      }
       for (const [yaw, pitch, r] of [[0, 0.45, 0.075], [1.3, 0.4, 0.065], [-1.3, 0.4, 0.065], [2.5, 0.45, 0.07], [-2.5, 0.45, 0.07], [0.7, 1.05, 0.06], [-0.7, 1.05, 0.06], [3.14, 1.0, 0.06], [0, 1.45, 0.06]]) {
         const p = surf(0.345, yaw, pitch);
         const sp = b.sphere(cap, r, b.plastic(L.spots, 30), [p[0], 0.03 + p[1] * 0.8, p[2]], [1, 1, 0.4]);
@@ -227,6 +252,15 @@ function buildHead(b, d, expr) {
       // flor no cabelo
       for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2; b.sphere(h, 0.055, b.plastic(0xffffff), [-0.24 + Math.cos(a) * 0.06, 0.3 + Math.sin(a) * 0.06, 0.18], [1, 1, 0.5]); }
       b.sphere(h, 0.04, b.plastic(0xffc107), [-0.24, 0.3, 0.21]);
+      // lupa de relojoeira: tiara de couro com a lente de latão baixada sobre o olho direito
+      b.add(h, new THREE.TorusGeometry(0.36, 0.022, 6, 28), b.plastic(0x6b4426), [0, 0.16, -0.02], [Math.PI / 2 - 0.35, 0, 0], [1.08, 1, 0.98]);
+      if (expr !== 'dizzy') {
+        const lp = surf(R * 1.0, 0.3, 0.1);
+        const lo = new THREE.Group(); lo.position.set(...lp); lo.lookAt(new THREE.Vector3(...lp).multiplyScalar(2)); h.add(lo);
+        b.add(lo, new THREE.CylinderGeometry(0.075, 0.09, 0.1, 16), b.metal(0xc9a24a), [0, 0, 0.05], [Math.PI / 2, 0, 0]);
+        b.add(lo, new THREE.CircleGeometry(0.068, 16), b.plastic(0xbfe8ff, 140), [0, 0, 0.101]);
+        b.limb(h, V(0.26, 0.2, 0.28), V(lp[0], lp[1] + 0.06, lp[2]), 0.012, b.metal(0xc9a24a));
+      }
       break;
     }
     case 'faisca': { // raposa
@@ -259,6 +293,14 @@ function buildHead(b, d, expr) {
       eyes(b, h, R, ex({ pitch: 0.15 }));
       mouth(b, h, R, ex({ pitch: -0.38, w: 0.09 }));
       if (expr !== 'dizzy') b.sphere(h, 0.06, b.plastic(0xff6f80), surf(R * 1.0, 0.06, -0.5), [1, 1.4, 0.5]);
+      // quepe de ferroviário com distintivo de latão
+      {
+        const cap = new THREE.Group(); cap.position.set(0, 0.27, -0.02); cap.rotation.x = -0.12; h.add(cap);
+        b.add(cap, new THREE.CylinderGeometry(0.34, 0.32, 0.16, 24), b.plastic(0x23304a, 30), [0, 0.06, 0]);
+        b.add(cap, new THREE.CylinderGeometry(0.335, 0.335, 0.04, 24), b.plastic(0x111111, 30), [0, -0.01, 0]);
+        b.rbox(cap, 0.36, 0.025, 0.18, 0.01, b.plastic(0x111111, 120), [0, -0.03, 0.32], [0.25, 0, 0]);
+        b.add(cap, new THREE.CylinderGeometry(0.05, 0.05, 0.02, 12), b.metal(0xc9a24a), [0, 0.06, 0.33], [Math.PI / 2, 0, 0]);
+      }
       break;
     }
     case 'tonho': { // urso
@@ -269,11 +311,11 @@ function buildHead(b, d, expr) {
       b.sphere(h, 0.075, b.plastic(0x111111, 100), surf(R * 1.02, 0, -0.14), [1.4, 0.9, 1]);
       eyes(b, h, R, ex({ pitch: 0.12, size: 0.066 }));
       mouth(b, h, R, ex({ pitch: -0.4, w: 0.08 }));
-      // boné virado para trás
-      const cap = new THREE.Group(); cap.position.set(0, 0.17, -0.02); cap.rotation.x = -0.15; h.add(cap);
-      b.add(cap, new THREE.SphereGeometry(0.43, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2.2), b.plastic(L.cap, 30), [0, 0, 0], [0, 0, 0], [1.05, 0.75, 1.05]);
-      b.rbox(cap, 0.36, 0.035, 0.3, 0.015, b.plastic(L.cap, 30), [0, 0.03, -0.5], [0.15, 0, 0]);
-      b.sphere(cap, 0.04, b.plastic(0xffffff), [0, 0.31, 0]);
+      // gorro de tricô com barra dobrada e pompom
+      const cap = new THREE.Group(); cap.position.set(0, 0.22, -0.05); cap.rotation.x = -0.25; h.add(cap);
+      b.add(cap, new THREE.SphereGeometry(0.44, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2), b.fur(L.cap), [0, 0, 0], [0, 0, 0], [1.06, 0.95, 1.06]);
+      b.add(cap, new THREE.TorusGeometry(0.43, 0.055, 8, 28), b.fur(0xe8e0d0), [0, 0.02, 0], [Math.PI / 2, 0, 0], [1.06, 1.06, 1]);
+      b.sphere(cap, 0.1, b.fur(0xe8e0d0), [0, 0.43, 0]);
       break;
     }
     case 'rino': { // rinoceronte
@@ -309,6 +351,12 @@ function buildHead(b, d, expr) {
       b.add(cap, new THREE.CylinderGeometry(0.34, 0.34, 0.06, 24), b.plastic(L.cap, 40), [0, 0.0, 0]);
       b.rbox(cap, 0.42, 0.03, 0.2, 0.012, b.plastic(0x111111, 120), [0, -0.02, 0.33], [0.2, 0, 0]);
       b.sphere(cap, 0.06, b.metal(0xffc107), [0, 0.06, 0.34], [1, 1, 0.4]);
+      // cachimbo de vapor no canto da boca, soltando fumacinha
+      if (expr !== 'dizzy') {
+        b.limb(h, V(0.18, -0.12, 0.62), V(0.32, -0.16, 0.78), 0.018, b.plastic(0x5a3a22, 30));
+        b.add(h, new THREE.CylinderGeometry(0.05, 0.04, 0.1, 12), b.metal(0xc9a24a), [0.34, -0.11, 0.8]);
+        for (const [y, r] of [[0.0, 0.04], [0.08, 0.05], [0.18, 0.06]]) b.sphere(h, r, b.mat('smk', () => new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.75 })), [0.35 + y * 0.3, -0.02 + y, 0.8]);
+      }
       break;
     }
   }
@@ -316,60 +364,267 @@ function buildHead(b, d, expr) {
 }
 
 // ------------------------------------------------------------------ kart
-function emblem(d) {
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const g = c.getContext('2d');
-  g.fillStyle = '#fff'; g.beginPath(); g.arc(32, 32, 30, 0, Math.PI * 2); g.fill();
-  g.strokeStyle = '#' + new THREE.Color(d.kart).getHexString(); g.lineWidth = 6; g.stroke();
-  g.fillStyle = '#222'; g.font = 'bold 40px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText(d.name[0], 32, 35);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
+function gearGeo(R, T, depth = 0.05) {
+  const sh = new THREE.Shape();
+  for (let k = 0; k < T; k++) {
+    const a = (k / T) * Math.PI * 2, st = (Math.PI * 2) / T, P = (aa, rr) => [Math.cos(aa) * rr, Math.sin(aa) * rr];
+    if (!k) sh.moveTo(...P(a, R * 0.8)); else sh.lineTo(...P(a, R * 0.8));
+    sh.lineTo(...P(a + st * 0.2, R)); sh.lineTo(...P(a + st * 0.5, R)); sh.lineTo(...P(a + st * 0.7, R * 0.8));
+  }
+  const h = new THREE.Path(); h.absarc(0, 0, R * 0.3, 0, Math.PI * 2, true); sh.holes.push(h);
+  const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: false, curveSegments: 4 }); g.translate(0, 0, -depth / 2);
+  return g;
 }
 
+function clockFace() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d');
+  g.fillStyle = '#f8f0dc'; g.beginPath(); g.arc(32, 32, 31, 0, 7); g.fill();
+  g.fillStyle = '#3a2414';
+  for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2; g.fillRect(32 + Math.sin(a) * 25 - 2, 32 - Math.cos(a) * 25 - 2, 4, 4); }
+  g.lineWidth = 4; g.strokeStyle = '#3a2414'; g.beginPath(); g.moveTo(32, 32); g.lineTo(32, 12); g.moveTo(32, 32); g.lineTo(46, 38); g.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+// karts steampunk: chassi, banco de couro, volante de madeira e rodas raiadas de latão em todos;
+// a carroceria muda com a identidade de cada piloto
 function buildKart(b, d, root, steerAng) {
-  const paint = b.plastic(d.kart, 90);
-  const dark = b.plastic(0x2b2b2e, 30);
-  const chrome = b.metal();
-  b.rbox(root, 1.12, 0.1, 1.9, 0.04, dark, [0, 0.19, -0.05]);                        // chassi
-  b.rbox(root, 0.92, 0.26, 0.8, 0.1, paint, [0, 0.36, 0.72], [0.14, 0, 0]);         // bico
-  b.sphere(root, 0.3, paint, [0, 0.3, 1.05], [1.45, 0.48, 0.75]);
-  for (const s of [1, -1]) b.rbox(root, 0.28, 0.26, 1.05, 0.1, paint, [s * 0.6, 0.33, -0.1]); // pontões
-  b.rbox(root, 0.72, 0.36, 0.08, 0.04, paint, [0, 0.55, 0.38], [-0.45, 0, 0]);       // carenagem frontal
-  const em = b.add(root, new THREE.CircleGeometry(0.13, 24), new THREE.MeshPhongMaterial({ map: emblem(d), shininess: 40 }), [0, 0.58, 0.43], [-0.45, 0, 0]);
-  em.material.map.needsUpdate = true;
-  b.rbox(root, 0.56, 0.5, 0.1, 0.05, dark, [0, 0.62, -0.62], [-0.25, 0, 0]);         // banco
-  b.rbox(root, 0.56, 0.08, 0.42, 0.03, dark, [0, 0.33, -0.42]);
-  // volante
-  const col = b.limb(root, V(0, 0.42, 0.55), V(0, 0.74, 0.26), 0.025, chrome);
+  const paint = b.plastic(d.kart, 70);
+  const iron = b.plastic(0x2e2a28, 30), brass = b.metal(0xc9a24a), copper = b.metal(0xb8673a), wood = b.plastic(0x8a5a34, 15);
+  const leather = b.plastic(0x5a3a22, 20), glow = b.mat('glow', () => new THREE.MeshBasicMaterial({ color: 0xffa040 }));
+  const id = d.id;
+  b.rbox(root, 1.1, 0.1, 1.9, 0.04, iron, [0, 0.19, -0.05]);                              // chassi
+  b.rbox(root, 0.56, 0.5, 0.1, 0.05, leather, [0, 0.62, -0.62], [-0.25, 0, 0]);           // banco
+  b.rbox(root, 0.56, 0.08, 0.42, 0.03, leather, [0, 0.33, -0.42]);
+  // volante de madeira com raios de latão
+  b.limb(root, V(0, 0.42, 0.55), V(0, 0.74, 0.26), 0.025, brass);
   const wheel = new THREE.Group(); wheel.position.set(0, 0.78, 0.22); wheel.rotation.x = -1.0; root.add(wheel);
   const wr = new THREE.Group(); wr.rotation.z = steerAng; wheel.add(wr);
-  b.add(wr, new THREE.TorusGeometry(0.17, 0.032, 8, 24), dark);
-  b.add(wr, new THREE.BoxGeometry(0.32, 0.035, 0.03), dark);
-  b.add(wr, new THREE.CylinderGeometry(0.05, 0.05, 0.05, 12), paint, [0, 0, 0.02], [Math.PI / 2, 0, 0]);
-  // para-choques
-  b.tube(root, [V(-0.62, 0.24, 0.98), V(-0.35, 0.22, 1.28), V(0.35, 0.22, 1.28), V(0.62, 0.24, 0.98)], 0.035, chrome);
-  b.tube(root, [V(-0.72, 0.3, -1.12), V(-0.3, 0.3, -1.24), V(0.3, 0.3, -1.24), V(0.72, 0.3, -1.12)], 0.035, chrome);
-  // motor e escapamento
-  b.rbox(root, 0.36, 0.3, 0.34, 0.05, b.metal(0x9aa3ad), [0.28, 0.42, -0.88]);
-  b.add(root, new THREE.CylinderGeometry(0.1, 0.1, 0.16, 12), b.metal(0x7b858f), [0.28, 0.64, -0.88]);
-  b.tube(root, [V(0.12, 0.42, -0.9), V(-0.15, 0.42, -1.0), V(-0.3, 0.5, -1.15), V(-0.32, 0.72, -1.2)], 0.04, chrome);
-  b.add(root, new THREE.CylinderGeometry(0.07, 0.055, 0.2, 12), chrome, [-0.32, 0.8, -1.2]);
-  // aerofólio
-  b.rbox(root, 1.2, 0.06, 0.28, 0.025, paint, [0, 0.98, -1.1], [-0.12, 0, 0]);
-  for (const s of [1, -1]) b.rbox(root, 0.05, 0.42, 0.12, 0.02, dark, [s * 0.42, 0.77, -1.08]);
-  // rodas
-  const tire = b.plastic(0x1b1b1b, 10);
-  for (const [x, z, r, w, front] of [[0.64, 0.66, 0.23, 0.26, 1], [-0.64, 0.66, 0.23, 0.26, 1], [0.68, -0.72, 0.29, 0.36, 0], [-0.68, -0.72, 0.29, 0.36, 0]]) {
+  b.add(wr, new THREE.TorusGeometry(0.17, 0.03, 8, 24), wood);
+  for (const a of [0, Math.PI / 2]) b.add(wr, new THREE.BoxGeometry(0.32, 0.025, 0.025), brass, [0, 0, 0], [0, 0, a]);
+  b.add(wr, new THREE.CylinderGeometry(0.045, 0.045, 0.05, 12), brass, [0, 0, 0.02], [Math.PI / 2, 0, 0]);
+  // rodas raiadas
+  const tire = b.plastic(0x1e1a18, 10);
+  const wheelAt = (x, z, r, w, front) => {
     const piv = new THREE.Group(); piv.position.set(x, r, z); if (front) piv.rotation.y = steerAng * 0.5; root.add(piv);
-    b.add(piv, new THREE.CylinderGeometry(r, r, w, 22), tire, [0, 0, 0], [0, 0, Math.PI / 2]);
-    for (const s of [1, -1]) b.add(piv, new THREE.TorusGeometry(r - 0.045, 0.045, 8, 22), tire, [s * w / 2, 0, 0], [0, Math.PI / 2, 0]);
-    b.add(piv, new THREE.CylinderGeometry(r * 0.6, r * 0.6, w + 0.02, 16), chrome, [0, 0, 0], [0, 0, Math.PI / 2]);
-    b.add(piv, new THREE.CylinderGeometry(r * 0.25, r * 0.25, w + 0.05, 10), paint, [0, 0, 0], [0, 0, Math.PI / 2]);
+    b.add(piv, new THREE.TorusGeometry(r - 0.06, 0.065, 8, 22), tire, [0, 0, 0], [0, Math.PI / 2, 0], [1, 1, w / 0.13]);
+    b.add(piv, new THREE.CylinderGeometry(r * 0.26, r * 0.26, w + 0.04, 12), brass, [0, 0, 0], [0, 0, Math.PI / 2]);
+    for (let k = 0; k < 6; k++) b.add(piv, new THREE.BoxGeometry(0.03, (r - 0.08) * 2, 0.03), brass, [0, 0, 0], [(k / 6) * Math.PI, 0, 0]);
+    if (id === 'tonho' && !front) for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; b.sphere(piv, 0.03, b.metal(), [0, Math.sin(a) * r, Math.cos(a) * r]); } // pneus com cravos
+  };
+  if (id !== 'tonho') for (const s of [1, -1]) wheelAt(s * 0.64, 0.66, 0.23, 0.22, 1);
+  if (id !== 'juca') for (const s of [1, -1]) wheelAt(s * 0.68, -0.72, 0.29, 0.3, 0);
+  const boiler = (x, z, h = 0.34, chim = 0.32) => {
+    b.add(root, new THREE.CylinderGeometry(0.17, 0.17, h, 14), copper, [x, 0.38 + h / 2, z]);
+    for (const y of [0.42, 0.36 + h]) b.add(root, new THREE.CylinderGeometry(0.18, 0.18, 0.03, 14), brass, [x, y, z]);
+    b.add(root, new THREE.CylinderGeometry(0.06, 0.05, chim, 10), iron, [x, 0.38 + h + chim / 2, z]);
+  };
+  const pontoons = (mat) => { for (const s of [1, -1]) b.rbox(root, 0.26, 0.24, 1.0, 0.09, mat, [s * 0.58, 0.33, -0.1]); };
+
+  switch (id) {
+    case 'pipoca': { // carrinho do correio a vapor: cesto de vime com cartas e campainha
+      pontoons(paint);
+      b.rbox(root, 0.86, 0.26, 0.7, 0.1, paint, [0, 0.36, 0.72], [0.1, 0, 0]);
+      for (const s of [1, -1]) b.rbox(root, 0.03, 0.05, 1.0, 0.01, brass, [s * 0.715, 0.42, -0.1]);
+      const wicker = b.plastic(0xc8a060, 10);
+      b.rbox(root, 0.62, 0.3, 0.42, 0.04, wicker, [0, 0.66, 0.98]);
+      for (let k = -2; k <= 2; k++) b.add(root, new THREE.BoxGeometry(0.02, 0.3, 0.43), b.plastic(0x9a7a40, 10), [k * 0.12, 0.66, 0.98]);
+      for (const [x, z, r] of [[-0.12, 0.98, 0.1], [0.06, 0.92, -0.15], [0.18, 1.04, 0.2]]) b.rbox(root, 0.2, 0.14, 0.02, 0.005, b.plastic(0xf8f4ea, 10), [x, 0.86, z], [0, 0, r]);
+      b.rbox(root, 0.16, 0.12, 0.14, 0.02, b.plastic(0xa8784a, 10), [-0.16, 0.86, 1.05]);
+      b.sphere(root, 0.05, brass, [0.16, 0.86, 0.36], [1, 0.6, 1]);                      // campainha
+      b.add(root, new THREE.ConeGeometry(0.08, 0.3, 12, 1, true), brass, [-0.6, 0.62, 0.5], [-Math.PI / 2, 0, 0]); // buzina
+      boiler(0.26, -0.92);
+      break;
+    }
+    case 'tico': { // estufa sobre rodas: redoma de vidro com cogumelos que brilham
+      pontoons(paint);
+      b.sphere(root, 0.46, paint, [0, 0.34, 0.78], [1, 0.4, 0.9]);
+      for (const [x, z, c, r] of [[0.58, 0.18, 0xffc84a, 0.08], [-0.58, 0.05, 0xe8541e, 0.07], [0.58, -0.35, 0xffffff, 0.06], [0.25, 1.05, 0xe8541e, 0.07]]) {
+        b.add(root, new THREE.CylinderGeometry(0.025, 0.03, 0.12, 8), b.fur(0xf3e5c0), [x, 0.5, z]);
+        b.add(root, new THREE.SphereGeometry(r, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), b.mat('gl' + c, () => new THREE.MeshBasicMaterial({ color: c })), [x, 0.55, z]);
+      }
+      // redoma de estufa atrás do banco
+      b.add(root, new THREE.CylinderGeometry(0.32, 0.34, 0.08, 18), brass, [0, 0.42, -0.95]);
+      for (const [x, z, c] of [[0.1, -0.9, 0xe8541e], [-0.12, -1.0, 0xffc84a], [0.02, -1.08, 0x8ad8ff]]) {
+        b.add(root, new THREE.CylinderGeometry(0.03, 0.035, 0.18, 8), b.fur(0xf3e5c0), [x, 0.54, z]);
+        b.add(root, new THREE.SphereGeometry(0.09, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), b.mat('gl' + c, () => new THREE.MeshBasicMaterial({ color: c })), [x, 0.62, z]);
+      }
+      b.add(root, new THREE.SphereGeometry(0.33, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2), b.mat('glass', () => new THREE.MeshPhongMaterial({ color: 0xcfefff, transparent: true, opacity: 0.35, shininess: 150, specular: 0xffffff })), [0, 0.45, -0.95]);
+      for (let k = 0; k < 4; k++) b.add(root, new THREE.TorusGeometry(0.33, 0.012, 4, 18, Math.PI), brass, [0, 0.45, -0.95], [0, (k / 4) * Math.PI, 0]);
+      // regador de cobre na frente
+      b.add(root, new THREE.CylinderGeometry(0.1, 0.12, 0.2, 12), copper, [0.3, 0.6, 0.9]);
+      b.limb(root, V(0.38, 0.62, 0.95), V(0.55, 0.78, 1.15), 0.025, copper);
+      break;
+    }
+    case 'mel': { // kart de corda: mostrador de relógio no bico, engrenagens à mostra e chave de dar corda
+      pontoons(paint);
+      b.rbox(root, 0.86, 0.3, 0.72, 0.1, paint, [0, 0.38, 0.72], [0.1, 0, 0]);
+      b.add(root, new THREE.CylinderGeometry(0.28, 0.28, 0.08, 24), brass, [0, 0.55, 1.08], [Math.PI / 2 - 0.2, 0, 0]);
+      b.add(root, new THREE.CircleGeometry(0.24, 24), new THREE.MeshPhongMaterial({ map: clockFace(), shininess: 40 }), [0, 0.56, 1.125], [-0.2, 0, 0]);
+      for (const s of [1, -1]) {
+        const g1 = b.add(root, gearGeo(0.2, 10), brass, [s * 0.73, 0.4, 0.05], [0, Math.PI / 2, 0.3]);
+        const g2 = b.add(root, gearGeo(0.13, 8), copper, [s * 0.73, 0.4, -0.27], [0, Math.PI / 2, 0]);
+        void g1; void g2;
+      }
+      const key = new THREE.Group(); key.position.set(0, 0.62, -1.08); key.rotation.z = 0.5; root.add(key);
+      b.add(key, new THREE.CylinderGeometry(0.035, 0.035, 0.3, 8), brass, [0, 0, -0.1], [Math.PI / 2, 0, 0]);
+      for (const s of [1, -1]) b.add(key, new THREE.TorusGeometry(0.11, 0.035, 8, 16), brass, [s * 0.13, 0, -0.26], [0, 0, 0], [1, 0.8, 1]);
+      boiler(-0.28, -0.85, 0.26, 0.22);
+      break;
+    }
+    case 'faisca': { // mini-dirigível sobre rodas: casco de charuto, lemes e hélice
+      b.sphere(root, 0.5, paint, [0, 0.42, 0.1], [1.15, 0.6, 2.2]);
+      for (let k = -1; k <= 1; k++) b.add(root, new THREE.TorusGeometry(0.4 * Math.sqrt(1 - (k * 0.45) ** 2) + 0.12, 0.02, 4, 22), brass, [0, 0.42, 0.1 + k * 0.5], [0, 0, 0], [1.4, 0.75, 1]);
+      b.add(root, new THREE.ConeGeometry(0.12, 0.22, 12), brass, [0, 0.42, 1.2], [Math.PI / 2, 0, 0]);
+      for (const a of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) b.rbox(root, 0.03, 0.32, 0.36, 0.01, paint, [Math.sin(a) * 0.18, 0.5 + Math.cos(a) * 0.18, -1.0], [0, 0, a]);
+      const prop = new THREE.Group(); prop.position.set(0, 0.5, -1.25); root.add(prop);
+      b.sphere(prop, 0.06, brass, [0, 0, 0]);
+      for (let k = 0; k < 3; k++) { const bl = new THREE.Group(); bl.rotation.z = (k / 3) * Math.PI * 2 + 0.3; prop.add(bl); b.rbox(bl, 0.07, 0.36, 0.02, 0.01, wood, [0, 0.18, 0], [0, 0.3, 0]); }
+      break;
+    }
+    case 'bento': { // locomotiva: caldeira deitada, chaminé de funil, limpa-trilhos e sino
+      pontoons(paint);
+      b.add(root, new THREE.CylinderGeometry(0.3, 0.3, 0.9, 18), paint, [0, 0.5, 0.62], [Math.PI / 2, 0, 0]);
+      for (const z of [0.3, 0.62, 0.94]) b.add(root, new THREE.CylinderGeometry(0.31, 0.31, 0.04, 18), brass, [0, 0.5, z], [Math.PI / 2, 0, 0]);
+      b.add(root, new THREE.CylinderGeometry(0.3, 0.3, 0.04, 18), iron, [0, 0.5, 1.08], [Math.PI / 2, 0, 0]);
+      b.sphere(root, 0.08, glow, [0, 0.6, 1.11], [1, 1, 0.4]);                              // farol
+      b.add(root, new THREE.CylinderGeometry(0.08, 0.07, 0.25, 10), iron, [0, 0.9, 0.86]);
+      b.add(root, new THREE.CylinderGeometry(0.18, 0.08, 0.2, 14), iron, [0, 1.1, 0.86]);   // chaminé de funil
+      b.add(root, new THREE.CylinderGeometry(0.06, 0.08, 0.1, 10), brass, [0, 0.85, 0.48]); // domo de vapor
+      b.add(root, new THREE.ConeGeometry(0.07, 0.1, 10, 1, true), brass, [0.2, 0.86, 0.5]);  // sino
+      for (let k = -3; k <= 3; k++) b.add(root, new THREE.BoxGeometry(0.03, 0.03, 0.4), b.plastic(0x8a1a1a, 30), [k * 0.1, 0.2, 1.28], [0.6, k * 0.12, 0]); // limpa-trilhos
+      break;
+    }
+    case 'tonho': { // trenó de gelo: esquis na frente, lâmina de neve e caixote de gelo atrás
+      const plank = b.plastic(0x9a6a3a, 15);
+      for (let k = -2; k <= 2; k++) b.rbox(root, 0.2, 0.08, 1.4, 0.02, plank, [k * 0.21, 0.32, 0.25]);
+      for (const s of [1, -1]) {
+        b.rbox(root, 0.14, 0.05, 0.9, 0.02, b.metal(0xa8b0b8), [s * 0.58, 0.06, 0.66]);
+        b.tube(root, [V(s * 0.58, 0.06, 1.1), V(s * 0.58, 0.14, 1.22), V(s * 0.58, 0.28, 1.24)], 0.04, b.metal(0xa8b0b8));
+        b.limb(root, V(s * 0.58, 0.08, 0.66), V(s * 0.4, 0.32, 0.6), 0.035, iron);
+      }
+      b.rbox(root, 1.1, 0.26, 0.06, 0.02, copper, [0, 0.3, 1.32], [0.5, 0, 0]);             // lâmina de neve
+      b.rbox(root, 0.7, 0.34, 0.5, 0.03, plank, [0, 0.52, -0.95]);
+      const ice = b.mat('ice', () => new THREE.MeshPhongMaterial({ color: 0xa8dcf4, transparent: true, opacity: 0.85, shininess: 140 }));
+      for (const [x, z] of [[-0.16, -0.9], [0.16, -1.0], [0, -0.92]]) b.rbox(root, 0.26, 0.22, 0.22, 0.02, ice, [x, 0.8 + (x === 0 ? 0.18 : 0), z]);
+      break;
+    }
+    case 'rino': { // fornalha blindada: chapas rebitadas, grade em brasa e duas chaminés
+      const plate = b.plastic(d.kart, 40);
+      b.rbox(root, 1.2, 0.42, 1.9, 0.06, plate, [0, 0.4, 0.0]);
+      for (const s of [1, -1]) for (let k = 0; k < 7; k++) b.sphere(root, 0.025, brass, [s * 0.605, 0.55, -0.8 + k * 0.27]);
+      b.rbox(root, 0.8, 0.34, 0.08, 0.02, iron, [0, 0.48, 0.98]);
+      for (let k = -3; k <= 3; k++) b.add(root, new THREE.BoxGeometry(0.06, 0.26, 0.02), glow, [k * 0.1, 0.48, 1.03]);
+      for (const s of [1, -1]) {
+        b.add(root, new THREE.CylinderGeometry(0.1, 0.12, 0.7, 12), iron, [s * 0.3, 0.9, -1.0]);
+        b.add(root, new THREE.CylinderGeometry(0.13, 0.13, 0.05, 12), brass, [s * 0.3, 1.25, -1.0]);
+      }
+      break;
+    }
+    case 'juca': { // barco a vapor: casco com proa, vigias, rodas de pás atrás e boia
+      b.rbox(root, 1.06, 0.44, 1.6, 0.12, paint, [0, 0.42, -0.1]);
+      b.add(root, new THREE.ConeGeometry(0.53, 0.8, 4, 1), paint, [0, 0.42, 1.08], [Math.PI / 2, Math.PI / 4, 0], [1, 1, 0.83]);
+      b.rbox(root, 1.08, 0.06, 1.62, 0.02, b.plastic(0xf8f4ea, 20), [0, 0.6, -0.1]);
+      for (const s of [1, -1]) for (const z of [0.3, -0.1]) {
+        b.add(root, new THREE.TorusGeometry(0.07, 0.02, 6, 14), brass, [s * 0.535, 0.42, z], [0, Math.PI / 2, 0]);
+        b.add(root, new THREE.CircleGeometry(0.06, 14), b.plastic(0x9fd8e8, 140), [s * 0.536, 0.42, z], [0, s * Math.PI / 2, 0]);
+      }
+      for (const s of [1, -1]) {
+        const pw = new THREE.Group(); pw.position.set(s * 0.68, 0.34, -0.78); root.add(pw);
+        b.add(pw, new THREE.CylinderGeometry(0.34, 0.34, 0.06, 18), wood, [0, 0, 0], [0, 0, Math.PI / 2]);
+        for (let k = 0; k < 8; k++) b.add(pw, new THREE.BoxGeometry(0.24, 0.06, 0.18), b.plastic(0x8a1a1a, 30), [0, Math.sin((k / 8) * Math.PI * 2) * 0.28, Math.cos((k / 8) * Math.PI * 2) * 0.28], [(k / 8) * Math.PI * 2, 0, 0]);
+        b.add(pw, new THREE.CylinderGeometry(0.4, 0.4, 0.3, 18, 1, true, -Math.PI / 2, Math.PI), brass, [0, 0.02, 0], [0, 0, Math.PI / 2]);
+      }
+      b.add(root, new THREE.CylinderGeometry(0.12, 0.12, 0.6, 12), b.plastic(0x1a1a1a, 30), [0, 1.0, -1.02]);
+      b.add(root, new THREE.CylinderGeometry(0.125, 0.125, 0.12, 12), b.plastic(0xc0392b, 30), [0, 1.18, -1.02]);
+      const ring = b.add(root, new THREE.TorusGeometry(0.15, 0.05, 8, 16), b.plastic(0xf8f4ea, 30), [0.54, 0.5, 0.75], [0, Math.PI / 2, 0]);
+      for (let k = 0; k < 4; k++) b.add(root, new THREE.TorusGeometry(0.15, 0.052, 8, 3, 0.35), b.plastic(0xc0392b, 30), [0.54, 0.5, 0.75], [0, Math.PI / 2, (k / 4) * Math.PI * 2]);
+      void ring;
+      break;
+    }
   }
   return wheel;
+}
+
+// ------------------------------------------------------------------ roupa e acessórios (identidade de cada um)
+function outfit(b, d, dr, k, L) {
+  const brass = b.metal(0xc9a24a), leather = b.plastic(0x6b4426, 25);
+  const fz = 0.17 * k + 0.03;                 // frente do peito
+  const chest = (x, y, z = 0) => [x, y, fz + z + (0.45 - y) * 0.14];
+  const buttons = (xs, ys, r = 0.022) => { for (const x of xs) for (const y of ys) b.sphere(dr, r, brass, chest(x, y, 0.01)); };
+  switch (d.id) {
+    case 'pipoca': {
+      buttons([0.05], [0.28, 0.38, 0.48]);
+      // bolsa de cartas a tiracolo
+      b.tube(dr, [V(-0.2 * k, 0.6, 0.02), V(0, 0.42, fz + 0.03), V(0.2 * k, 0.22, fz - 0.02), V(0.27 * k, 0.14, 0.02)], 0.022, leather);
+      b.rbox(dr, 0.08, 0.2, 0.24, 0.03, leather, [0.27 * k, 0.12, 0.0]);
+      for (const [y, z] of [[0.25, -0.04], [0.24, 0.04]]) b.rbox(dr, 0.012, 0.1, 0.14, 0.005, b.plastic(0xf8f4ea, 10), [0.27 * k, y, z], [0, 0, 0.1]);
+      break;
+    }
+    case 'tico': {
+      // avental verde de botânico, com lupa e uma muda no bolso
+      b.rbox(dr, 0.3 * k, 0.42, 0.03, 0.02, b.fur(0x4a7a3a), chest(0, 0.3), [0.14, 0, 0]);
+      b.rbox(dr, 0.14, 0.09, 0.02, 0.01, b.fur(0x3a6a2a), chest(0.06, 0.24, 0.02), [0.14, 0, 0]);
+      b.limb(dr, V(0.04, 0.26, fz + 0.05), V(0.04, 0.36, fz + 0.06), 0.012, brass);
+      b.add(dr, new THREE.TorusGeometry(0.035, 0.008, 6, 14), brass, [0.04, 0.39, fz + 0.06]);
+      b.add(dr, new THREE.CylinderGeometry(0.012, 0.012, 0.08, 6), b.fur(0xf3e5c0), [0.1, 0.32, fz + 0.04]);
+      b.add(dr, new THREE.SphereGeometry(0.04, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), b.plastic(0xffc84a, 40), [0.1, 0.36, fz + 0.04]);
+      break;
+    }
+    case 'mel': {
+      // avental de couro de relojoeira com ferramentas
+      b.rbox(dr, 0.32 * k, 0.44, 0.03, 0.02, b.plastic(0x7a4a2a, 25), chest(0, 0.3), [0.14, 0, 0]);
+      for (const x of [-0.06, 0, 0.06]) b.add(dr, new THREE.CylinderGeometry(0.01, 0.01, 0.09, 6), brass, chest(x, 0.4, 0.03));
+      b.add(dr, new THREE.TorusGeometry(0.05, 0.01, 6, 16), brass, chest(-0.06, 0.22, 0.03));
+      break;
+    }
+    case 'faisca': {
+      // jaqueta de couro de aviador com gola de lã e ponta do cachecol voando
+      b.add(dr, new THREE.TorusGeometry(0.17, 0.05, 8, 20), b.fur(0xf0e6d0), [0, 0.6, 0.0], [Math.PI / 2 + 0.15, 0, 0]);
+      b.limb(dr, V(0, 0.5, fz + 0.02), V(0.0, 0.18, fz + 0.04), 0.008, b.plastic(0x3a2414));
+      buttons([-0.07, 0.07], [0.42]);
+      b.limb(dr, V(0.12, 0.66, -0.12), V(0.36, 0.62, -0.42), 0.035, b.fur(L.scarf));
+      break;
+    }
+    case 'bento': {
+      // macacão de foguista com peitilho, alças e manchas de fuligem
+      b.rbox(dr, 0.26 * k, 0.22, 0.03, 0.02, b.fur(0x2e4a74), chest(0, 0.34), [0.14, 0, 0]);
+      buttons([-0.09, 0.09], [0.44], 0.026);
+      for (const x of [-0.09, 0.09]) b.limb(dr, V(x, 0.46, fz), V(x * 1.4, 0.6, 0.0), 0.016, b.fur(0x2e4a74));
+      for (const [x, y] of [[0.06, 0.3], [-0.05, 0.22]]) b.sphere(dr, 0.03, b.mat('soot', () => new THREE.MeshPhongMaterial({ color: 0x1a1a1a, transparent: true, opacity: 0.5 })), chest(x, y, 0.02), [1, 0.7, 0.3]);
+      break;
+    }
+    case 'tonho': {
+      // suspensórios e serrote de cortar gelo nas costas
+      for (const x of [-0.1, 0.1]) b.limb(dr, V(x * k, 0.62, 0.02), V(x * k, 0.12, fz - 0.02), 0.022, b.plastic(0x2a1a10, 20));
+      for (const x of [-0.1, 0.1]) b.sphere(dr, 0.025, brass, chest(x * k, 0.2, 0.02));
+      const saw = new THREE.Group(); saw.position.set(0, 0.45, -0.28 * k); saw.rotation.z = 0.7; dr.add(saw);
+      b.add(saw, new THREE.BoxGeometry(0.75, 0.13, 0.015), b.metal(0xc8ccd0), [0, 0, 0]);
+      for (let t = 0; t < 12; t++) b.add(saw, new THREE.ConeGeometry(0.02, 0.04, 3), b.metal(0xc8ccd0), [-0.34 + t * 0.06, -0.08, 0], [Math.PI, 0, 0]);
+      b.rbox(saw, 0.16, 0.15, 0.05, 0.02, b.plastic(0x8a5a34, 20), [0.45, 0.02, 0]);
+      break;
+    }
+    case 'rino': {
+      // colete, gravata-borboleta e corrente do relógio de bolso
+      const vest = b.fur(L.vest);
+      for (const sd of [1, -1]) b.rbox(dr, 0.16 * k, 0.4, 0.04, 0.03, vest, chest(sd * 0.11 * k, 0.33, -0.005), [0.14, sd * 0.25, 0]);
+      buttons([-0.05], [0.24, 0.32, 0.4], 0.02);
+      for (const sd of [1, -1]) b.add(dr, new THREE.ConeGeometry(0.05, 0.1, 8), b.plastic(0x8a1a1a, 40), [sd * 0.05, 0.6, fz + 0.03], [0, 0, sd * Math.PI / 2]);
+      b.sphere(dr, 0.025, b.plastic(0x8a1a1a, 40), [0, 0.6, fz + 0.04]);
+      b.tube(dr, [V(-0.05, 0.3, fz + 0.04), V(0.05, 0.24, fz + 0.05), V(0.14, 0.27, fz + 0.03)], 0.008, b.metal(0xffc107));
+      b.add(dr, new THREE.CylinderGeometry(0.035, 0.035, 0.015, 14), b.metal(0xffc107), [0.15, 0.25, fz + 0.03], [Math.PI / 2, 0, 0]);
+      break;
+    }
+    case 'juca': {
+      // casaca de capitão: duas fileiras de botões e dragonas douradas
+      buttons([-0.08, 0.08], [0.24, 0.34, 0.44], 0.025);
+      for (const sd of [1, -1]) {
+        b.sphere(dr, 0.1, b.metal(0xffc107), [sd * 0.27 * k, 0.6, -0.02], [1, 0.35, 0.9]);
+        for (let t = 0; t < 5; t++) b.add(dr, new THREE.CylinderGeometry(0.008, 0.008, 0.07, 4), b.metal(0xffc107), [sd * (0.33 * k + 0.02), 0.55, -0.08 + t * 0.04]);
+      }
+      break;
+    }
+  }
 }
 
 // ------------------------------------------------------------------ piloto completo numa pose
@@ -403,6 +658,7 @@ export function buildDriverModel(d, pose = 0) {
   b.sphere(driver, 0.2 * heavy, shirt, [0, 0.2, 0.02], [1.05, 0.8, 0.95]);
   if (L.scarf) b.add(driver, new THREE.TorusGeometry(0.16, 0.06, 8, 20), b.fur(L.scarf), [0, 0.68, 0.02], [Math.PI / 2 + 0.2, 0, 0]);
   if (d.id === 'juca') b.add(driver, new THREE.TorusGeometry(0.17, 0.025, 6, 20), b.metal(0xffc107), [0, 0.62, 0.06], [Math.PI / 2 + 0.5, 0, 0]);
+  outfit(b, d, driver, heavy, L);
 
   // braços: mãos no volante (ou para cima / balançando)
   const wc = V(0, 0.78, 0.22);

@@ -28,7 +28,7 @@ export const CLASS_STATS = {
 // 8 pilotos originais. Peso (para empurrões) e "toque triplo" seguem os valores dos 8 do MK64.
 export const DRIVERS = [
   { id: 'pipoca', name: 'Pipoca', animal: 'coelha',  cls: 'leve',   weight: 0.9, tap: 3,   kart: 0xff6fa8, fur: 0xf5f0f0 },
-  { id: 'tico',   name: 'Tico',   animal: 'sapo',    cls: 'leve',   weight: 0.7, tap: 3,   kart: 0x29b6f6, fur: 0x7cc642 },
+  { id: 'tico',   name: 'Tico',   animal: 'sapo',    cls: 'leve',   weight: 0.7, tap: 3,   kart: 0x3aa58a, fur: 0x7cc642 },
   { id: 'mel',    name: 'Mel',    animal: 'gata',    cls: 'leve',   weight: 0.9, tap: 3,   kart: 0xffd54f, fur: 0xf4a340 },
   { id: 'faisca', name: 'Faísca', animal: 'raposa',  cls: 'medio',  weight: 1.2, tap: 2,   kart: 0xe53935, fur: 0xff7a1a },
   { id: 'bento',  name: 'Bento',  animal: 'cão',     cls: 'medio',  weight: 1.0, tap: 2,   kart: 0x43a047, fur: 0xb5835a },
