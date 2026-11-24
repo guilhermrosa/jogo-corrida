@@ -5,7 +5,7 @@ Pistas novas no estilo das artes conceituais aprovadas (`docs/conceito/`), feita
 | Pista | Conceito de origem | Arquivos |
 |---|---|---|
 | Vila Engrenagem | cidade-oficina (`r2-chao-1-cidade-oficina.png`) | `vila-engrenagem-v1.jpg`, `vila-engrenagem-v1-mapa.png`, `vila-engrenagem-v2.jpg`, `comparativo-v1-v2.jpg` |
-| Brejo das Caldeiras | pântano com máquinas (`r2-chao-3-pantano-maquinas.png`) | `brejo-das-caldeiras-v1.jpg`, `brejo-das-caldeiras-v2.jpg` |
+| Brejo das Caldeiras | pântano com máquinas (`r2-chao-3-pantano-maquinas.png`) | `brejo-das-caldeiras-v1.jpg`, `brejo-das-caldeiras-v2.jpg`, `brejo-das-caldeiras-v3.jpg` |
 | _a fazer_ | deserto de sucata | |
 | _a fazer_ | ilhas com correntes | |
 
@@ -58,3 +58,10 @@ Feedback da v1: faltavam as máquinas grandes do conceito, como o navio mecânic
   cabines, ponte de comando, duas chaminés fumegando, engrenagem de latão e mastro com bandeira.
 - **Draga a vapor**: corrente de caçambas descendo até o fundo e subindo com lama.
 - **Guindastes a vapor**: giram de um lado para o outro com a carga balançando.
+
+## Brejo das Caldeiras v3 — entrada e saída do navio
+Feedback da v2: a entrada pela proa com o visor levantado ficou estranha ("como assim?").
+- **Entrada pela popa**: rampa de carga abaixada sobre o calçadão, com dobradiça de latão, abas laterais,
+  faixa de atenção na ponta e correntes até as roldanas; nome CALDEIRÃO e lanternas no espelho de popa, logo acima.
+- **Saída pela proa**: as duas metades do bico abrem para os lados como portas, presas em dobradiças de latão.
+- O navio agora aponta no sentido da corrida: ponte de comando e mastro na proa, chaminés e engrenagem mais para trás.

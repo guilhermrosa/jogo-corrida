@@ -159,32 +159,55 @@ export function pantano(tr, rnd, H) {
         for (const y of [D + 7.4, D + 8]) { const pp = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, L, 8), y > D + 7.6 ? mats.copper : mats.brass); pp.rotation.x = Math.PI / 2; pp.position.set(s * (W - 0.4), y, 0); g.add(pp); }
       }
 
-      // proa: visor levantado (como uma balsa) e rampa abaixada, a "ponte" de entrada
+      // POPA (entrada): rampa de carga abaixada sobre o calçadão, presa por correntes, como numa balsa de carros
       const W1 = W + T;
-      const bowShape = new THREE.Shape(); bowShape.moveTo(-W1, 0); bowShape.lineTo(W1, 0); bowShape.lineTo(W1 * 0.55, 9); bowShape.lineTo(0, 16); bowShape.lineTo(-W1 * 0.55, 9); bowShape.closePath();
-      const bowGeo = new THREE.ExtrudeGeometry(bowShape, { depth: top - WY + 1, bevelEnabled: false });
-      bowGeo.rotateX(-Math.PI / 2); bowGeo.translate(0, -(top - WY + 1), 0);
-      const visor = new THREE.Group(); visor.position.set(0, top + 0.8, -L / 2); g.add(visor);
-      const vm = new THREE.Mesh(bowGeo, [hullM, red]); visor.add(vm);
-      visor.rotation.x = 1.25;
+      const S0 = -L / 2, B0 = L / 2;
+      box(2 * W1, D - (WY - 2), 0.8, hullM, 0, (D + WY - 2) / 2, S0 + 0.4);           // popa abaixo do convés
+      box(2 * W1, 3.4, 0.8, hullM, 0, top + 1.7, S0 + 0.4);                             // espelho de popa acima da entrada
+      box(2 * W1 + 0.3, 0.4, 1, mats.brass, 0, top + 3.5, S0 + 0.4);
+      for (const s of [1, -1]) { box(1.2, top + 3.4 - D, 1.2, hullM, s * (W1 - 0.6), (top + 3.4 + D) / 2, S0 + 0.4); }
       const nameTex = pixelTex(128, 24, (c, w, h) => {
         c.fillStyle = '#2a2624'; c.fillRect(0, 0, w, h); c.fillStyle = '#c9a24a'; c.fillRect(2, 2, w - 4, h - 4); c.fillStyle = '#5a1e14'; c.fillRect(4, 4, w - 8, h - 8);
         c.fillStyle = '#ffd98a'; c.font = 'bold 14px monospace'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('CALDEIRÃO', w / 2, h / 2 + 1);
       }, { repeat: false });
-      const name = new THREE.Mesh(new THREE.PlaneGeometry(12, 2.2), lam({ map: nameTex })); name.position.set(0, top + 2.6, -L / 2 - 0.05); name.rotation.y = Math.PI; g.add(name);
-      const nameBack = name.clone(); nameBack.rotation.y = 0; nameBack.position.z = -L / 2 + 0.6; g.add(nameBack);
-      box(2 * W1, 2.6, 0.6, hullM, 0, top + 2.5, -L / 2 + 0.3);                // viga acima da entrada
-      const ramp = box(2 * W - 2, 0.12, 10, lam({ map: plate.clone() }), 0, D + 0.12, -L / 2 - 5);
-      ramp.material.map.repeat.set(3, 2); ramp.material.map.needsUpdate = true;
+      const name = new THREE.Mesh(new THREE.PlaneGeometry(13, 2.4), lam({ map: nameTex })); name.position.set(0, top + 1.8, S0 - 0.02); name.rotation.y = Math.PI; g.add(name);
+      for (const s of [1, -1]) { const lt = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6), mats.lamp); lt.position.set(s * (W1 - 0.6), top + 3.9, S0 - 0.2); g.add(lt); }
+      // a rampa: dobradiça no convés, chapa de ferro com abas laterais e faixa de atenção na ponta
+      const RL = 11;
+      const rampTex = plate.clone(); rampTex.repeat.set(3, 2); rampTex.needsUpdate = true;
+      box(2 * W - 2, 0.14, RL, lam({ map: rampTex }), 0, D + 0.12, S0 - RL / 2);
+      const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 2 * W - 1, 10), mats.brass); hinge.rotation.z = Math.PI / 2; hinge.position.set(0, D + 0.1, S0); g.add(hinge);
+      const stripe = pixelTex(32, 4, (c, w, h) => { for (let x = 0; x < w; x += 4) { c.fillStyle = (x / 4) % 2 ? '#2a2624' : '#e8a221'; c.fillRect(x, 0, 4, h); } }, { repeat: true });
+      stripe.repeat.set(5, 1);
+      box(2 * W - 2, 0.2, 0.8, lam({ map: stripe }), 0, D + 0.14, S0 - RL + 0.4);
       for (const s of [1, -1]) {
-        const a0 = new THREE.Vector3(s * (W - 2), D + 0.2, -L / 2 - 9.5), a1 = new THREE.Vector3(s * (W - 2), top + 2.6, -L / 2 - 1);
-        const ch = new THREE.Mesh(limb(a0, a1, 0.1, 0.1, 5), mats.iron); g.add(ch);
-        box(1.4, 1.4, 1.4, mats.brass, s * (W - 0.6), top + 2.6, -L / 2);       // roldanas
+        const flap = new THREE.Shape(); flap.moveTo(0, 0); flap.lineTo(RL, 0); flap.lineTo(0, 1.6); flap.closePath();
+        const fg = new THREE.ExtrudeGeometry(flap, { depth: 0.25, bevelEnabled: false }); fg.rotateY(Math.PI / 2); // x da forma -> -z
+        const fm = new THREE.Mesh(fg, hullM); fm.position.set(s * (W - 1) - 0.125, D + 0.15, S0); g.add(fm);
+        const a0 = new THREE.Vector3(s * (W - 1.2), D + 0.4, S0 - RL + 0.6), a1 = new THREE.Vector3(s * (W1 - 0.6), top + 3, S0 - 0.3);
+        g.add(new THREE.Mesh(limb(a0, a1, 0.11, 0.11, 5), mats.iron));
+        const pul = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.5, 12), mats.brass); pul.rotation.z = Math.PI / 2; pul.position.copy(a1); g.add(pul);
       }
-      // popa: saída com comporta levantada e leme
-      box(2 * W1, 2.6, 0.6, hullM, 0, top + 2.5, L / 2 - 0.3);
-      const gate = box(2 * W - 1, 7, 0.4, hullM, 0, 0, 0); gate.geometry.translate(0, -3.5, 0); gate.position.set(0, top + 2.4, L / 2); gate.rotation.x = -1.15;
-      box(0.8, 9, 5, red, 0, WY - 1, L / 2 + 3);
+
+      // PROA (saída): as duas metades do bico abertas para os lados, como portas
+      const hBow = top + 0.8 - (WY - 1.5);
+      for (const s of [1, -1]) {
+        const sh = new THREE.Shape();
+        sh.moveTo(0, 0); sh.lineTo(-s * W1 * 0.45, -9); sh.lineTo(-s * W1, -14); sh.lineTo(-s * W1, 0); sh.closePath();
+        const bg = new THREE.ExtrudeGeometry(sh, { depth: hBow, bevelEnabled: false });
+        bg.rotateX(-Math.PI / 2); bg.translate(0, WY - 1.5, 0);
+        const half = new THREE.Group(); half.position.set(s * W1, 0, B0); half.rotation.y = s * 1.75; g.add(half);
+        half.add(new THREE.Mesh(bg, [lam({ color: 0x3b3632, side: THREE.DoubleSide }), lam({ map: plate, side: THREE.DoubleSide })]));
+        // faixa vermelha da linha d'água e friso de latão também nas portas
+        const band = new THREE.ExtrudeGeometry(sh, { depth: 1.8, bevelEnabled: false }); band.rotateX(-Math.PI / 2); band.translate(0, WY - 0.4, 0); band.scale(1.02, 1, 1.02);
+        half.add(new THREE.Mesh(band, lam({ color: 0x8a2e22, side: THREE.DoubleSide })));
+        const hp = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, hBow + 1, 10), mats.brass); hp.position.set(s * W1, WY - 1.5 + hBow / 2, B0); g.add(hp);
+        // âncora pintada no lado de fora de cada metade
+        const anc = new THREE.Mesh(new THREE.TorusGeometry(1, 0.2, 5, 12, Math.PI), mats.iron); anc.rotation.set(0, s * 1.75 + Math.PI / 2, Math.PI);
+        anc.position.copy(new THREE.Vector3(-s * W1 * 0.55, D + 2, 6).applyAxisAngle(new THREE.Vector3(0, 1, 0), s * 1.75).add(half.position)); g.add(anc);
+      }
+      box(2 * W1, 3.4, 0.8, hullM, 0, top + 1.7, B0 - 0.4);                             // viga acima da saída
+      box(2 * W1, D - (WY - 2), 0.8, hullM, 0, (D + WY - 2) / 2, B0 - 0.4);
 
       // rodas de pás gigantes nos dois lados
       for (const s of [1, -1]) {
@@ -202,27 +225,27 @@ export function pantano(tr, rnd, H) {
 
       // superestrutura: cabines, ponte de comando, chaminés e guindaste no convés
       const deckY = top + 1.1;
-      box(2 * W - 6, 5, L * 0.42, cream, 0, deckY + 2.5, -L * 0.12);
-      { const ws = []; for (const s of [1, -1]) for (let z = -L * 0.32; z < L * 0.08; z += 3) { const w = new THREE.PlaneGeometry(1.4, 1.6).toNonIndexed(); w.rotateY(s * Math.PI / 2); w.translate(s * (W - 2.95), deckY + 3, z); ws.push(w); } g.add(new THREE.Mesh(mergeGeometries(ws), mats.lamp)); }
-      box(2 * W - 4, 0.4, L * 0.46, lam({ color: 0x2f6a5a }), 0, deckY + 5.2, -L * 0.12);
-      box(10, 4, 7, cream, 0, deckY + 7.4, -L * 0.26);
-      const bridgeWin = box(9, 1.4, 0.1, mats.lamp, 0, deckY + 8, -L * 0.26 - 3.56);
-      box(11, 0.4, 8, lam({ color: 0x2f6a5a }), 0, deckY + 9.6, -L * 0.26);
+      box(2 * W - 6, 5, L * 0.42, cream, 0, deckY + 2.5, L * 0.12);
+      { const ws = []; for (const s of [1, -1]) for (let z = -L * 0.08; z < L * 0.32; z += 3) { const w = new THREE.PlaneGeometry(1.4, 1.6).toNonIndexed(); w.rotateY(s * Math.PI / 2); w.translate(s * (W - 2.95), deckY + 3, z); ws.push(w); } g.add(new THREE.Mesh(mergeGeometries(ws), mats.lamp)); }
+      box(2 * W - 4, 0.4, L * 0.46, lam({ color: 0x2f6a5a }), 0, deckY + 5.2, L * 0.12);
+      box(10, 4, 7, cream, 0, deckY + 7.4, L * 0.26);
+      const bridgeWin = box(9, 1.4, 0.1, mats.lamp, 0, deckY + 8, L * 0.26 + 3.56);
+      box(11, 0.4, 8, lam({ color: 0x2f6a5a }), 0, deckY + 9.6, L * 0.26);
       void bridgeWin;
       const stacks = [];
-      for (const z of [L * 0.18, L * 0.32]) {
+      for (const z of [-L * 0.18, -L * 0.32]) {
         const st = new THREE.Mesh(new THREE.CylinderGeometry(2, 2.3, 16, 16), red); st.position.set(0, deckY + 8, z); g.add(st);
         const cap = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2, 1.4, 16), lam({ color: 0x1e1a18 })); cap.position.set(0, deckY + 16.6, z); g.add(cap);
         for (const y of [4, 9, 13]) { const b = new THREE.Mesh(new THREE.CylinderGeometry(2.35, 2.35, 0.5, 16), mats.brass); b.position.set(0, deckY + y, z); g.add(b); }
         stacks.push(new THREE.Vector3(0, deckY + 17.5, z));
       }
       // engrenagem gigante entre as chaminés
-      const bigGear = new THREE.Mesh(new THREE.TorusGeometry(4, 0.6, 6, 24), mats.brass); bigGear.position.set(W - 4, deckY + 6, L * 0.25); bigGear.rotation.y = Math.PI / 2; g.add(bigGear);
+      const bigGear = new THREE.Mesh(new THREE.TorusGeometry(4, 0.6, 6, 24), mats.brass); bigGear.position.set(W - 4, deckY + 6, -L * 0.25); bigGear.rotation.y = Math.PI / 2; g.add(bigGear);
       for (let k = 0; k < 16; k++) { const a = (k / 16) * Math.PI * 2; const tth = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.1, 1), mats.brass); tth.position.set(Math.cos(a) * 4.7, Math.sin(a) * 4.7, 0); tth.rotation.z = a; bigGear.add(tth); }
       shipAnims.push((t) => { bigGear.rotation.z = t * 0.5; });
       // mastro com bandeirolas
-      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 14), mats.wood); mast.position.set(0, deckY + 7, -L * 0.42); g.add(mast);
-      for (const z of [-L * 0.42]) { const fl = new THREE.Mesh(new THREE.PlaneGeometry(3, 1.8), lam({ color: 0xb0322a, side: THREE.DoubleSide })); fl.position.set(1.5, deckY + 13, z); g.add(fl); shipAnims.push((t) => { fl.rotation.y = Math.sin(t * 2) * 0.3; }); }
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 14), mats.wood); mast.position.set(0, deckY + 7, L * 0.42); g.add(mast);
+      for (const z of [L * 0.42]) { const fl = new THREE.Mesh(new THREE.PlaneGeometry(3, 1.8), lam({ color: 0xb0322a, side: THREE.DoubleSide })); fl.position.set(1.5, deckY + 13, z); g.add(fl); shipAnims.push((t) => { fl.rotation.y = Math.sin(t * 2) * 0.3; }); }
       for (const p of stacks) smokers.push(p.clone().applyQuaternion(g.quaternion).add(g.position), p.clone().applyQuaternion(g.quaternion).add(g.position).add(new THREE.Vector3(0, 0.5, 0)));
       tr.landmarks = { ...(tr.landmarks || {}), ship: i0 };
     }
