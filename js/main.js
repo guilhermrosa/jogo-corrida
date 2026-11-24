@@ -194,9 +194,9 @@ function startRace() {
   const track = new Track(scene, trackId, G.cc === 'espelho');
   const theme = THEMES[track.def.theme];
   scene.background = new THREE.Color(theme.sky);
-  scene.fog = new THREE.Fog(theme.fog, 140, 900);
-  hemi.color.set(theme.light ?? 0xffffff);
-  sun.color.set(theme.sun ?? 0xffffff);
+  scene.fog = new THREE.Fog(theme.fog, theme.fogNear ?? 140, theme.fogFar ?? 900);
+  hemi.color.set(theme.light ?? 0xffffff); hemi.intensity = theme.lightI ?? 2.1;
+  sun.color.set(theme.sun ?? 0xffffff); sun.intensity = theme.sunI ?? 1.6;
 
   const karts = G.grid.map((id, slot) => {
     const d = DRIVERS.find((x) => x.id === id);
@@ -449,6 +449,7 @@ function startPodium() {
   const place = standings.indexOf(G.driverId) + 1;
   clearRace();
   hud.show(false);
+  hemi.color.set(0xffffff); hemi.intensity = 2.1; sun.color.set(0xffffff); sun.intensity = 1.6;
   podium = { group: new THREE.Group(), karts: [], t: 0 };
   scene.add(podium.group);
   scene.background = new THREE.Color(0x4fb3ff);

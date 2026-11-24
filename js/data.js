@@ -151,7 +151,7 @@ export const CUPS = [
   },
   {
     name: 'Copa Engrenagem',
-    tracks: ['oficina'], // em construção: uma pista nova por vez
+    tracks: ['oficina', 'pantano'], // em construção: uma pista nova por vez
   },
 ];
 
@@ -209,10 +209,28 @@ TRACKS.oficina = {
   tower: [0, -108],                                     // torre do relógio, no meio da praça
 };
 
+TRACKS.pantano = {
+  name: 'Brejo das Caldeiras',
+  theme: 'pantano',
+  // calçadão de tábuas sobre palafitas, serpenteando pelo pântano; sobe por cima do cano-mestre
+  points: [[0, 0, 1.2], [50, 0, 1.2], [90, -14, 1.3], [114, -48, 1.6], [104, -86, 2.6], [66, -106, 4.4], [26, -94, 3.2],
+    [4, -62, 1.6], [-26, -46, 1.3], [-60, -62, 1.3], [-84, -100, 1.8], [-120, -116, 2.2], [-152, -88, 1.8],
+    [-156, -44, 1.5], [-128, -8, 1.2], [-82, 10, 1.2], [-40, 8, 1.2]],
+  itemRows: [0.16, 0.46, 0.74],
+  swampWater: true,
+  waterY: -0.35,
+  bridge: () => true,                                     // tudo é calçadão
+  // sem corrimão do lado de fora em alguns trechos: dá para cair na água
+  bridgeEdge: (p, q, outer) => (outer && (p.x < -138 || (p.x > 96 && p.z > -70 && p.z < -20)) ? 'fall' : 'wall'),
+  edge: () => 'wall',
+  pipe: [[66, -150], [66, -40]],                          // cano-mestre que passa por baixo da subida
+};
+
 export const THEMES = {
   campos: { sky: 0x7ec8ff, fog: 0xb8e2ff, ground: '#5aa63a', ground2: '#4c9430', shoulder: '#6fb84a', shoulder2: '#5ea53c', skirt: '#8a6a43', wall: ['#ffffff', '#e53935'], decor: 'arvore', music: 0 },
   praia:  { sky: 0x6fd0ff, fog: 0xc9f0ff, ground: '#f2d99a', ground2: '#e8cc85', shoulder: '#f5e2aa', shoulder2: '#ead291', skirt: '#d9b870', wall: ['#ffffff', '#1e88e5'], decor: 'coqueiro', music: 1 },
   serra:  { sky: 0xa9c8e8, fog: 0xdfe8f2, ground: '#eef4fa', ground2: '#dde8f2', shoulder: '#f4f8fc', shoulder2: '#e3ecf5', skirt: '#7d8794', wall: ['#ffffff', '#3949ab'], decor: 'pinheiro', music: 2 },
   oficina: { sky: 0x8fbfe0, fog: 0xe9cf9a, light: 0xfff0d8, sun: 0xffdca8, ground: '#8fae5a', ground2: '#7f9e4c', shoulder: '#b7aa94', shoulder2: '#a89a82', skirt: '#a0563a', wall: ['#efe2c2', '#8e3b2a'], decor: 'arvore', decorMin: 50, decorCount: 120, music: 0 },
+  pantano: { sky: 0x426e80, fog: 0x4f7a7c, fogNear: 70, fogFar: 560, light: 0xb8d8d8, sun: 0xc8e4dc, lightI: 1.35, sunI: 0.8, ground: '#3e4a2a', ground2: '#34402a', shoulder: '#6e5236', shoulder2: '#5e4630', skirt: '#5e4630', wall: ['#7a5c3c', '#5e4630'], decor: 'arvore', decorCount: 0, deck: 0x4a3622, pillar: 0x5a4030, pillarW: 0.7, pillarStep: 6, pillarDeep: 2, waterColors: ['#2c6266', '#347070', '#94d4c4', '#22504e'], music: 2 },
   vulcao: { sky: 0x3a1a24, fog: 0x5a2420, ground: '#3b2a26', ground2: '#2f211e', shoulder: '#5a4038', shoulder2: '#4b352f', skirt: '#2a1e1c', wall: ['#ffb300', '#212121'], decor: 'rocha', music: 3 },
 };

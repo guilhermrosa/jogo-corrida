@@ -305,7 +305,7 @@ export class Kart {
       this.pos.y += this.vy * dt;
       this.fallT += dt;
       if (this.pos.y < Math.min(track.hazardY, ground - 2.5) || this.fallT > 1.6) {
-        this.events.push(track.def.lava ? 'lava' : track.def.water ? 'splash' : 'fall');
+        this.events.push(track.def.lava ? 'lava' : track.def.water || track.def.swampWater ? 'splash' : 'fall');
         this.startRescue(track);
       }
     } else if (!this.airborne) {

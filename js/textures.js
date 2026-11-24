@@ -93,6 +93,14 @@ export const STYLE = {
     skirt: 'brick', skirtA: '#a0563a', skirtB: '#5e3324',
     wall: ['#efe2c2', '#8e3b2a'], wallTrim: '#c9a24a',
   },
+  pantano: {
+    road: 'planks', paveA: '#7a5a3a', mortar: '#2a1d12', line: '#e8d890',
+    curb: ['#8a3a2a', '#d8c8a0'], trim: '#8a7a4a',
+    deck: ['#7a5c3c', '#5e4630', '#94744c', '#3e7a4a'],
+    mud: ['#4a4a2a', '#3a3a22', '#5e6a32', '#2a2a18'],
+    skirt: 'boards', skirtA: '#5e4630', skirtB: '#2e2012',
+    wall: ['#7a5c3c', '#5e4630'], wallTrim: '#6a625a',
+  },
   vulcao: {
     road: 'plates', paveA: '#4b4447', mortar: '#1e1a1b', line: '#ffb84a',
     curb: ['#e8a221', '#2a2526'], trim: '#a0622e',
@@ -202,6 +210,21 @@ export function groundTexture(theme, kind = 'shoulder') {
   const big = kind === 'terrain';
   return pixelTex(64, 64, (g, W, H, r) => {
     if (theme === 'campos') tufts(g, W, H, r, S.grass, big ? 40 : 55, big ? null : S.flowers);
+    else if (theme === 'pantano' && !big) {
+      // tábuas do calçadão com musgo nas frestas
+      px(g, 0, 0, W, H, '#2e2012');
+      for (let x = 0; x < W; x += 8) {
+        const k = 0.85 + r() * 0.3;
+        px(g, x, 0, 7, H, shade(S.deck[0], k)); px(g, x, 0, 1, H, shade(S.deck[0], k * 1.18));
+        for (let i = 0; i < 3; i++) px(g, x + 2 + r() * 3, r() * H, 1, 5 + r() * 8, shade(S.deck[0], k * 0.8));
+      }
+      for (let i = 0; i < 26; i++) dot(g, W, H, ((r() * 8) | 0) * 8 - 1, r() * H, 2, 2 + r() * 3, S.deck[3]);
+      for (let y = 12; y < H; y += 30) for (let x = 3; x < W; x += 8) px(g, x, y, 1, 1, '#1a120a');
+    } else if (theme === 'pantano') {
+      px(g, 0, 0, W, H, S.mud[1]);
+      for (let i = 0; i < 90; i++) { const x = r() * W, y = r() * H; dot(g, W, H, x, y, 3, 2, S.mud[0]); dot(g, W, H, x + 1, y - 1, 1, 1, S.mud[2]); }
+      for (let i = 0; i < 20; i++) dot(g, W, H, r() * W, r() * H, 1, 1, S.mud[3]);
+    }
     else if (theme === 'oficina' && !big) {
       // calçada de lajotas com bueiro de latão de vez em quando
       px(g, 0, 0, W, H, S.slab[3]);
@@ -302,15 +325,15 @@ export function wallTexture(theme) {
 }
 
 // ---------------------------------------------------------------- água e lava
-export function waterTexture() {
+export function waterTexture(cols = ['#2f8fd6', '#3aa0e4', '#bfe8ff', '#2378bd']) {
   return pixelTex(64, 64, (g, W, H, r) => {
-    px(g, 0, 0, W, H, '#2f8fd6');
-    for (let i = 0; i < 260; i++) dot(g, W, H, r() * W, r() * H, 2, 1, '#3aa0e4');
+    px(g, 0, 0, W, H, cols[0]);
+    for (let i = 0; i < 260; i++) dot(g, W, H, r() * W, r() * H, 2, 1, cols[1]);
     for (let i = 0; i < 22; i++) {
       const x = r() * W, y = r() * H;
       // marolinha de desenho: arco claro com sombra
-      dot(g, W, H, x, y, 5, 1, '#bfe8ff'); dot(g, W, H, x - 1, y + 1, 1, 1, '#bfe8ff'); dot(g, W, H, x + 5, y + 1, 1, 1, '#bfe8ff');
-      dot(g, W, H, x, y + 2, 5, 1, '#2378bd');
+      dot(g, W, H, x, y, 5, 1, cols[2]); dot(g, W, H, x - 1, y + 1, 1, 1, cols[2]); dot(g, W, H, x + 5, y + 1, 1, 1, cols[2]);
+      dot(g, W, H, x, y + 2, 5, 1, cols[3]);
     }
   }, { seed: 4 });
 }

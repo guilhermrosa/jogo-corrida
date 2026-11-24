@@ -5,7 +5,7 @@ Pistas novas no estilo das artes conceituais aprovadas (`docs/conceito/`), feita
 | Pista | Conceito de origem | Arquivos |
 |---|---|---|
 | Vila Engrenagem | cidade-oficina (`r2-chao-1-cidade-oficina.png`) | `vila-engrenagem-v1.jpg`, `vila-engrenagem-v1-mapa.png`, `vila-engrenagem-v2.jpg`, `comparativo-v1-v2.jpg` |
-| _a fazer_ | pântano com máquinas | |
+| Brejo das Caldeiras | pântano com máquinas (`r2-chao-3-pantano-maquinas.png`) | `brejo-das-caldeiras-v1.jpg` |
 | _a fazer_ | deserto de sucata | |
 | _a fazer_ | ilhas com correntes | |
 
@@ -32,3 +32,19 @@ Feedback da v1: "ficou muito cidade antiga europeia germânica, falta a vibe ste
 - Máquina a vapor no cais, com volante, biela e pistão se mexendo.
 - Gasômetro (tanque que sobe e desce dentro de uma armação de ferro).
 - Luz e névoa mais douradas, telhados de cobre e azinhavre.
+
+## Brejo das Caldeiras v1
+Calçadão de tábuas sobre palafitas serpenteando pelo pântano (~730 m), subindo por cima do cano-mestre.
+Em alguns trechos de fora das curvas não há corrimão: quem sai da pista cai na água e a coruja resgata.
+
+Seguindo o pedido sobre o conceito: céu e luz **azulados, um pouco mais fechados, com um toque de verde**
+(fim de tarde), e **vaga-lumes e libélulas** no lugar de moscas.
+- Árvores baixas, grossas e retorcidas, com raízes de mangue e barba-de-velho pendurada.
+- Cogumelos que brilham (rosa, verde-água, lilás e laranja), alguns gigantes.
+- Vitórias-régias com flores, taboas na beira da água, ilhotas de lama e musgo.
+- Cano de cobre correndo em cima do corrimão, com braçadeiras de latão e válvulas soltando vapor.
+- Cano-mestre gigante com casas de bomba nas pontas (caldeiras de cobre fumegando).
+- Bombas de vareta balançando, cabanas de caldeira sobre palafitas com janela redonda acesa,
+  máquina enferrujada afundada e um barco a vapor de roda de pás dando voltas no pântano.
+- Lampiões pendurados no corrimão e varais de lanternas coloridas atravessando a pista.
+- Vaga-lumes piscando e libélulas voando em oito e parando para pairar.

@@ -95,7 +95,7 @@ export class Track {
         q.y = p.y;
         q.x *= mx;
         const outer = Math.hypot(q.x * mx - cx, q.z - cz) > Math.hypot(this.px[i] - cx, p.z - cz);
-        const type = this.bridge[i] ? 'wall' : this.def.edge(p, q, outer);
+        const type = this.bridge[i] ? (this.def.bridgeEdge ? this.def.bridgeEdge(p, q, outer) : 'wall') : this.def.edge(p, q, outer);
         this.edgeFall[i * 2 + k] = type === 'fall' ? 1 : 0;
       });
     }
@@ -207,7 +207,7 @@ export class Track {
     ground.position.y = Math.min(GROUND_Y - (this.def.lava ? 2 : 0.4), (this.def.waterY ?? 0.12) - 0.8);
 
     if (this.def.water) {
-      const wt = waterTexture();
+      const wt = waterTexture(this.theme.waterColors);
       wt.repeat.set(40, 40);
       this.animated.push((dt) => { wt.offset.x += dt * 0.02; wt.offset.y += dt * 0.012; });
       const wm = lam({ map: wt, transparent: true, opacity: 0.92 });
@@ -217,6 +217,15 @@ export class Track {
         m.position.set(x + w / 2, this.def.waterY ?? 0.12, z + d / 2);
       }
       this.hazardY = this.def.waterY ?? 0.12;
+    }
+    if (this.def.swampWater) {
+      const wt = waterTexture(this.theme.waterColors);
+      wt.repeat.set(160, 160);
+      this.animated.push((dt) => { wt.offset.x += dt * 0.006; wt.offset.y += dt * 0.004; });
+      const m = this.mesh(new THREE.PlaneGeometry(2400, 2400), lam({ map: wt, transparent: true, opacity: 0.9 }));
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(this.center?.x ?? 0, this.def.waterY, this.center?.z ?? 0);
+      this.hazardY = this.def.waterY;
     }
     if (this.def.lava) {
       const lt = lavaTexture();
@@ -255,7 +264,7 @@ export class Track {
 
     // Pontes: parte de baixo do tabuleiro e pilares
     if (this.bridge.some((b) => b)) {
-      const under = lam({ color: 0x6d4c41, side: THREE.DoubleSide });
+      const under = lam({ color: this.theme.deck ?? 0x6d4c41, side: THREE.DoubleSide });
       const bl = (k, out) => this.point(k, EDGE, out).setY(this.py[k] - 0.8);
       const br = (k, out) => this.point(k, -EDGE, out).setY(this.py[k] - 0.8);
       this.mesh(this.ribbon(bl, br, 8, (k) => !this.bridge[k]), under);
@@ -264,9 +273,11 @@ export class Track {
         const b = (k, out) => this.point(k, s * EDGE, out).setY(this.py[k] - 0.8);
         this.mesh(this.ribbon(a, b, 8, (k) => !this.bridge[k]), under);
       }
-      const pillarMat = lam({ color: 0x8d8d8d });
+      const pillarMat = lam({ color: this.theme.pillar ?? 0x8d8d8d });
       const v = new THREE.Vector3();
-      for (let i = 0; i < N; i += 10) {
+      const mats = [];
+      const pw = this.theme.pillarW ?? 1.4;
+      for (let i = 0; i < N; i += this.theme.pillarStep ?? 10) {
         if (!this.bridge[i]) continue;
         for (const s of [1, -1]) {
           this.point(i, s * (EDGE - 1), v);
@@ -277,10 +288,14 @@ export class Track {
             if (Math.hypot(v.x - this.px[j], v.z - this.pz[j]) < EDGE + 3) { clash = true; break; }
           }
           if (clash) continue;
-          const h = this.py[i] - base;
-          const p = this.mesh(new THREE.BoxGeometry(1.4, h, 1.4), pillarMat);
-          p.position.set(v.x, base + h / 2 - 0.8, v.z);
+          const h = this.py[i] - base + (this.theme.pillarDeep ?? 0);
+          mats.push(new THREE.Matrix4().compose(new THREE.Vector3(v.x, this.py[i] - 0.8 - h / 2, v.z), new THREE.Quaternion(), new THREE.Vector3(pw, h, pw)));
         }
+      }
+      if (mats.length) {
+        const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), pillarMat, mats.length);
+        mats.forEach((m, n) => im.setMatrixAt(n, m));
+        this.group.add(im);
       }
     }
 
@@ -329,7 +344,7 @@ export class Track {
       c.fillStyle = g; c.fillRect(0, 0, w, h);
       // nuvens
       if (this.def.theme !== 'vulcao') {
-        c.fillStyle = 'rgba(255,255,255,.85)';
+        c.fillStyle = this.def.theme === 'pantano' ? 'rgba(190,225,220,.4)' : 'rgba(255,255,255,.85)';
         for (let i = 0; i < 14; i++) {
           const x = rnd() * w, y = 6 + rnd() * 18;
           for (let k = 0; k < 4; k++) { c.beginPath(); c.ellipse(x + k * 7, y + (k % 2) * 2, 8, 4, 0, 0, Math.PI * 2); c.fill(); }
@@ -343,7 +358,8 @@ export class Track {
         ? [['#8fa3bb', 0.45], ['#c9d6e6', 0.62]]
         : this.def.theme === 'vulcao' ? [['#2a1414', 0.4], ['#1a0c0c', 0.6]]
           : this.def.theme === 'praia' ? [['#6aa7c9', 0.72]]
-            : this.def.theme === 'oficina' ? [['#8a9fb0', 0.48], ['#6f9a5a', 0.66]] : [['#5f8f6a', 0.5], ['#3f7a4a', 0.68]];
+            : this.def.theme === 'oficina' ? [['#8a9fb0', 0.48], ['#6f9a5a', 0.66]]
+              : this.def.theme === 'pantano' ? [['#3c6466', 0.5], ['#2a4a44', 0.64], ['#1e3632', 0.76]] : [['#5f8f6a', 0.5], ['#3f7a4a', 0.68]];
       for (const [col, base] of layers) {
         c.fillStyle = col;
         c.beginPath(); c.moveTo(0, h);
